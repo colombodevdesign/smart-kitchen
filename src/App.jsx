@@ -66,6 +66,7 @@ export default function App() {
             loading={ricette.loading}
             output={ricette.output}
             error={ricette.error}
+            cached={ricette.cached}
           />
         )}
         {activeTab === 'spesa' && (
@@ -75,6 +76,7 @@ export default function App() {
             loading={spesa.loading}
             output={spesa.output}
             error={spesa.error}
+            cached={spesa.cached}
           />
         )}
         {activeTab === 'settings' && (

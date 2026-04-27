@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import styles from './AITab.module.css'
 
-export function AITab({ buttonLabel, onFetch, loading, output, error }) {
+export function AITab({ buttonLabel, onFetch, loading, output, error, cached }) {
   const outputRef = useRef(null)
 
   useEffect(() => {
@@ -32,6 +32,10 @@ export function AITab({ buttonLabel, onFetch, loading, output, error }) {
       </button>
 
       {error && <div className={styles.error}>{error}</div>}
+
+      {cached && output && (
+        <div className={styles.cachedBadge}>dalla cache · nessun token usato</div>
+      )}
 
       {(output || loading) && (
         <div className={styles.output} ref={outputRef}>
