@@ -1,9 +1,10 @@
 import { useState, useCallback } from 'react'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 import { getSeasonal, getMonthName } from '../data/seasonal'
 
 const CACHE_KEY = 'cucina-ai-cache-v1'
 const GEMINI_API_KEY_STORAGE = 'gemini-api-key'
-const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:streamGenerateContent'
+const MODEL_NAME = 'gemini-2.5-flash-preview-04-17'
 
 function hashString(str) {
   let h = 0
@@ -44,45 +45,20 @@ export function useAI(getInventoryText) {
       const apiKey = localStorage.getItem(GEMINI_API_KEY_STORAGE)
       if (!apiKey) throw new Error('API key non configurata. Vai in Impostazioni per inserirla.')
 
-      const res = await fetch(`${GEMINI_BASE_URL}?key=${apiKey}&alt=sse`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          system_instruction: { parts: [{ text: systemPrompt }] },
-          contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-          generationConfig: { maxOutputTokens: 1024 },
-        }),
+      const genAI = new GoogleGenerativeAI(apiKey)
+      const model = genAI.getGenerativeModel({
+        model: MODEL_NAME,
+        systemInstruction: systemPrompt,
       })
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        if (res.status === 429) throw new Error('Quota Gemini esaurita. Riprova tra qualche minuto o verifica il piano di fatturazione.')
-        throw new Error(err?.error?.message || `Errore API: ${res.status}`)
-      }
+      const result = await model.generateContentStream(userPrompt)
 
-      const reader = res.body.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ''
       let fullOutput = ''
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n')
-        buffer = lines.pop()
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue
-          const data = line.slice(6).trim()
-          if (data === '[DONE]') continue
-          try {
-            const evt = JSON.parse(data)
-            const text = evt?.candidates?.[0]?.content?.parts?.[0]?.text
-            if (text) {
-              fullOutput += text
-              setOutput(prev => prev + text)
-            }
-          } catch {}
+      for await (const chunk of result.stream) {
+        const text = chunk.text()
+        if (text) {
+          fullOutput += text
+          setOutput(prev => prev + text)
         }
       }
 
@@ -90,7 +66,14 @@ export function useAI(getInventoryText) {
         saveCache({ ...loadCache(), [cacheType]: { hash: cacheHash, output: fullOutput } })
       }
     } catch (e) {
-      setError(e.message || 'Errore di connessione.')
+      const msg = e.message || ''
+      if (msg.includes('429') || msg.toLowerCase().includes('quota')) {
+        setError('Quota Gemini esaurita. Riprova tra qualche minuto o verifica il piano di fatturazione.')
+      } else if (msg.includes('API_KEY_INVALID') || msg.includes('API key')) {
+        setError('API key non valida. Controlla le Impostazioni.')
+      } else {
+        setError(msg || 'Errore di connessione.')
+      }
     } finally {
       setLoading(false)
     }
