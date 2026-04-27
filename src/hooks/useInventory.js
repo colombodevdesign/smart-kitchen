@@ -40,11 +40,12 @@ export function useInventory() {
     } catch {}
   }, [inventory])
 
-  const addItem = useCallback((section, name, qty) => {
+  const addItem = useCallback((section, name, qty, expiryDateStr) => {
     const id = section[0] + Date.now()
+    const expiresAt = expiryDateStr ? new Date(expiryDateStr + 'T23:59:59').getTime() : null
     setInventory(prev => ({
       ...prev,
-      [section]: [...prev[section], { id, name: name.trim(), qty: qty.trim(), urgent: false, added: Date.now() }],
+      [section]: [...prev[section], { id, name: name.trim(), qty: qty.trim(), urgent: false, added: Date.now(), expiresAt }],
     }))
   }, [])
 
@@ -94,8 +95,16 @@ export function useInventory() {
                 if (!isNaN(parsed.getTime())) added = parsed.getTime()
               }
             }
+            let expiresAt = null
+            if (fields[5]) {
+              const ep = fields[5].split('/')
+              if (ep.length === 3) {
+                const parsed = new Date(+ep[2], +ep[1] - 1, +ep[0])
+                if (!isNaN(parsed.getTime())) expiresAt = parsed.getTime()
+              }
+            }
             const id = section[0] + (Date.now() + counter++)
-            newInventory[section].push({ id, name: name.trim(), qty: qty.trim(), urgent, added })
+            newInventory[section].push({ id, name: name.trim(), qty: qty.trim(), urgent, added, expiresAt })
           }
           setInventory(newInventory)
           resolve()
@@ -109,7 +118,7 @@ export function useInventory() {
   }, [])
 
   const exportCSV = useCallback(() => {
-    const rows = [['sezione', 'nome', 'quantità', 'da usare presto', 'aggiunto il']]
+    const rows = [['sezione', 'nome', 'quantità', 'da usare presto', 'aggiunto il', 'scade il']]
     for (const [section, items] of Object.entries(inventory)) {
       for (const item of items) {
         rows.push([
@@ -118,6 +127,7 @@ export function useInventory() {
           item.qty || '',
           item.urgent ? 'sì' : 'no',
           new Date(item.added).toLocaleDateString('it-IT'),
+          item.expiresAt ? new Date(item.expiresAt).toLocaleDateString('it-IT') : '',
         ])
       }
     }
@@ -134,9 +144,17 @@ export function useInventory() {
   const getInventoryText = useCallback(() => {
     return Object.entries(inventory)
       .flatMap(([section, items]) =>
-        items.map(i =>
-          `${section[0].toUpperCase() + section.slice(1)}: ${i.name}${i.qty ? ' (' + i.qty + ')' : ''}${i.urgent ? ' [DA USARE PRESTO]' : ''}`
-        )
+        items.map(i => {
+          let text = `${section[0].toUpperCase() + section.slice(1)}: ${i.name}${i.qty ? ' (' + i.qty + ')' : ''}${i.urgent ? ' [DA USARE PRESTO]' : ''}`
+          if (i.expiresAt) {
+            const days = Math.floor((i.expiresAt - Date.now()) / 86400000)
+            if (days < 0) text += ' [SCADUTO]'
+            else if (days === 0) text += ' [SCADE OGGI]'
+            else if (days <= 3) text += ` [SCADE TRA ${days} GG]`
+            else text += ` [scade il ${new Date(i.expiresAt).toLocaleDateString('it-IT')}]`
+          }
+          return text
+        })
       ).join('\n')
   }, [inventory])
 

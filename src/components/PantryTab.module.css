@@ -99,7 +99,7 @@
   border-top: 0.5px solid var(--border);
 }
 
-.addName, .addQty {
+.addName, .addQty, .addExpiry {
   padding: 8px 10px;
   border: 0.5px solid var(--border);
   border-radius: var(--radius-sm);
@@ -108,9 +108,10 @@
   outline: none;
   transition: border-color 0.12s;
 }
-.addName:focus, .addQty:focus { border-color: var(--accent); }
+.addName:focus, .addQty:focus, .addExpiry:focus { border-color: var(--accent); }
 .addName { flex: 2; }
 .addQty { flex: 1; min-width: 0; }
+.addExpiry { flex-shrink: 0; font-size: 13px; }
 
 .addBtn {
   padding: 8px 14px;
