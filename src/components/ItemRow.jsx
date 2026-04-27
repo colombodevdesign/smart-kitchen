@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { formatDate } from '../utils/date.js'
+import { formatDate, formatExpiry, expiryStatus } from '../utils/date.js'
 import styles from './ItemRow.module.css'
 
 export function ItemRow({ item, section, onToggleUrgent, onUpdate, onRemove }) {
@@ -10,17 +10,24 @@ export function ItemRow({ item, section, onToggleUrgent, onUpdate, onRemove }) {
   useEffect(() => {
     if (editingField && inputRef.current) {
       inputRef.current.focus()
-      inputRef.current.select()
+      if (editingField !== 'expiresAt') inputRef.current.select()
     }
   }, [editingField])
 
   function startEdit(field) {
-    setDraft(item[field] || '')
+    if (field === 'expiresAt') {
+      setDraft(item.expiresAt ? new Date(item.expiresAt).toISOString().slice(0, 10) : '')
+    } else {
+      setDraft(item[field] || '')
+    }
     setEditingField(field)
   }
 
   function confirm() {
-    if (editingField) {
+    if (editingField === 'expiresAt') {
+      const ts = draft ? new Date(draft + 'T23:59:59').getTime() : null
+      onUpdate(section, item.id, { expiresAt: ts })
+    } else if (editingField) {
       onUpdate(section, item.id, { [editingField]: draft.trim() })
     }
     setEditingField(null)
@@ -34,6 +41,10 @@ export function ItemRow({ item, section, onToggleUrgent, onUpdate, onRemove }) {
     if (e.key === 'Enter') confirm()
     if (e.key === 'Escape') cancel()
   }
+
+  const expiry = formatExpiry(item.expiresAt)
+  const status = expiryStatus(item.expiresAt)
+  const expiryClass = status === 'expired' ? styles.expiryExpired : status === 'soon' ? styles.expirySoon : styles.expiry
 
   return (
     <div className={`${styles.row} ${editingField ? styles.editing : ''} ${item.urgent ? styles.urgent : ''}`}>
@@ -64,7 +75,36 @@ export function ItemRow({ item, section, onToggleUrgent, onUpdate, onRemove }) {
             {item.urgent && <span className={styles.badgeUrgent}>da usare</span>}
           </span>
         )}
-        <span className={styles.date}>{formatDate(item.added)}</span>
+        <div className={styles.meta}>
+          <span className={styles.date}>{formatDate(item.added)}</span>
+          {editingField === 'expiresAt' ? (
+            <input
+              ref={inputRef}
+              type="date"
+              className={styles.expiryInput}
+              value={draft}
+              onChange={e => setDraft(e.target.value)}
+              onKeyDown={onKeyDown}
+              onBlur={() => setTimeout(confirm, 120)}
+            />
+          ) : expiry ? (
+            <span
+              className={expiryClass}
+              onClick={() => startEdit('expiresAt')}
+              title="Clicca per modificare scadenza"
+            >
+              · {expiry}
+            </span>
+          ) : (
+            <span
+              className={styles.expiryAdd}
+              onClick={() => startEdit('expiresAt')}
+              title="Aggiungi data di scadenza"
+            >
+              + scad.
+            </span>
+          )}
+        </div>
       </div>
 
       {editingField === 'qty' ? (

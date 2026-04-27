@@ -62,10 +62,63 @@
   width: 100%;
 }
 
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .date {
   font-size: 11px;
   color: var(--text-hint);
   padding-left: 3px;
+}
+
+.expiry {
+  font-size: 11px;
+  color: var(--text-hint);
+  cursor: pointer;
+  border-radius: 3px;
+  padding: 0 2px;
+}
+.expiry:hover { background: var(--surface-hover); }
+
+.expirySoon {
+  font-size: 11px;
+  color: var(--accent);
+  cursor: pointer;
+  border-radius: 3px;
+  padding: 0 2px;
+}
+.expirySoon:hover { background: var(--accent-light); }
+
+.expiryExpired {
+  font-size: 11px;
+  color: var(--urgent);
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 3px;
+  padding: 0 2px;
+}
+.expiryExpired:hover { background: var(--urgent-light); }
+
+.expiryAdd {
+  font-size: 11px;
+  color: var(--text-hint);
+  cursor: pointer;
+  opacity: 0.6;
+  padding: 0 2px;
+}
+.expiryAdd:hover { opacity: 1; }
+
+.expiryInput {
+  font-size: 11px;
+  border: 0.5px solid var(--accent);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+  outline: none;
+  padding: 1px 4px;
 }
 
 .badgeUrgent {

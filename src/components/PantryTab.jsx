@@ -8,12 +8,14 @@ export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onAdd
   const [sortUrgent, setSortUrgent] = useState(false)
   const [newName, setNewName] = useState('')
   const [newQty, setNewQty] = useState('')
+  const [newExpiry, setNewExpiry] = useState('')
 
   function handleAdd() {
     if (!newName.trim()) return
-    onAdd(section, newName, newQty)
+    onAdd(section, newName, newQty, newExpiry || null)
     setNewName('')
     setNewQty('')
+    setNewExpiry('')
   }
 
   const items = sortUrgent
@@ -51,7 +53,7 @@ export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onAdd
       </div>
 
       <p className={styles.hint}>
-        clicca nome o quantità per modificare · puntino = da usare presto
+        clicca nome, quantità o scadenza per modificare · puntino = da usare presto
       </p>
 
       <div className={styles.list}>
@@ -84,6 +86,13 @@ export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onAdd
           onChange={e => setNewQty(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleAdd()}
           placeholder="Quantità"
+        />
+        <input
+          type="date"
+          className={styles.addExpiry}
+          value={newExpiry}
+          onChange={e => setNewExpiry(e.target.value)}
+          title="Data di scadenza (opzionale)"
         />
         <button className={styles.addBtn} onClick={handleAdd}>+ Aggiungi</button>
       </div>
