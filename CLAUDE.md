@@ -44,6 +44,8 @@ src/
 | `cucina-smart-v1` | inventario `{ credenza: [], frigo: [], freezer: [] }` |
 | `gemini-api-key` | API key Gemini (inserita dall'utente in Settings) |
 | `cucina-ai-cache-v1` | cache risposte AI `{ ricette: {hash, output}, spesa: {hash, output} }` |
+| `cucina-session-ricette-v1` | sessione chat ricette `{ messages, apiHistory, systemPrompt }` |
+| `cucina-session-spesa-v1` | sessione chat spesa `{ messages, apiHistory, systemPrompt }` |
 
 ## Modello dati — Item
 

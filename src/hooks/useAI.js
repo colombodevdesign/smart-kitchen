@@ -22,6 +22,22 @@ function saveCache(cache) {
   try { localStorage.setItem(CACHE_KEY, JSON.stringify(cache)) } catch {}
 }
 
+function sessionKey(name) { return `cucina-session-${name}-v1` }
+
+function loadSession(name) {
+  try { return JSON.parse(localStorage.getItem(sessionKey(name))) ?? null } catch { return null }
+}
+
+function saveSession(name, messages, apiHistory, systemPrompt) {
+  try {
+    localStorage.setItem(sessionKey(name), JSON.stringify({ messages, apiHistory, systemPrompt }))
+  } catch {}
+}
+
+function clearSession(name) {
+  try { localStorage.removeItem(sessionKey(name)) } catch {}
+}
+
 function getApiKey() {
   const key = localStorage.getItem(GEMINI_API_KEY_STORAGE)
   if (!key) throw new Error('API key non configurata. Vai in Impostazioni per inserirla.')
@@ -37,16 +53,17 @@ function parseError(e) {
   return msg || 'Errore di connessione.'
 }
 
-export function useAI(getInventoryText) {
-  const [messages, setMessages] = useState([])   // [{role:'user'|'model', text}]
-  const [streaming, setStreaming] = useState('')  // testo del chunk corrente
+export function useAI(getInventoryText, name) {
+  const saved = loadSession(name)
+
+  const [messages, setMessages] = useState(saved?.messages ?? [])
+  const [streaming, setStreaming] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [cached, setCached] = useState(false)
 
-  // storia completa in formato API per il multi-turn
-  const apiHistoryRef = useRef([])
-  const systemPromptRef = useRef('')
+  const apiHistoryRef = useRef(saved?.apiHistory ?? [])
+  const systemPromptRef = useRef(saved?.systemPrompt ?? '')
 
   const runStream = useCallback(async (apiKey, contents, onChunk) => {
     const ai = new GoogleGenAI({ apiKey })
@@ -85,19 +102,24 @@ export function useAI(getInventoryText) {
       const fullOutput = await runStream(apiKey, contents, text =>
         setStreaming(prev => prev + text)
       )
-      apiHistoryRef.current = [...contents, { role: 'model', parts: [{ text: fullOutput }] }]
+      const newHistory = [...contents, { role: 'model', parts: [{ text: fullOutput }] }]
+      apiHistoryRef.current = newHistory
       setMessages([{ role: 'model', text: fullOutput }])
       setStreaming('')
-      if (fullOutput) saveCache({ ...loadCache(), [cacheType]: { hash: cacheHash, output: fullOutput } })
+      if (fullOutput) {
+        saveCache({ ...loadCache(), [cacheType]: { hash: cacheHash, output: fullOutput } })
+        saveSession(name, [{ role: 'model', text: fullOutput }], newHistory, systemPrompt)
+      }
     } catch (e) {
       setError(parseError(e))
     } finally {
       setLoading(false)
     }
-  }, [runStream])
+  }, [runStream, name])
 
   const sendFollowUp = useCallback(async (userText) => {
-    setMessages(prev => [...prev, { role: 'user', text: userText }])
+    const newMessages = (prev) => [...prev, { role: 'user', text: userText }]
+    setMessages(newMessages)
     setLoading(true)
     setStreaming('')
     setError('')
@@ -108,15 +130,20 @@ export function useAI(getInventoryText) {
       const fullOutput = await runStream(apiKey, contents, text =>
         setStreaming(prev => prev + text)
       )
-      apiHistoryRef.current = [...contents, { role: 'model', parts: [{ text: fullOutput }] }]
-      setMessages(prev => [...prev, { role: 'model', text: fullOutput }])
+      const newHistory = [...contents, { role: 'model', parts: [{ text: fullOutput }] }]
+      apiHistoryRef.current = newHistory
+      setMessages(prev => {
+        const updated = [...prev, { role: 'model', text: fullOutput }]
+        saveSession(name, updated, newHistory, systemPromptRef.current)
+        return updated
+      })
       setStreaming('')
     } catch (e) {
       setError(parseError(e))
     } finally {
       setLoading(false)
     }
-  }, [runStream])
+  }, [runStream, name])
 
   const fetchRicette = useCallback(() => {
     const inventoryText = getInventoryText()
@@ -150,6 +177,7 @@ export function useAI(getInventoryText) {
       setStreaming('')
       setCached(false)
       apiHistoryRef.current = []
+      clearSession(name)
     },
   }
 }

@@ -21,13 +21,11 @@ export default function App() {
     exportCSV, importCSV, getInventoryText,
   } = useInventory()
 
-  const ricette = useAI(getInventoryText)
-  const spesa   = useAI(getInventoryText)
+  const ricette = useAI(getInventoryText, 'ricette')
+  const spesa   = useAI(getInventoryText, 'spesa')
 
   function handleTabChange(id) {
     setActiveTab(id)
-    if (id === 'ricette') ricette.clearOutput()
-    if (id === 'spesa')   spesa.clearOutput()
   }
 
   return (
