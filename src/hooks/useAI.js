@@ -7,7 +7,7 @@ export function useAI(apiKey, getInventoryText) {
 
   const call = useCallback(async (systemPrompt, userPrompt) => {
     if (!apiKey.trim()) {
-      setError('Inserisci la tua API key di Anthropic nelle impostazioni per usare questa funzione.')
+      setError('Inserisci la tua API key di Gemini nelle impostazioni per usare questa funzione.')
       return
     }
     setLoading(true)
@@ -15,22 +15,18 @@ export function useAI(apiKey, getInventoryText) {
     setError('')
 
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey.trim(),
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 1024,
-          stream: true,
-          system: systemPrompt,
-          messages: [{ role: 'user', content: userPrompt }],
-        }),
-      })
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?key=${apiKey.trim()}&alt=sse`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            system_instruction: { parts: [{ text: systemPrompt }] },
+            contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+            generationConfig: { maxOutputTokens: 1024 },
+          }),
+        }
+      )
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
@@ -53,9 +49,8 @@ export function useAI(apiKey, getInventoryText) {
           if (data === '[DONE]') continue
           try {
             const evt = JSON.parse(data)
-            if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta') {
-              setOutput(prev => prev + evt.delta.text)
-            }
+            const text = evt?.candidates?.[0]?.content?.parts?.[0]?.text
+            if (text) setOutput(prev => prev + text)
           } catch {}
         }
       }

@@ -4,6 +4,26 @@ import { INITIAL_INVENTORY } from '../data/initialInventory.js'
 const STORAGE_KEY = 'cucina-smart-v1'
 const API_KEY_STORAGE = 'cucina-smart-apikey'
 
+function parseCSVLine(line) {
+  const fields = []
+  let current = ''
+  let inQuote = false
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i]
+    if (ch === '"') {
+      if (inQuote && line[i + 1] === '"') { current += '"'; i++ }
+      else inQuote = !inQuote
+    } else if (ch === ',' && !inQuote) {
+      fields.push(current)
+      current = ''
+    } else {
+      current += ch
+    }
+  }
+  fields.push(current)
+  return fields
+}
+
 function loadInventory() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
@@ -60,6 +80,45 @@ export function useInventory() {
     }))
   }, [])
 
+  const importCSV = useCallback((file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        try {
+          let text = e.target.result
+          if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1)
+          const lines = text.split(/\r?\n/).filter(l => l.trim())
+          if (lines.length < 2) throw new Error('File CSV vuoto o non valido')
+          const newInventory = { credenza: [], frigo: [], freezer: [] }
+          let counter = 0
+          for (const line of lines.slice(1)) {
+            const fields = parseCSVLine(line)
+            if (fields.length < 4) continue
+            const [section, name, qty, urgentStr, dateStr] = fields
+            if (!Object.prototype.hasOwnProperty.call(newInventory, section)) continue
+            const urgent = urgentStr === 'sì'
+            let added = Date.now()
+            if (dateStr) {
+              const parts = dateStr.split('/')
+              if (parts.length === 3) {
+                const parsed = new Date(+parts[2], +parts[1] - 1, +parts[0])
+                if (!isNaN(parsed.getTime())) added = parsed.getTime()
+              }
+            }
+            const id = section[0] + (Date.now() + counter++)
+            newInventory[section].push({ id, name: name.trim(), qty: qty.trim(), urgent, added })
+          }
+          setInventory(newInventory)
+          resolve()
+        } catch (err) {
+          reject(err)
+        }
+      }
+      reader.onerror = () => reject(new Error('Errore lettura file'))
+      reader.readAsText(file, 'utf-8')
+    })
+  }, [])
+
   const exportCSV = useCallback(() => {
     const rows = [['sezione', 'nome', 'quantità', 'da usare presto', 'aggiunto il']]
     for (const [section, items] of Object.entries(inventory)) {
@@ -101,6 +160,7 @@ export function useInventory() {
     updateItem,
     toggleUrgent,
     exportCSV,
+    importCSV,
     getInventoryText,
   }
 }

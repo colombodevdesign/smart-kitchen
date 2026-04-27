@@ -18,7 +18,7 @@ export default function App() {
   const {
     inventory, apiKey, saveApiKey,
     addItem, removeItem, updateItem, toggleUrgent,
-    exportCSV, getInventoryText,
+    exportCSV, importCSV, getInventoryText,
   } = useInventory()
 
   const ricette = useAI(apiKey, getInventoryText)
@@ -57,7 +57,6 @@ export default function App() {
             onUpdate={updateItem}
             onRemove={removeItem}
             onAdd={addItem}
-            onExport={exportCSV}
           />
         )}
         {activeTab === 'ricette' && (
@@ -81,7 +80,7 @@ export default function App() {
           />
         )}
         {activeTab === 'settings' && (
-          <SettingsTab apiKey={apiKey} onSave={saveApiKey} />
+          <SettingsTab apiKey={apiKey} onSave={saveApiKey} onExport={exportCSV} onImport={importCSV} />
         )}
       </main>
     </div>
