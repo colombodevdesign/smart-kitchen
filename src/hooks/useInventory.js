@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
-import { INITIAL_INVENTORY } from '../data/initialInventory.js'
 
 const STORAGE_KEY = 'cucina-smart-v1'
+const EMPTY_INVENTORY = { credenza: [], frigo: [], freezer: [] }
 
 function parseCSVLine(line) {
   const fields = []
@@ -28,7 +28,7 @@ function loadInventory() {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) return JSON.parse(raw)
   } catch {}
-  return JSON.parse(JSON.stringify(INITIAL_INVENTORY))
+  return EMPTY_INVENTORY
 }
 
 export function useInventory() {
