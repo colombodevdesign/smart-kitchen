@@ -1,22 +1,25 @@
-export const config = { runtime: 'edge' }
+export const config = { maxDuration: 60 }
 
-export default async function handler(req) {
+export default async function handler(req, res) {
   if (req.method !== 'POST') {
-    return new Response('Method not allowed', { status: 405 })
+    res.status(405).send('Method not allowed')
+    return
   }
 
-  const { systemPrompt, userPrompt } = await req.json()
+  let body = ''
+  for await (const chunk of req) {
+    body += chunk
+  }
+  const { systemPrompt, userPrompt } = JSON.parse(body)
 
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) {
-    return new Response(
-      JSON.stringify({ error: { message: 'GEMINI_API_KEY non configurata sul server' } }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    )
+    res.status(500).json({ error: { message: 'GEMINI_API_KEY non configurata sul server' } })
+    return
   }
 
   const geminiRes = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:streamGenerateContent?key=${apiKey}&alt=sse`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?key=${apiKey}&alt=sse`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -30,17 +33,24 @@ export default async function handler(req) {
 
   if (!geminiRes.ok) {
     const err = await geminiRes.json().catch(() => ({}))
-    return new Response(JSON.stringify(err), {
-      status: geminiRes.status,
-      headers: { 'Content-Type': 'application/json' },
-    })
+    res.status(geminiRes.status).json(err)
+    return
   }
 
-  return new Response(geminiRes.body, {
-    headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      'X-Accel-Buffering': 'no',
-    },
-  })
+  res.setHeader('Content-Type', 'text/event-stream')
+  res.setHeader('Cache-Control', 'no-cache')
+  res.setHeader('X-Accel-Buffering', 'no')
+
+  const reader = geminiRes.body.getReader()
+  const decoder = new TextDecoder()
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      res.write(decoder.decode(value, { stream: true }))
+    }
+  } finally {
+    res.end()
+  }
 }
