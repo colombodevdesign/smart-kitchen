@@ -1,35 +1,20 @@
 import { useState, useCallback } from 'react'
 
-export function useAI(apiKey, getInventoryText) {
+export function useAI(getInventoryText) {
   const [loading, setLoading] = useState(false)
   const [output, setOutput] = useState('')
   const [error, setError] = useState('')
 
   const call = useCallback(async (systemPrompt, userPrompt) => {
-    if (!apiKey.trim()) {
-      setError('Inserisci la tua API key di Anthropic nelle impostazioni per usare questa funzione.')
-      return
-    }
     setLoading(true)
     setOutput('')
     setError('')
 
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
+      const res = await fetch('/api/gemini', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey.trim(),
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 1024,
-          stream: true,
-          system: systemPrompt,
-          messages: [{ role: 'user', content: userPrompt }],
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ systemPrompt, userPrompt }),
       })
 
       if (!res.ok) {
@@ -53,9 +38,8 @@ export function useAI(apiKey, getInventoryText) {
           if (data === '[DONE]') continue
           try {
             const evt = JSON.parse(data)
-            if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta') {
-              setOutput(prev => prev + evt.delta.text)
-            }
+            const text = evt?.candidates?.[0]?.content?.parts?.[0]?.text
+            if (text) setOutput(prev => prev + text)
           } catch {}
         }
       }
@@ -64,7 +48,7 @@ export function useAI(apiKey, getInventoryText) {
     } finally {
       setLoading(false)
     }
-  }, [apiKey])
+  }, [])
 
   const fetchRicette = useCallback(() => {
     call(

@@ -3,7 +3,7 @@ import { ItemRow } from './ItemRow.jsx'
 import { SECTIONS, SECTION_LABELS } from '../data/initialInventory.js'
 import styles from './PantryTab.module.css'
 
-export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onAdd, onExport }) {
+export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onAdd }) {
   const [section, setSection] = useState('credenza')
   const [sortUrgent, setSortUrgent] = useState(false)
   const [newName, setNewName] = useState('')
@@ -46,9 +46,6 @@ export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onAdd
             <SortIcon />
             urgenza
             {urgentCount > 0 && <span className={styles.urgentBadge}>{urgentCount}</span>}
-          </button>
-          <button className={styles.exportBtn} onClick={onExport} title="Esporta CSV">
-            <DownloadIcon />
           </button>
         </div>
       </div>
@@ -104,10 +101,3 @@ function SortIcon() {
   )
 }
 
-function DownloadIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <path d="M7 2v7M4 6l3 3 3-3M2 11h10"/>
-    </svg>
-  )
-}
