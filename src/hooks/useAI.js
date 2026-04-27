@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 import { getSeasonal, getMonthName } from '../data/seasonal'
 
 const CACHE_KEY = 'cucina-ai-cache-v1'
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:streamGenerateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}&alt=sse`
 
 function hashString(str) {
   let h = 0
@@ -39,10 +40,14 @@ export function useAI(getInventoryText) {
     setError('')
 
     try {
-      const res = await fetch('/api/gemini', {
+      const res = await fetch(GEMINI_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ systemPrompt, userPrompt }),
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: systemPrompt }] },
+          contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+          generationConfig: { maxOutputTokens: 1024 },
+        }),
       })
 
       if (!res.ok) {
