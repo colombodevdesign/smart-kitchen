@@ -63,6 +63,12 @@
 .output li { margin-bottom: 0.2rem; }
 .output strong { font-weight: 600; }
 
+.cachedBadge {
+  font-size: 11px;
+  color: var(--text-hint);
+  text-align: right;
+}
+
 .skeleton {
   display: flex;
   align-items: center;
