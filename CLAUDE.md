@@ -60,9 +60,10 @@ src/
 
 ## Integrazione AI (`src/hooks/useAI.js`)
 
-- SDK: `@google/generative-ai` (installato, non fetch manuale)
-- Modello: `gemini-2.5-flash-preview-04-17` (costante `MODEL_NAME`)
-- Streaming via `model.generateContentStream()` — nessun `maxOutputTokens` hardcoded
+- SDK: `@google/genai` (pacchetto ufficiale GA, non il vecchio `@google/generative-ai`)
+- Modello: `gemini-2.5-flash` (costante `MODEL_NAME`)
+- Streaming via `ai.models.generateContentStream({ model, contents, config: { systemInstruction } })`
+- Chunk testo: `chunk.text` (stringa, non metodo) — nessun `maxOutputTokens` hardcoded
 - Cache hash-based: invalida se cambia mese o inventario
 - Due funzioni esposte: `fetchRicette()`, `fetchSpesa()`
 - Prompt: italiano, Lombardia, stagionale, priorità agli item `[DA USARE PRESTO]`

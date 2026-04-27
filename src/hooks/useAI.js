@@ -1,10 +1,10 @@
 import { useState, useCallback } from 'react'
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import { GoogleGenAI } from '@google/genai'
 import { getSeasonal, getMonthName } from '../data/seasonal'
 
 const CACHE_KEY = 'cucina-ai-cache-v1'
 const GEMINI_API_KEY_STORAGE = 'gemini-api-key'
-const MODEL_NAME = 'gemini-2.5-flash-preview-04-17'
+const MODEL_NAME = 'gemini-2.5-flash'
 
 function hashString(str) {
   let h = 0
@@ -45,17 +45,17 @@ export function useAI(getInventoryText) {
       const apiKey = localStorage.getItem(GEMINI_API_KEY_STORAGE)
       if (!apiKey) throw new Error('API key non configurata. Vai in Impostazioni per inserirla.')
 
-      const genAI = new GoogleGenerativeAI(apiKey)
-      const model = genAI.getGenerativeModel({
+      const ai = new GoogleGenAI({ apiKey })
+
+      const stream = await ai.models.generateContentStream({
         model: MODEL_NAME,
-        systemInstruction: systemPrompt,
+        contents: userPrompt,
+        config: { systemInstruction: systemPrompt },
       })
 
-      const result = await model.generateContentStream(userPrompt)
-
       let fullOutput = ''
-      for await (const chunk of result.stream) {
-        const text = chunk.text()
+      for await (const chunk of stream) {
+        const text = chunk.text
         if (text) {
           fullOutput += text
           setOutput(prev => prev + text)
