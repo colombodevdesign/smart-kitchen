@@ -143,19 +143,23 @@ export function useInventory() {
 
   const getInventoryText = useCallback(() => {
     return Object.entries(inventory)
-      .flatMap(([section, items]) =>
-        items.map(i => {
-          let text = `${section[0].toUpperCase() + section.slice(1)}: ${i.name}${i.qty ? ' (' + i.qty + ')' : ''}${i.urgent ? ' [DA USARE PRESTO]' : ''}`
+      .filter(([, items]) => items.length > 0)
+      .map(([section, items]) => {
+        const label = section.charAt(0).toUpperCase() + section.slice(1)
+        const list = items.map(i => {
+          let text = i.qty ? `${i.name} ${i.qty}` : i.name
+          if (i.urgent) text += '!'
           if (i.expiresAt) {
             const days = Math.floor((i.expiresAt - Date.now()) / 86400000)
-            if (days < 0) text += ' [SCADUTO]'
-            else if (days === 0) text += ' [SCADE OGGI]'
-            else if (days <= 3) text += ` [SCADE TRA ${days} GG]`
-            else text += ` [scade il ${new Date(i.expiresAt).toLocaleDateString('it-IT')}]`
+            if (days < 0) text += '[scad]'
+            else if (days === 0) text += '[oggi]'
+            else if (days <= 3) text += `[${days}gg]`
           }
           return text
-        })
-      ).join('\n')
+        }).join(', ')
+        return `${label}: ${list}`
+      })
+      .join('\n')
   }, [inventory])
 
   return {

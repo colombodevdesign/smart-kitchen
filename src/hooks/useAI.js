@@ -47,6 +47,7 @@ export function useAI(getInventoryText) {
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
+        if (res.status === 429) throw new Error('Quota Gemini esaurita. Riprova tra qualche minuto o verifica il piano di fatturazione.')
         throw new Error(err?.error?.message || `Errore API: ${res.status}`)
       }
 
