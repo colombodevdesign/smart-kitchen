@@ -39,7 +39,16 @@
   color: var(--urgent-text);
 }
 
-.output {
+.chat {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 2px 0;
+}
+
+.modelBubble {
   background: var(--surface);
   border: 0.5px solid var(--border);
   border-radius: var(--radius-lg);
@@ -47,21 +56,61 @@
   font-size: 14px;
   line-height: 1.75;
   color: var(--text);
-  max-height: 60vh;
-  overflow-y: auto;
+}
+.modelBubble h3 { font-size: 15px; font-weight: 600; margin: 1rem 0 0.3rem; color: var(--text); }
+.modelBubble h3:first-child { margin-top: 0; }
+.modelBubble p { margin-bottom: 0.4rem; }
+.modelBubble ul { padding-left: 1.2rem; margin-bottom: 0.5rem; }
+.modelBubble li { margin-bottom: 0.2rem; }
+.modelBubble strong { font-weight: 600; }
+
+.userBubble {
+  align-self: flex-end;
+  background: var(--accent);
+  color: #fff;
+  border-radius: var(--radius-lg);
+  padding: 0.6rem 1rem;
+  font-size: 14px;
+  max-width: 80%;
+  line-height: 1.5;
 }
 
-.output h3 {
-  font-size: 15px;
-  font-weight: 600;
-  margin: 1rem 0 0.3rem;
-  color: var(--text);
+.inputRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
-.output h3:first-child { margin-top: 0; }
-.output p { margin-bottom: 0.4rem; }
-.output ul { padding-left: 1.2rem; margin-bottom: 0.5rem; }
-.output li { margin-bottom: 0.2rem; }
-.output strong { font-weight: 600; }
+
+.chatInput {
+  flex: 1;
+  padding: 10px 14px;
+  font-size: 14px;
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+  outline: none;
+}
+.chatInput:focus { border-color: var(--accent); }
+.chatInput:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.sendBtn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  font-size: 18px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.sendBtn:hover:not(:disabled) { background: var(--accent-hover); }
+.sendBtn:disabled { background: var(--surface-hover); color: var(--text-hint); cursor: not-allowed; }
 
 .cachedBadge {
   font-size: 11px;

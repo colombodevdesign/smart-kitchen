@@ -1,14 +1,27 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import styles from './AITab.module.css'
 
-export function AITab({ buttonLabel, onFetch, loading, output, error, cached }) {
-  const outputRef = useRef(null)
+export function AITab({ buttonLabel, onFetch, loading, messages, streaming, error, cached, onSend }) {
+  const [draft, setDraft] = useState('')
+  const bottomRef = useRef(null)
 
   useEffect(() => {
-    if (output && outputRef.current) {
-      outputRef.current.scrollTop = outputRef.current.scrollHeight
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, streaming])
+
+  function handleSend() {
+    const text = draft.trim()
+    if (!text || loading) return
+    setDraft('')
+    onSend(text)
+  }
+
+  function handleKeyDown(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSend()
     }
-  }, [output])
+  }
 
   const md = (text) => text
     .replace(/^## (.+)$/gm, '<h3>$1</h3>')
@@ -21,28 +34,65 @@ export function AITab({ buttonLabel, onFetch, loading, output, error, cached }) 
     .map(l => l.startsWith('<') ? l : `<p>${l}</p>`)
     .join('')
 
+  const hasContent = messages.length > 0 || streaming || loading
+
   return (
     <div className={styles.wrap}>
-      <button
-        className={styles.btn}
-        onClick={onFetch}
-        disabled={loading}
-      >
-        {loading ? <><Spinner /> elaborazione...</> : buttonLabel}
+      <button className={styles.btn} onClick={onFetch} disabled={loading}>
+        {loading && !hasContent ? <><Spinner /> elaborazione...</> : buttonLabel}
       </button>
 
       {error && <div className={styles.error}>{error}</div>}
 
-      {cached && output && (
+      {cached && messages.length > 0 && !streaming && (
         <div className={styles.cachedBadge}>dalla cache · nessun token usato</div>
       )}
 
-      {(output || loading) && (
-        <div className={styles.output} ref={outputRef}>
-          {output
-            ? <div dangerouslySetInnerHTML={{ __html: md(output) }} />
-            : <div className={styles.skeleton}><Spinner /> generazione in corso...</div>
-          }
+      {hasContent && (
+        <div className={styles.chat}>
+          {messages.map((m, i) => (
+            <div key={i} className={m.role === 'user' ? styles.userBubble : styles.modelBubble}>
+              {m.role === 'model'
+                ? <div dangerouslySetInnerHTML={{ __html: md(m.text) }} />
+                : m.text
+              }
+            </div>
+          ))}
+
+          {streaming && (
+            <div className={styles.modelBubble}>
+              <div dangerouslySetInnerHTML={{ __html: md(streaming) }} />
+            </div>
+          )}
+
+          {loading && !streaming && (
+            <div className={styles.modelBubble}>
+              <div className={styles.skeleton}><Spinner /> generazione in corso...</div>
+            </div>
+          )}
+
+          <div ref={bottomRef} />
+        </div>
+      )}
+
+      {messages.length > 0 && (
+        <div className={styles.inputRow}>
+          <input
+            className={styles.chatInput}
+            type="text"
+            value={draft}
+            onChange={e => setDraft(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Chiedi qualcosa..."
+            disabled={loading}
+          />
+          <button
+            className={styles.sendBtn}
+            onClick={handleSend}
+            disabled={loading || !draft.trim()}
+          >
+            ↑
+          </button>
         </div>
       )}
     </div>
@@ -56,4 +106,3 @@ function Spinner() {
     </span>
   )
 }
-

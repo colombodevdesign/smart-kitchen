@@ -64,9 +64,11 @@ export default function App() {
             buttonLabel="Cosa cucino stasera? Genera ricette con quello che ho"
             onFetch={ricette.fetchRicette}
             loading={ricette.loading}
-            output={ricette.output}
+            messages={ricette.messages}
+            streaming={ricette.streaming}
             error={ricette.error}
             cached={ricette.cached}
+            onSend={ricette.sendFollowUp}
           />
         )}
         {activeTab === 'spesa' && (
@@ -74,9 +76,11 @@ export default function App() {
             buttonLabel="Genera lista della spesa per questa settimana"
             onFetch={spesa.fetchSpesa}
             loading={spesa.loading}
-            output={spesa.output}
+            messages={spesa.messages}
+            streaming={spesa.streaming}
             error={spesa.error}
             cached={spesa.cached}
+            onSend={spesa.sendFollowUp}
           />
         )}
         {activeTab === 'settings' && (

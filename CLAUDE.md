@@ -62,8 +62,11 @@ src/
 
 - SDK: `@google/genai` (pacchetto ufficiale GA, non il vecchio `@google/generative-ai`)
 - Modello: `gemini-3-flash-preview` (costante `MODEL_NAME`)
-- Streaming via `ai.models.generateContentStream({ model, contents, config: { systemInstruction } })`
+- Streaming: `ai.models.generateContentStream({ model, contents, config: { systemInstruction } })`
 - Chunk testo: `chunk.text` (stringa, non metodo) — nessun `maxOutputTokens` hardcoded
+- Multi-turn: `contents` è un array `[{role:'user'|'model', parts:[{text}]}, ...]` — storia API in `apiHistoryRef`
+- Tre funzioni esposte: `fetchRicette()`, `fetchSpesa()`, `sendFollowUp(text)`
+- Stato restituito: `{ loading, messages, streaming, error, cached, ... }` (`messages` = scambi completati, `streaming` = testo in arrivo)
 - Cache hash-based: invalida se cambia mese o inventario
 - Due funzioni esposte: `fetchRicette()`, `fetchSpesa()`
 - Prompt: italiano, Lombardia, stagionale, priorità agli item `[DA USARE PRESTO]`
