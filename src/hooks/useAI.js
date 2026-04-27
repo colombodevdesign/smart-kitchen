@@ -1,32 +1,21 @@
 import { useState, useCallback } from 'react'
 
-export function useAI(apiKey, getInventoryText) {
+export function useAI(getInventoryText) {
   const [loading, setLoading] = useState(false)
   const [output, setOutput] = useState('')
   const [error, setError] = useState('')
 
   const call = useCallback(async (systemPrompt, userPrompt) => {
-    if (!apiKey.trim()) {
-      setError('Inserisci la tua API key di Gemini nelle impostazioni per usare questa funzione.')
-      return
-    }
     setLoading(true)
     setOutput('')
     setError('')
 
     try {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?key=${apiKey.trim()}&alt=sse`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            system_instruction: { parts: [{ text: systemPrompt }] },
-            contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-            generationConfig: { maxOutputTokens: 1024 },
-          }),
-        }
-      )
+      const res = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ systemPrompt, userPrompt }),
+      })
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
@@ -59,7 +48,7 @@ export function useAI(apiKey, getInventoryText) {
     } finally {
       setLoading(false)
     }
-  }, [apiKey])
+  }, [])
 
   const fetchRicette = useCallback(() => {
     call(

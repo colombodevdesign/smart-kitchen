@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import styles from './AITab.module.css'
 
-export function AITab({ title, buttonLabel, onFetch, loading, output, error, hasApiKey }) {
+export function AITab({ buttonLabel, onFetch, loading, output, error }) {
   const outputRef = useRef(null)
 
   useEffect(() => {
@@ -23,17 +23,10 @@ export function AITab({ title, buttonLabel, onFetch, loading, output, error, has
 
   return (
     <div className={styles.wrap}>
-      {!hasApiKey && (
-        <div className={styles.notice}>
-          <LockIcon />
-          <span>Configura la tua API key Anthropic nelle <strong>impostazioni</strong> per usare questa funzione.</span>
-        </div>
-      )}
-
       <button
         className={styles.btn}
         onClick={onFetch}
-        disabled={loading || !hasApiKey}
+        disabled={loading}
       >
         {loading ? <><Spinner /> elaborazione...</> : buttonLabel}
       </button>
@@ -60,11 +53,3 @@ function Spinner() {
   )
 }
 
-function LockIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <rect x="2" y="6" width="10" height="7" rx="2"/>
-      <path d="M4.5 6V4a2.5 2.5 0 015 0v2"/>
-    </svg>
-  )
-}

@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react'
 import { INITIAL_INVENTORY } from '../data/initialInventory.js'
 
 const STORAGE_KEY = 'cucina-smart-v1'
-const API_KEY_STORAGE = 'cucina-smart-apikey'
 
 function parseCSVLine(line) {
   const fields = []
@@ -32,24 +31,14 @@ function loadInventory() {
   return JSON.parse(JSON.stringify(INITIAL_INVENTORY))
 }
 
-function loadApiKey() {
-  return localStorage.getItem(API_KEY_STORAGE) || ''
-}
-
 export function useInventory() {
   const [inventory, setInventory] = useState(loadInventory)
-  const [apiKey, setApiKeyState] = useState(loadApiKey)
 
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(inventory))
     } catch {}
   }, [inventory])
-
-  const saveApiKey = useCallback((key) => {
-    setApiKeyState(key)
-    localStorage.setItem(API_KEY_STORAGE, key)
-  }, [])
 
   const addItem = useCallback((section, name, qty) => {
     const id = section[0] + Date.now()
@@ -153,8 +142,6 @@ export function useInventory() {
 
   return {
     inventory,
-    apiKey,
-    saveApiKey,
     addItem,
     removeItem,
     updateItem,

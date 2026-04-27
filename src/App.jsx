@@ -16,13 +16,13 @@ const TABS = [
 export default function App() {
   const [activeTab, setActiveTab] = useState('dispensa')
   const {
-    inventory, apiKey, saveApiKey,
+    inventory,
     addItem, removeItem, updateItem, toggleUrgent,
     exportCSV, importCSV, getInventoryText,
   } = useInventory()
 
-  const ricette = useAI(apiKey, getInventoryText)
-  const spesa   = useAI(apiKey, getInventoryText)
+  const ricette = useAI(getInventoryText)
+  const spesa   = useAI(getInventoryText)
 
   function handleTabChange(id) {
     setActiveTab(id)
@@ -66,7 +66,6 @@ export default function App() {
             loading={ricette.loading}
             output={ricette.output}
             error={ricette.error}
-            hasApiKey={!!apiKey}
           />
         )}
         {activeTab === 'spesa' && (
@@ -76,11 +75,10 @@ export default function App() {
             loading={spesa.loading}
             output={spesa.output}
             error={spesa.error}
-            hasApiKey={!!apiKey}
           />
         )}
         {activeTab === 'settings' && (
-          <SettingsTab apiKey={apiKey} onSave={saveApiKey} onExport={exportCSV} onImport={importCSV} />
+          <SettingsTab onExport={exportCSV} onImport={importCSV} />
         )}
       </main>
     </div>
