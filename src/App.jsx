@@ -16,7 +16,7 @@ const TABS = [
 ]
 
 export default function App() {
-  const { user, signInWithGoogle, signInWithApple, signOut } = useAuth()
+  const { user, signInWithGoogle, signOut } = useAuth()
   const [activeTab, setActiveTab] = useState('dispensa')
 
   const {
@@ -40,7 +40,7 @@ export default function App() {
   }
 
   if (user === null) {
-    return <LoginScreen onGoogle={signInWithGoogle} onApple={signInWithApple} />
+    return <LoginScreen onGoogle={signInWithGoogle} />
   }
 
   return (
