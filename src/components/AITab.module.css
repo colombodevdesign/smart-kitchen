@@ -146,3 +146,92 @@
   0%, 80%, 100% { transform: translateY(0); }
   40% { transform: translateY(-5px); }
 }
+
+.savePanel {
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.savePanelToggle {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: none;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.savePanelToggle:hover { background: var(--surface-hover); color: var(--text); }
+
+.savePanelBody {
+  border-top: 0.5px solid var(--border);
+  background: var(--surface);
+  padding: 10px 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.saveList { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+
+.saveListItem { font-size: 13px; }
+
+.saveLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: var(--text);
+}
+
+.saveCheckbox {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--accent);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.saveActions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.saveAllBtn {
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  transition: background 0.12s;
+}
+.saveAllBtn:hover { background: var(--accent-hover); }
+
+.saveSelBtn {
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--surface-hover);
+  color: var(--text);
+  border: 0.5px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  transition: background 0.12s;
+}
+.saveSelBtn:hover:not(:disabled) { background: var(--border); }
+.saveSelBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.savedConfirm {
+  font-size: 13px;
+  color: var(--success-text);
+  font-weight: 500;
+}

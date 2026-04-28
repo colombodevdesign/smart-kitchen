@@ -34,7 +34,11 @@
   display: flex;
   gap: 2px;
   flex: 1;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
+.tabs::-webkit-scrollbar { display: none; }
 
 .tab {
   padding: 6px 14px;
