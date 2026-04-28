@@ -126,3 +126,10 @@
   flex-shrink: 0;
 }
 .addBtn:hover { background: var(--accent-hover); }
+
+@media (max-width: 600px) {
+  .addRow { flex-wrap: wrap; }
+  .addName { flex: 1 1 100%; }
+  .addQty { flex: 1; min-width: 0; }
+  .addExpiry { flex: 0 1 auto; min-width: 0; font-size: 12px; }
+}
