@@ -74,7 +74,7 @@ export default function App() {
       {/* Tablet: sticky top header with scrollable tabs */}
       <header className={styles.header}>
         <div className={styles.headerInner}>
-          <h1 className={styles.logo}>cucina smart</h1>
+          <h1 className={styles.logo}>smart kitchen</h1>
           <nav className={styles.tabs}>
             {TABS.map(t => (
               <button

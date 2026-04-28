@@ -61,7 +61,7 @@ const NAV_ITEMS = [
 export function Sidebar({ activeTab, onTabChange }) {
   return (
     <aside className={styles.sidebar}>
-      <div className={styles.logo}>cucina smart</div>
+      <div className={styles.logo}>smart kitchen</div>
       <nav className={styles.nav}>
         {NAV_ITEMS.map(({ id, label, Icon, indent }) => (
           <button

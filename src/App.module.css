@@ -75,7 +75,7 @@
   .header { display: none; }
   .main {
     margin-left: 220px;
-    max-width: none;
+    max-width: 880px;
     padding: 2rem 2.5rem 3rem;
   }
 }
