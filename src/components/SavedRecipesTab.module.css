@@ -1,0 +1,113 @@
+.wrap { display: flex; flex-direction: column; gap: 12px; }
+
+.pageHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.count {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  background: var(--accent-light);
+  color: var(--accent);
+  border-radius: 999px;
+}
+
+.empty {
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.hint { margin-top: 6px; font-size: 13px; color: var(--text-hint); }
+.hint strong { color: var(--text-muted); }
+
+.list { display: flex; flex-direction: column; gap: 8px; }
+
+.card {
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+}
+
+.titleBtn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  color: var(--text);
+}
+
+.arrow {
+  font-size: 12px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  width: 12px;
+}
+
+.recipeTitle {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.cardMeta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.savedAt {
+  font-size: 11px;
+  color: var(--text-hint);
+}
+
+.deleteBtn {
+  background: none;
+  border: none;
+  color: var(--text-hint);
+  font-size: 13px;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+  transition: color 0.12s, background 0.12s;
+}
+.deleteBtn:hover { color: var(--urgent); background: var(--urgent-light); }
+
+.content {
+  padding: 0 14px 14px;
+  border-top: 0.5px solid var(--border);
+  padding-top: 12px;
+  font-size: 14px;
+  line-height: 1.75;
+  color: var(--text);
+}
+.content h3 { font-size: 14px; font-weight: 600; margin: 0.8rem 0 0.3rem; color: var(--text); }
+.content h3:first-child { margin-top: 0; }
+.content p { margin-bottom: 0.4rem; }
+.content ul { padding-left: 1.2rem; margin-bottom: 0.5rem; }
+.content li { margin-bottom: 0.2rem; }
+.content strong { font-weight: 600; }

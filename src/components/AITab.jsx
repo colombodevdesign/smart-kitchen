@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import styles from './AITab.module.css'
 
-export function AITab({ buttonLabel, onFetch, loading, messages, streaming, error, cached, onSend }) {
+export function AITab({ buttonLabel, onFetch, loading, messages, streaming, error, cached, onSend, parseForSave, onSaveItems }) {
   const [draft, setDraft] = useState('')
   const bottomRef = useRef(null)
 
@@ -35,6 +35,8 @@ export function AITab({ buttonLabel, onFetch, loading, messages, streaming, erro
     .join('')
 
   const hasContent = messages.length > 0 || streaming || loading
+  const lastModelText = messages.filter(m => m.role === 'model').map(m => m.text).join('\n\n')
+  const showSavePanel = parseForSave && onSaveItems && lastModelText && !streaming && !loading
 
   return (
     <div className={styles.wrap}>
@@ -75,6 +77,14 @@ export function AITab({ buttonLabel, onFetch, loading, messages, streaming, erro
         </div>
       )}
 
+      {showSavePanel && (
+        <SavePanel
+          text={lastModelText}
+          parseItems={parseForSave}
+          onSave={onSaveItems}
+        />
+      )}
+
       {messages.length > 0 && (
         <div className={styles.inputRow}>
           <input
@@ -93,6 +103,82 @@ export function AITab({ buttonLabel, onFetch, loading, messages, streaming, erro
           >
             ↑
           </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function SavePanel({ text, parseItems, onSave }) {
+  const items = useMemo(() => parseItems(text), [text, parseItems])
+  const [selected, setSelected] = useState(() => new Set(items.map(i => i.key)))
+  const [open, setOpen] = useState(false)
+  const [savedMsg, setSavedMsg] = useState('')
+
+  useEffect(() => {
+    setSelected(new Set(items.map(i => i.key)))
+    setSavedMsg('')
+  }, [text, items])
+
+  if (items.length === 0) return null
+
+  function toggle(key) {
+    setSelected(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
+
+  function doSave(toSave) {
+    if (toSave.length === 0) return
+    onSave(toSave)
+    setSavedMsg(`✓ ${toSave.length} element${toSave.length === 1 ? 'o salvato' : 'i salvati'}`)
+    setTimeout(() => setSavedMsg(''), 2500)
+  }
+
+  return (
+    <div className={styles.savePanel}>
+      <button className={styles.savePanelToggle} onClick={() => setOpen(o => !o)}>
+        <span>Salva in libreria</span>
+        <span>{open ? '▾' : '▸'}</span>
+      </button>
+      {open && (
+        <div className={styles.savePanelBody}>
+          <ul className={styles.saveList}>
+            {items.map(item => (
+              <li key={item.key} className={styles.saveListItem}>
+                <label className={styles.saveLabel}>
+                  <input
+                    type="checkbox"
+                    checked={selected.has(item.key)}
+                    onChange={() => toggle(item.key)}
+                    className={styles.saveCheckbox}
+                  />
+                  <span>{item.label}</span>
+                </label>
+              </li>
+            ))}
+          </ul>
+          <div className={styles.saveActions}>
+            {savedMsg ? (
+              <span className={styles.savedConfirm}>{savedMsg}</span>
+            ) : (
+              <>
+                <button className={styles.saveAllBtn} onClick={() => doSave(items.map(i => i.data))}>
+                  Salva tutto
+                </button>
+                <button
+                  className={styles.saveSelBtn}
+                  onClick={() => doSave(items.filter(i => selected.has(i.key)).map(i => i.data))}
+                  disabled={selected.size === 0}
+                >
+                  Salva selezionati ({selected.size})
+                </button>
+              </>
+            )}
+          </div>
         </div>
       )}
     </div>

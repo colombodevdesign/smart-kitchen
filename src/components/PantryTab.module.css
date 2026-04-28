@@ -126,3 +126,44 @@
   flex-shrink: 0;
 }
 .addBtn:hover { background: var(--accent-hover); }
+
+/* ── FAB (floating action button) ── */
+.fab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
+  z-index: 50;
+  /* hidden by default, shown only when addRow is off-screen */
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.8);
+  transition: opacity 0.2s, transform 0.2s, background 0.15s, box-shadow 0.15s;
+}
+
+.fabVisible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: scale(1);
+}
+
+.fab:hover { background: var(--accent-hover); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28); }
+.fab:active { transform: scale(0.94) !important; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18); }
+
+@media (max-width: 600px) {
+  .addRow { flex-wrap: wrap; }
+  .addName { flex: 1 1 100%; }
+  .addQty { flex: 1; min-width: 0; }
+  .addExpiry { flex: 0 1 auto; min-width: 0; font-size: 12px; }
+
+  .fab { bottom: calc(56px + env(safe-area-inset-bottom) + 16px); right: 20px; }
+}

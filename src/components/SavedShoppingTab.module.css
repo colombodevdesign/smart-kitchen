@@ -1,0 +1,124 @@
+.wrap { display: flex; flex-direction: column; gap: 16px; }
+
+.pageHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.count {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  background: var(--accent-light);
+  color: var(--accent);
+  border-radius: 999px;
+}
+
+.clearBtn {
+  font-size: 12px;
+  padding: 4px 10px;
+  background: var(--urgent-light);
+  color: var(--urgent-text);
+  border: 0.5px solid var(--urgent);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: opacity 0.12s;
+}
+.clearBtn:hover { opacity: 0.8; }
+
+.empty {
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.hint { margin-top: 6px; font-size: 13px; color: var(--text-hint); }
+.hint strong { color: var(--text-muted); }
+
+.categories { display: flex; flex-direction: column; gap: 16px; }
+
+.category {
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.catTitle {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-hint);
+  padding: 10px 14px 8px;
+  border-bottom: 0.5px solid var(--border);
+}
+
+.itemList { list-style: none; }
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border-bottom: 0.5px solid var(--border);
+  transition: background 0.1s;
+}
+.item:last-child { border-bottom: none; }
+.item:hover { background: var(--surface-hover); }
+
+.checked .itemName {
+  text-decoration: line-through;
+  color: var(--text-hint);
+}
+
+.itemLabel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  cursor: pointer;
+}
+
+.checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.itemName {
+  font-size: 14px;
+  color: var(--text);
+  transition: color 0.15s;
+}
+
+.deleteBtn {
+  background: none;
+  border: none;
+  color: var(--text-hint);
+  font-size: 13px;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+  transition: color 0.12s, background 0.12s;
+  flex-shrink: 0;
+}
+.deleteBtn:hover { color: var(--urgent); background: var(--urgent-light); }
