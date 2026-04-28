@@ -1,6 +1,8 @@
 import { useState } from 'react'
+import { useAuth } from './hooks/useAuth.js'
 import { useInventory } from './hooks/useInventory.js'
 import { useAI } from './hooks/useAI.js'
+import { LoginScreen } from './components/LoginScreen.jsx'
 import { PantryTab } from './components/PantryTab.jsx'
 import { AITab } from './components/AITab.jsx'
 import { SettingsTab } from './components/SettingsTab.jsx'
@@ -14,18 +16,31 @@ const TABS = [
 ]
 
 export default function App() {
+  const { user, signInWithGoogle, signInWithApple, signOut } = useAuth()
   const [activeTab, setActiveTab] = useState('dispensa')
+
   const {
     inventory,
     addItem, removeItem, updateItem, toggleUrgent,
-    exportCSV, importCSV, getInventoryText,
-  } = useInventory()
+    exportCSV, importCSV, clearInventory, getInventoryText,
+  } = useInventory(user?.uid ?? null)
 
   const ricette = useAI(getInventoryText, 'ricette')
   const spesa   = useAI(getInventoryText, 'spesa')
 
-  function handleTabChange(id) {
-    setActiveTab(id)
+  // user === undefined → Firebase still initializing
+  if (user === undefined) {
+    return (
+      <div className={styles.app}>
+        <div className={styles.loadingWrap}>
+          <span className={styles.loadingDot} />
+        </div>
+      </div>
+    )
+  }
+
+  if (user === null) {
+    return <LoginScreen onGoogle={signInWithGoogle} onApple={signInWithApple} />
   }
 
   return (
@@ -38,7 +53,7 @@ export default function App() {
               <button
                 key={t.id}
                 className={`${styles.tab} ${activeTab === t.id ? styles.tabActive : ''}`}
-                onClick={() => handleTabChange(t.id)}
+                onClick={() => setActiveTab(t.id)}
               >
                 {t.label}
               </button>
@@ -82,7 +97,13 @@ export default function App() {
           />
         )}
         {activeTab === 'settings' && (
-          <SettingsTab onExport={exportCSV} onImport={importCSV} />
+          <SettingsTab
+            user={user}
+            onExport={exportCSV}
+            onImport={importCSV}
+            onClearInventory={clearInventory}
+            onSignOut={signOut}
+          />
         )}
       </main>
     </div>

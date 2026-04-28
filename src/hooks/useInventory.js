@@ -1,4 +1,6 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { doc, onSnapshot, setDoc } from 'firebase/firestore'
+import { db } from '../firebase.js'
 
 const STORAGE_KEY = 'cucina-smart-v1'
 const EMPTY_INVENTORY = { credenza: [], frigo: [], freezer: [] }
@@ -23,7 +25,7 @@ function parseCSVLine(line) {
   return fields
 }
 
-function loadInventory() {
+function loadFromLocalStorage() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) return JSON.parse(raw)
@@ -31,44 +33,94 @@ function loadInventory() {
   return EMPTY_INVENTORY
 }
 
-export function useInventory() {
-  const [inventory, setInventory] = useState(loadInventory)
+function firestoreRef(uid) {
+  return doc(db, 'users', uid, 'inventory', 'data')
+}
 
+export function useInventory(uid) {
+  const [inventory, setInventory] = useState(EMPTY_INVENTORY)
+  const uidRef = useRef(uid)
+  useEffect(() => { uidRef.current = uid }, [uid])
+
+  // Subscribe to Firestore or load from localStorage
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(inventory))
-    } catch {}
-  }, [inventory])
+    if (!uid) {
+      setInventory(loadFromLocalStorage())
+      return
+    }
+    const ref = firestoreRef(uid)
+    const unsub = onSnapshot(ref, (snap) => {
+      if (snap.exists()) {
+        // Skip snapshots caused by our own pending writes to avoid double-renders
+        if (!snap.metadata.hasPendingWrites) {
+          setInventory(snap.data())
+        }
+      } else {
+        // First login: migrate localStorage data to Firestore
+        const local = loadFromLocalStorage()
+        setDoc(ref, local)
+        setInventory(local)
+      }
+    })
+    return unsub
+  }, [uid])
+
+  // Persist to localStorage when not using Firestore
+  useEffect(() => {
+    if (uid) return
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(inventory)) } catch {}
+  }, [inventory, uid])
+
+  // Write next inventory state both locally and to Firestore (if logged in)
+  const persist = useCallback((next) => {
+    setInventory(next)
+    const currentUid = uidRef.current
+    if (currentUid) {
+      setDoc(firestoreRef(currentUid), next).catch(console.error)
+    }
+  }, [])
 
   const addItem = useCallback((section, name, qty, expiryDateStr) => {
     const id = section[0] + Date.now()
     const expiresAt = expiryDateStr ? new Date(expiryDateStr + 'T23:59:59').getTime() : null
-    setInventory(prev => ({
-      ...prev,
-      [section]: [...prev[section], { id, name: name.trim(), qty: qty.trim(), urgent: false, added: Date.now(), expiresAt }],
-    }))
+    setInventory(prev => {
+      const next = {
+        ...prev,
+        [section]: [...prev[section], { id, name: name.trim(), qty: qty.trim(), urgent: false, added: Date.now(), expiresAt }],
+      }
+      if (uidRef.current) setDoc(firestoreRef(uidRef.current), next).catch(console.error)
+      return next
+    })
   }, [])
 
   const removeItem = useCallback((section, id) => {
-    setInventory(prev => ({
-      ...prev,
-      [section]: prev[section].filter(i => i.id !== id),
-    }))
+    setInventory(prev => {
+      const next = { ...prev, [section]: prev[section].filter(i => i.id !== id) }
+      if (uidRef.current) setDoc(firestoreRef(uidRef.current), next).catch(console.error)
+      return next
+    })
   }, [])
 
   const updateItem = useCallback((section, id, patch) => {
-    setInventory(prev => ({
-      ...prev,
-      [section]: prev[section].map(i => i.id === id ? { ...i, ...patch } : i),
-    }))
+    setInventory(prev => {
+      const next = { ...prev, [section]: prev[section].map(i => i.id === id ? { ...i, ...patch } : i) }
+      if (uidRef.current) setDoc(firestoreRef(uidRef.current), next).catch(console.error)
+      return next
+    })
   }, [])
 
   const toggleUrgent = useCallback((section, id) => {
-    setInventory(prev => ({
-      ...prev,
-      [section]: prev[section].map(i => i.id === id ? { ...i, urgent: !i.urgent } : i),
-    }))
+    setInventory(prev => {
+      const next = { ...prev, [section]: prev[section].map(i => i.id === id ? { ...i, urgent: !i.urgent } : i) }
+      if (uidRef.current) setDoc(firestoreRef(uidRef.current), next).catch(console.error)
+      return next
+    })
   }, [])
+
+  const clearInventory = useCallback(async () => {
+    persist(EMPTY_INVENTORY)
+    localStorage.removeItem(STORAGE_KEY)
+  }, [persist])
 
   const importCSV = useCallback((file) => {
     return new Promise((resolve, reject) => {
@@ -106,7 +158,7 @@ export function useInventory() {
             const id = section[0] + (Date.now() + counter++)
             newInventory[section].push({ id, name: name.trim(), qty: qty.trim(), urgent, added, expiresAt })
           }
-          setInventory(newInventory)
+          persist(newInventory)
           resolve()
         } catch (err) {
           reject(err)
@@ -115,7 +167,7 @@ export function useInventory() {
       reader.onerror = () => reject(new Error('Errore lettura file'))
       reader.readAsText(file, 'utf-8')
     })
-  }, [])
+  }, [persist])
 
   const exportCSV = useCallback(() => {
     const rows = [['sezione', 'nome', 'quantità', 'da usare presto', 'aggiunto il', 'scade il']]
@@ -132,7 +184,7 @@ export function useInventory() {
       }
     }
     const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n')
-    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
@@ -170,6 +222,7 @@ export function useInventory() {
     toggleUrgent,
     exportCSV,
     importCSV,
+    clearInventory,
     getInventoryText,
   }
 }
