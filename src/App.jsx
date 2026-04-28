@@ -10,6 +10,8 @@ import { SettingsTab } from './components/SettingsTab.jsx'
 import { SavedRecipesTab } from './components/SavedRecipesTab.jsx'
 import { SavedShoppingTab } from './components/SavedShoppingTab.jsx'
 import { MealTrackerTab } from './components/MealTrackerTab.jsx'
+import { Sidebar } from './components/Sidebar.jsx'
+import { BottomNav } from './components/BottomNav.jsx'
 import styles from './App.module.css'
 
 const TABS = [
@@ -64,12 +66,12 @@ export default function App() {
   const parseRecipesCb  = useCallback(parseRecipes, [])
   const parseShoppingCb = useCallback(parseShoppingItems, [])
 
-  function handleTabChange(id) {
-    setActiveTab(id)
-  }
+  const inRicetteGroup = activeTab === 'ricette' || activeTab === 'ricette-salvate'
+  const inSpesaGroup   = activeTab === 'spesa'   || activeTab === 'lista-spesa'
 
   return (
     <div className={styles.app}>
+      {/* Tablet: sticky top header with scrollable tabs */}
       <header className={styles.header}>
         <div className={styles.headerInner}>
           <h1 className={styles.logo}>cucina smart</h1>
@@ -78,7 +80,7 @@ export default function App() {
               <button
                 key={t.id}
                 className={`${styles.tab} ${activeTab === t.id ? styles.tabActive : ''}`}
-                onClick={() => handleTabChange(t.id)}
+                onClick={() => setActiveTab(t.id)}
               >
                 {t.label}
               </button>
@@ -86,6 +88,9 @@ export default function App() {
           </nav>
         </div>
       </header>
+
+      {/* Desktop: fixed sidebar (hidden on ≤1023px via CSS) */}
+      <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
 
       <main className={styles.main}>
         {activeTab === 'dispensa' && (
@@ -97,48 +102,91 @@ export default function App() {
             onAdd={addItem}
           />
         )}
-        {activeTab === 'ricette' && (
-          <AITab
-            buttonLabel="Cosa cucino stasera? Genera ricette con quello che ho"
-            onFetch={ricette.fetchRicette}
-            loading={ricette.loading}
-            messages={ricette.messages}
-            streaming={ricette.streaming}
-            error={ricette.error}
-            cached={ricette.cached}
-            onSend={ricette.sendFollowUp}
-            parseForSave={parseRecipesCb}
-            onSaveItems={savedRecipes.addRecipes}
-          />
+
+        {inRicetteGroup && (
+          <>
+            <div className={styles.subNav}>
+              <button
+                className={`${styles.subNavBtn} ${activeTab === 'ricette' ? styles.subNavActive : ''}`}
+                onClick={() => setActiveTab('ricette')}
+              >
+                Genera AI
+              </button>
+              <button
+                className={`${styles.subNavBtn} ${activeTab === 'ricette-salvate' ? styles.subNavActive : ''}`}
+                onClick={() => setActiveTab('ricette-salvate')}
+              >
+                Salvate ({savedRecipes.recipes.length})
+              </button>
+            </div>
+            <div className={styles.splitWrap}>
+              <div className={activeTab !== 'ricette' ? styles.hideMobile : ''}>
+                <AITab
+                  buttonLabel="Cosa cucino stasera? Genera ricette con quello che ho"
+                  onFetch={ricette.fetchRicette}
+                  loading={ricette.loading}
+                  messages={ricette.messages}
+                  streaming={ricette.streaming}
+                  error={ricette.error}
+                  cached={ricette.cached}
+                  onSend={ricette.sendFollowUp}
+                  parseForSave={parseRecipesCb}
+                  onSaveItems={savedRecipes.addRecipes}
+                />
+              </div>
+              <div className={activeTab !== 'ricette-salvate' ? styles.hideMobile : ''}>
+                <SavedRecipesTab
+                  recipes={savedRecipes.recipes}
+                  onRemove={savedRecipes.removeRecipe}
+                />
+              </div>
+            </div>
+          </>
         )}
-        {activeTab === 'ricette-salvate' && (
-          <SavedRecipesTab
-            recipes={savedRecipes.recipes}
-            onRemove={savedRecipes.removeRecipe}
-          />
+
+        {inSpesaGroup && (
+          <>
+            <div className={styles.subNav}>
+              <button
+                className={`${styles.subNavBtn} ${activeTab === 'spesa' ? styles.subNavActive : ''}`}
+                onClick={() => setActiveTab('spesa')}
+              >
+                Genera AI
+              </button>
+              <button
+                className={`${styles.subNavBtn} ${activeTab === 'lista-spesa' ? styles.subNavActive : ''}`}
+                onClick={() => setActiveTab('lista-spesa')}
+              >
+                Lista ({savedShopping.items.length})
+              </button>
+            </div>
+            <div className={styles.splitWrap}>
+              <div className={activeTab !== 'spesa' ? styles.hideMobile : ''}>
+                <AITab
+                  buttonLabel="Genera lista della spesa per questa settimana"
+                  onFetch={spesa.fetchSpesa}
+                  loading={spesa.loading}
+                  messages={spesa.messages}
+                  streaming={spesa.streaming}
+                  error={spesa.error}
+                  cached={spesa.cached}
+                  onSend={spesa.sendFollowUp}
+                  parseForSave={parseShoppingCb}
+                  onSaveItems={savedShopping.addItems}
+                />
+              </div>
+              <div className={activeTab !== 'lista-spesa' ? styles.hideMobile : ''}>
+                <SavedShoppingTab
+                  items={savedShopping.items}
+                  onToggle={savedShopping.toggleChecked}
+                  onRemove={savedShopping.removeItem}
+                  onClearChecked={savedShopping.clearChecked}
+                />
+              </div>
+            </div>
+          </>
         )}
-        {activeTab === 'spesa' && (
-          <AITab
-            buttonLabel="Genera lista della spesa per questa settimana"
-            onFetch={spesa.fetchSpesa}
-            loading={spesa.loading}
-            messages={spesa.messages}
-            streaming={spesa.streaming}
-            error={spesa.error}
-            cached={spesa.cached}
-            onSend={spesa.sendFollowUp}
-            parseForSave={parseShoppingCb}
-            onSaveItems={savedShopping.addItems}
-          />
-        )}
-        {activeTab === 'lista-spesa' && (
-          <SavedShoppingTab
-            items={savedShopping.items}
-            onToggle={savedShopping.toggleChecked}
-            onRemove={savedShopping.removeItem}
-            onClearChecked={savedShopping.clearChecked}
-          />
-        )}
+
         {activeTab === 'pasti' && (
           <MealTrackerTab
             meals={mealTracker.meals}
@@ -150,6 +198,9 @@ export default function App() {
           <SettingsTab onExport={exportCSV} onImport={importCSV} />
         )}
       </main>
+
+      {/* Mobile: fixed bottom nav (hidden on ≥601px via CSS) */}
+      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
   )
 }

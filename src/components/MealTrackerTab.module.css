@@ -1,10 +1,11 @@
 .wrap { display: flex; flex-direction: column; gap: 16px; }
 
-.nav {
+/* ── Navigation row ── */
+.navRow {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  gap: 10px;
 }
 
 .navBtn {
@@ -18,18 +19,42 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
   transition: background 0.12s, color 0.12s;
 }
 .navBtn:hover { background: var(--surface-hover); color: var(--text); }
 
-.monthLabel {
+.periodLabel {
   font-size: 15px;
   font-weight: 600;
   color: var(--text);
-  min-width: 160px;
+  min-width: 200px;
   text-align: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  transition: background 0.1s;
 }
+.periodLabel:hover { background: var(--surface-hover); }
 
+.viewToggle {
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: 99px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.12s;
+  white-space: nowrap;
+}
+.viewToggle:hover { border-color: var(--border-strong); color: var(--text); }
+.viewToggleActive { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+
+/* ── Calendar grid ── */
 .grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -63,17 +88,16 @@
   display: flex;
   flex-direction: column;
   gap: 3px;
-  position: relative;
 }
 
-.today {
-  background: var(--accent-light);
+/* Week view: taller cells */
+.weekCell {
+  min-height: 150px;
+  padding: 8px;
 }
 
-.today .dayNum {
-  color: var(--accent);
-  font-weight: 700;
-}
+.today { background: var(--accent-light); }
+.today .dayNum { color: var(--accent); font-weight: 700; }
 
 .dayNum {
   font-size: 12px;
@@ -82,6 +106,11 @@
   line-height: 1;
 }
 
+.weekDayNum {
+  font-size: 14px;
+}
+
+/* ── Meal items ── */
 .mealList {
   list-style: none;
   display: flex;
@@ -107,6 +136,11 @@
   word-break: break-word;
 }
 
+.weekMealText {
+  font-size: 11px;
+  line-height: 1.4;
+}
+
 .removeMeal {
   background: none;
   border: none;
@@ -122,6 +156,7 @@
 .mealItem:hover .removeMeal { opacity: 1; }
 .removeMeal:hover { color: var(--urgent); }
 
+/* ── Add button / input ── */
 .addBtn {
   background: none;
   border: none;
@@ -150,9 +185,13 @@
   margin-top: auto;
 }
 
+/* ── Mobile overrides ── */
 @media (max-width: 600px) {
-  .cell { min-height: 70px; padding: 4px; }
+  .cell { min-height: 72px; padding: 4px; }
+  .weekCell { min-height: 130px; padding: 6px; }
   .mealText { font-size: 9px; }
+  .weekMealText { font-size: 10px; }
   .dayNum { font-size: 11px; }
-  .monthLabel { font-size: 14px; min-width: 130px; }
+  .weekDayNum { font-size: 13px; }
+  .periodLabel { font-size: 13px; min-width: 160px; }
 }

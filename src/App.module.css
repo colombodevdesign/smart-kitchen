@@ -62,9 +62,79 @@
   flex: 1;
 }
 
+/* ── Mobile (≤600px): bottom nav replaces header tabs ── */
 @media (max-width: 600px) {
   .headerInner { gap: 0.75rem; }
   .logo { font-size: 14px; }
-  .tab { padding: 6px 10px; font-size: 12px; }
-  .main { padding: 1rem 1rem 3rem; }
+  .tabs { display: none; }
+  .main { padding: 1rem 1rem calc(56px + env(safe-area-inset-bottom) + 1rem); }
+}
+
+/* ── Desktop (≥1024px): sidebar replaces header ── */
+@media (min-width: 1024px) {
+  .header { display: none; }
+  .main {
+    margin-left: 220px;
+    max-width: none;
+    padding: 2rem 2.5rem 3rem;
+  }
+}
+
+/* ── Segmented control (mobile groups: ricette / spesa) ── */
+.subNav {
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  background: var(--surface-hover);
+  border-radius: var(--radius-md);
+  margin-bottom: 14px;
+}
+
+.subNavBtn {
+  flex: 1;
+  padding: 7px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  border-radius: calc(var(--radius-md) - 2px);
+  cursor: pointer;
+  transition: color 0.1s;
+}
+.subNavBtn:hover { color: var(--text); }
+
+.subNavActive {
+  flex: 1;
+  padding: 7px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--surface);
+  border: none;
+  color: var(--text);
+  border-radius: calc(var(--radius-md) - 2px);
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* ── Split pane (desktop: both AI + saved visible) ── */
+.splitWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.hideMobile { display: none; }
+
+@media (min-width: 1024px) {
+  .splitWrap {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+  /* On desktop both columns are always visible */
+  .hideMobile { display: block; }
+  /* Segmented control not needed on desktop */
+  .subNav { display: none; }
 }
