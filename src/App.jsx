@@ -21,13 +21,11 @@ export default function App() {
     exportCSV, importCSV, getInventoryText,
   } = useInventory()
 
-  const ricette = useAI(getInventoryText)
-  const spesa   = useAI(getInventoryText)
+  const ricette = useAI(getInventoryText, 'ricette')
+  const spesa   = useAI(getInventoryText, 'spesa')
 
   function handleTabChange(id) {
     setActiveTab(id)
-    if (id === 'ricette') ricette.clearOutput()
-    if (id === 'spesa')   spesa.clearOutput()
   }
 
   return (
@@ -64,9 +62,11 @@ export default function App() {
             buttonLabel="Cosa cucino stasera? Genera ricette con quello che ho"
             onFetch={ricette.fetchRicette}
             loading={ricette.loading}
-            output={ricette.output}
+            messages={ricette.messages}
+            streaming={ricette.streaming}
             error={ricette.error}
             cached={ricette.cached}
+            onSend={ricette.sendFollowUp}
           />
         )}
         {activeTab === 'spesa' && (
@@ -74,9 +74,11 @@ export default function App() {
             buttonLabel="Genera lista della spesa per questa settimana"
             onFetch={spesa.fetchSpesa}
             loading={spesa.loading}
-            output={spesa.output}
+            messages={spesa.messages}
+            streaming={spesa.streaming}
             error={spesa.error}
             cached={spesa.cached}
+            onSend={spesa.sendFollowUp}
           />
         )}
         {activeTab === 'settings' && (
