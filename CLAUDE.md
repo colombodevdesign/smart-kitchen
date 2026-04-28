@@ -132,6 +132,38 @@ Variabili globali in `src/index.css`. Palette warm brown (`--accent: #BA7517`).
 Dark mode via `prefers-color-scheme`. Max-width 720px. Breakpoint mobile 600px.
 Ogni componente ha il suo `.module.css`.
 
+## Firestore Security Rules
+
+Le rules sono applicate direttamente dalla Firebase Console (Firestore Database → Rules).
+Nessun file `firestore.rules` nel repo — applicare manualmente dopo ogni modifica.
+
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+    match /users/{userId}/inventory/data {
+      allow read: if request.auth != null
+                  && request.auth.uid == userId;
+      allow write: if request.auth != null
+                   && request.auth.uid == userId
+                   && isValidInventory(request.resource.data);
+    }
+  }
+  function isValidInventory(data) {
+    return data.keys().hasAll(['credenza', 'frigo', 'freezer'])
+        && data.credenza is list
+        && data.frigo    is list
+        && data.freezer  is list;
+  }
+}
+```
+
+Ogni utente può leggere e scrivere solo il proprio documento `/users/{uid}/inventory/data`.
+La funzione `isValidInventory` garantisce la struttura minima prima di ogni write.
+
 ## Branch di sviluppo
 
 Il branch di default per fix/feature è `claude/cross-device-data-sync-puJOK` (o il branch
