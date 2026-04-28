@@ -3,7 +3,7 @@ import styles from './SettingsTab.module.css'
 
 const GEMINI_API_KEY_STORAGE = 'gemini-api-key'
 
-export function SettingsTab({ onExport, onImport }) {
+export function SettingsTab({ user, onExport, onImport, onClearInventory, onSignOut }) {
   const [importStatus, setImportStatus] = useState(null)
   const fileInputRef = useRef(null)
   const [apiKey, setApiKey] = useState(() => localStorage.getItem(GEMINI_API_KEY_STORAGE) ?? '')
@@ -33,8 +33,32 @@ export function SettingsTab({ onExport, onImport }) {
     setTimeout(() => setImportStatus(null), 3000)
   }
 
+  async function handleClear() {
+    if (confirm('Vuoi davvero cancellare tutti i dati della dispensa? L\'operazione è irreversibile.')) {
+      await onClearInventory()
+    }
+  }
+
   return (
     <div className={styles.wrap}>
+
+      <section className={styles.section}>
+        <h2 className={styles.sectionTitle}>Account</h2>
+        <div className={styles.accountRow}>
+          {user.photoURL
+            ? <img className={styles.avatar} src={user.photoURL} alt="" referrerPolicy="no-referrer" />
+            : <div className={styles.avatarFallback}>{(user.displayName || user.email || '?')[0].toUpperCase()}</div>
+          }
+          <div className={styles.accountInfo}>
+            {user.displayName && <span className={styles.accountName}>{user.displayName}</span>}
+            <span className={styles.accountEmail}>{user.email}</span>
+          </div>
+        </div>
+        <button className={styles.signOutBtn} onClick={onSignOut}>
+          Disconnetti
+        </button>
+      </section>
+
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>API Key Gemini</h2>
         <p className={styles.desc}>
@@ -72,7 +96,7 @@ export function SettingsTab({ onExport, onImport }) {
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>Backup e trasferimento</h2>
         <p className={styles.desc}>
-          Esporta la dispensa in CSV per fare un backup o trasferirla su un altro dispositivo. Importa un CSV precedentemente esportato per ripristinare i dati (sovrascrive la dispensa attuale).
+          Esporta la dispensa in CSV per un backup locale. Importa un CSV precedentemente esportato (sovrascrive la dispensa attuale).
         </p>
         <div className={styles.dataRow}>
           <button className={styles.actionBtn} onClick={onExport}>
@@ -97,19 +121,11 @@ export function SettingsTab({ onExport, onImport }) {
       </section>
 
       <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>Dati locali</h2>
+        <h2 className={styles.sectionTitle}>Zona pericolosa</h2>
         <p className={styles.desc}>
-          Tutti i dati della dispensa sono salvati nel localStorage del tuo browser.
+          Cancella tutti gli elementi dalla dispensa. I dati vengono rimossi anche dal cloud.
         </p>
-        <button
-          className={styles.dangerBtn}
-          onClick={() => {
-            if (confirm('Vuoi davvero cancellare tutti i dati della dispensa? L\'operazione è irreversibile.')) {
-              localStorage.removeItem('cucina-smart-v1')
-              window.location.reload()
-            }
-          }}
-        >
+        <button className={styles.dangerBtn} onClick={handleClear}>
           Cancella tutti i dati dispensa
         </button>
       </section>
