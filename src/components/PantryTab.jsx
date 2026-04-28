@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ItemRow } from './ItemRow.jsx'
 import { SECTIONS, SECTION_LABELS } from '../data/initialInventory.js'
 import styles from './PantryTab.module.css'
@@ -9,6 +9,25 @@ export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onAdd
   const [newName, setNewName] = useState('')
   const [newQty, setNewQty] = useState('')
   const [newExpiry, setNewExpiry] = useState('')
+  const nameInputRef = useRef(null)
+  const addRowRef    = useRef(null)
+  const [showFab, setShowFab] = useState(false)
+
+  useEffect(() => {
+    const el = addRowRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      ([entry]) => setShowFab(!entry.isIntersecting),
+      { threshold: 0.8 }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
+  function focusAddRow() {
+    nameInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    nameInputRef.current?.focus()
+  }
 
   function handleAdd() {
     if (!newName.trim()) return
@@ -72,8 +91,9 @@ export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onAdd
         }
       </div>
 
-      <div className={styles.addRow}>
+      <div ref={addRowRef} className={styles.addRow}>
         <input
+          ref={nameInputRef}
           className={styles.addName}
           value={newName}
           onChange={e => setNewName(e.target.value)}
@@ -96,6 +116,14 @@ export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onAdd
         />
         <button className={styles.addBtn} onClick={handleAdd}>+ Aggiungi</button>
       </div>
+
+      <button
+        className={`${styles.fab} ${showFab ? styles.fabVisible : ''}`}
+        onClick={focusAddRow}
+        aria-label="Aggiungi prodotto"
+      >
+        <PlusIcon />
+      </button>
     </div>
   )
 }
@@ -106,6 +134,15 @@ function SortIcon() {
       <line x1="1" y1="3" x2="11" y2="3"/>
       <line x1="1" y1="6" x2="8" y2="6"/>
       <line x1="1" y1="9" x2="5" y2="9"/>
+    </svg>
+  )
+}
+
+function PlusIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <line x1="12" y1="5" x2="12" y2="19"/>
+      <line x1="5" y1="12" x2="19" y2="12"/>
     </svg>
   )
 }
