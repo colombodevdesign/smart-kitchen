@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { useAuth } from './hooks/useAuth.js'
 import { useInventory } from './hooks/useInventory.js'
 import { useAI } from './hooks/useAI.js'
@@ -70,9 +70,11 @@ export default function App() {
   const parseRecipesCb  = useCallback(parseRecipes, [])
   const parseShoppingCb = useCallback(parseShoppingItems, [])
 
+  const mainRef = useRef(null)
+
   const handleTabChange = useCallback((tabId) => {
     setActiveTab(tabId)
-    window.scrollTo({ top: 0, behavior: 'instant' })
+    if (mainRef.current) mainRef.current.scrollTop = 0
   }, [])
 
   const inRicetteGroup = activeTab === 'ricette' || activeTab === 'ricette-salvate'
@@ -116,7 +118,7 @@ export default function App() {
       {/* Desktop: fixed sidebar (hidden on ≤1023px via CSS) */}
       <Sidebar activeTab={activeTab} onTabChange={handleTabChange} />
 
-      <main className={styles.main}>
+      <main ref={mainRef} className={styles.main}>
         {activeTab === 'dispensa' && (
           <PantryTab
             inventory={inventory}
