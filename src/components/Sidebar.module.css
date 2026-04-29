@@ -4,7 +4,7 @@
   left: 0;
   top: 0;
   width: 220px;
-  height: 100dvh;
+  height: 100svh;
   background: var(--surface);
   border-right: 0.5px solid var(--border);
   flex-direction: column;
