@@ -1,5 +1,5 @@
 .app {
-  min-height: 100dvh;
+  min-height: 100svh;
   display: flex;
   flex-direction: column;
 }
@@ -10,6 +10,7 @@
   position: sticky;
   top: 0;
   z-index: 10;
+  padding-top: env(safe-area-inset-top);
 }
 
 .headerInner {
@@ -63,7 +64,7 @@
 }
 
 .loadingWrap {
-  min-height: 100dvh;
+  min-height: 100svh;
   display: flex;
   align-items: center;
   justify-content: center;

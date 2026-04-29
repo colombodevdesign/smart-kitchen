@@ -47,7 +47,7 @@ body {
   color: var(--text);
   font-size: 15px;
   line-height: 1.5;
-  min-height: 100dvh;
+  min-height: 100svh;
   overflow-x: hidden;
 }
 
