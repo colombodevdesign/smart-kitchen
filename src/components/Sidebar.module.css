@@ -16,6 +16,10 @@
   .sidebar { display: flex; }
 }
 
+@media (min-width: 1024px) and (display-mode: standalone) {
+  .sidebar { height: 100lvh; }
+}
+
 .logo {
   height: 52px;
   display: flex;
