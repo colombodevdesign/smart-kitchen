@@ -70,6 +70,11 @@ export default function App() {
   const parseRecipesCb  = useCallback(parseRecipes, [])
   const parseShoppingCb = useCallback(parseShoppingItems, [])
 
+  const handleTabChange = useCallback((tabId) => {
+    setActiveTab(tabId)
+    window.scrollTo({ top: 0, behavior: 'instant' })
+  }, [])
+
   const inRicetteGroup = activeTab === 'ricette' || activeTab === 'ricette-salvate'
   const inSpesaGroup   = activeTab === 'spesa'   || activeTab === 'lista-spesa'
 
@@ -99,7 +104,7 @@ export default function App() {
               <button
                 key={t.id}
                 className={`${styles.tab} ${activeTab === t.id ? styles.tabActive : ''}`}
-                onClick={() => setActiveTab(t.id)}
+                onClick={() => handleTabChange(t.id)}
               >
                 {t.label}
               </button>
@@ -109,7 +114,7 @@ export default function App() {
       </header>
 
       {/* Desktop: fixed sidebar (hidden on ≤1023px via CSS) */}
-      <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
+      <Sidebar activeTab={activeTab} onTabChange={handleTabChange} />
 
       <main className={styles.main}>
         {activeTab === 'dispensa' && (
@@ -127,13 +132,13 @@ export default function App() {
             <div className={styles.subNav}>
               <button
                 className={`${styles.subNavBtn} ${activeTab === 'ricette' ? styles.subNavActive : ''}`}
-                onClick={() => setActiveTab('ricette')}
+                onClick={() => handleTabChange('ricette')}
               >
                 Genera AI
               </button>
               <button
                 className={`${styles.subNavBtn} ${activeTab === 'ricette-salvate' ? styles.subNavActive : ''}`}
-                onClick={() => setActiveTab('ricette-salvate')}
+                onClick={() => handleTabChange('ricette-salvate')}
               >
                 Salvate ({savedRecipes.recipes.length})
               </button>
@@ -168,13 +173,13 @@ export default function App() {
             <div className={styles.subNav}>
               <button
                 className={`${styles.subNavBtn} ${activeTab === 'spesa' ? styles.subNavActive : ''}`}
-                onClick={() => setActiveTab('spesa')}
+                onClick={() => handleTabChange('spesa')}
               >
                 Genera AI
               </button>
               <button
                 className={`${styles.subNavBtn} ${activeTab === 'lista-spesa' ? styles.subNavActive : ''}`}
-                onClick={() => setActiveTab('lista-spesa')}
+                onClick={() => handleTabChange('lista-spesa')}
               >
                 Lista ({savedShopping.items.length})
               </button>
@@ -225,7 +230,7 @@ export default function App() {
       </main>
 
       {/* Mobile: fixed bottom nav (hidden on ≥601px via CSS) */}
-      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+      <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
     </div>
   )
 }
