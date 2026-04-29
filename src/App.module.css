@@ -1,7 +1,12 @@
 .app {
-  min-height: 100svh;
+  height: 100svh;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
+}
+
+@media (display-mode: standalone) {
+  .app { height: 100lvh; }
 }
 
 .header {
@@ -61,6 +66,9 @@
   width: 100%;
   padding: 1.5rem 1.25rem 3rem;
   flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .loadingWrap {
@@ -68,6 +76,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+@media (display-mode: standalone) {
+  .loadingWrap { min-height: 100lvh; }
 }
 
 .loadingDot {
@@ -88,7 +100,7 @@
   .headerInner { gap: 0.75rem; }
   .logo { font-size: 14px; }
   .tabs { display: none; }
-  .main { padding: 1rem 1rem calc(56px + env(safe-area-inset-bottom) + 1rem); }
+  .main { padding: 1rem 1rem 1rem; }
 }
 
 /* ── Desktop (≥1024px): sidebar replaces header ── */

@@ -51,6 +51,10 @@ body {
   overflow-x: hidden;
 }
 
+@media (display-mode: standalone) {
+  body { min-height: 100lvh; }
+}
+
 input, button, textarea, select {
   font-family: inherit;
   font-size: inherit;
