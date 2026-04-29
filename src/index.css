@@ -56,6 +56,13 @@ input, button, textarea, select {
   font-size: inherit;
 }
 
+/* Prevent iOS auto-zoom on input focus (requires font-size >= 16px) */
+@media (max-width: 600px) {
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+}
+
 button { cursor: pointer; }
 
 ::-webkit-scrollbar { width: 6px; }
