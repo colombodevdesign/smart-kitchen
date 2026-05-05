@@ -3,8 +3,18 @@ import { ItemRow } from './ItemRow.jsx'
 import { SECTIONS, SECTION_LABELS } from '../data/initialInventory.js'
 import styles from './PantryTab.module.css'
 
+const SORT_LABELS = {
+  none:        'Ordine inserimento',
+  urgent:      'Urgenti prima',
+  'name-asc':  'Nome A → Z',
+  'name-desc': 'Nome Z → A',
+  'expiry-asc':  'Scadenza ↑',
+  'expiry-desc': 'Scadenza ↓',
+}
+
 export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onAdd, onMove }) {
-  const [section, setSection] = useState('credenza')
+  const [section, setSection] = useState('all')
+  const [addSection, setAddSection] = useState('credenza')
   const [sortMode, setSortMode] = useState('none')
   const [search, setSearch] = useState('')
   const [newName, setNewName] = useState('')
@@ -33,7 +43,8 @@ export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onAdd
 
   function handleAdd() {
     if (!newName.trim()) return
-    onAdd(section, newName, newQty, newExpiry || null)
+    const target = section === 'all' ? addSection : section
+    onAdd(target, newName, newQty, newExpiry || null)
     setNewName('')
     setNewQty('')
     setNewExpiry('')
@@ -76,14 +87,24 @@ export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onAdd
           .filter(i => i.name.toLowerCase().includes(searchQuery))
           .map(i => ({ item: i, itemSection: s }))
       )
-    : sortItems(inventory[section]).map(i => ({ item: i, itemSection: section }))
+    : section === 'all'
+      ? SECTIONS.flatMap(s => sortItems(inventory[s]).map(i => ({ item: i, itemSection: s })))
+      : sortItems(inventory[section]).map(i => ({ item: i, itemSection: section }))
 
-  const urgentCount = Object.values(inventory).flat().filter(i => i.urgent).length
+  const showSectionBadge = searchActive || section === 'all'
+  const totalCount = SECTIONS.reduce((n, s) => n + inventory[s].length, 0)
 
   return (
     <div className={styles.wrap}>
       <div className={styles.toolbar}>
         <div className={styles.sections}>
+          <button
+            className={`${styles.sectionBtn} ${!searchActive && section === 'all' ? styles.active : ''}`}
+            onClick={() => { setSection('all'); setSearch('') }}
+          >
+            Tutto
+            <span className={styles.count}>{totalCount}</span>
+          </button>
           {SECTIONS.map(s => (
             <button
               key={s}
@@ -96,20 +117,23 @@ export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onAdd
           ))}
         </div>
         <div className={styles.actions}>
-          <select
-            className={`${styles.sortSelect} ${sortMode !== 'none' ? styles.sortActive : ''}`}
-            value={sortMode}
-            onChange={e => setSortMode(e.target.value)}
-            aria-label="Ordina per"
+          <div
+            className={`${styles.sortWrap} ${sortMode !== 'none' ? styles.sortActive : ''}`}
+            title={SORT_LABELS[sortMode]}
           >
-            <option value="none">Ordine inserimento</option>
-            <option value="urgent">Urgenti prima</option>
-            <option value="name-asc">Nome A → Z</option>
-            <option value="name-desc">Nome Z → A</option>
-            <option value="expiry-asc">Scadenza ↑</option>
-            <option value="expiry-desc">Scadenza ↓</option>
-          </select>
-          {urgentCount > 0 && <span className={styles.urgentBadge}>{urgentCount}</span>}
+            <SortIcon />
+            {sortMode !== 'none' && <span className={styles.sortDot} />}
+            <select
+              className={styles.sortOverlay}
+              value={sortMode}
+              onChange={e => setSortMode(e.target.value)}
+              aria-label="Ordina per"
+            >
+              {Object.entries(SORT_LABELS).map(([val, label]) => (
+                <option key={val} value={val}>{label}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
@@ -134,12 +158,6 @@ export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onAdd
         )}
       </div>
 
-      {!searchActive && (
-        <p className={styles.hint}>
-          clicca nome, quantità o scadenza per modificare · puntino = da usare presto
-        </p>
-      )}
-
       <div className={styles.list}>
         {displayItems.length === 0 ? (
           <p className={styles.empty}>
@@ -153,7 +171,7 @@ export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onAdd
               key={item.id}
               item={item}
               section={itemSection}
-              showSection={searchActive}
+              showSection={showSectionBadge}
               onToggleUrgent={onToggleUrgent}
               onUpdate={onUpdate}
               onRemove={onRemove}
@@ -164,6 +182,18 @@ export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onAdd
       </div>
 
       <div ref={addRowRef} className={styles.addRow}>
+        {section === 'all' && (
+          <select
+            className={styles.addSectionSelect}
+            value={addSection}
+            onChange={e => setAddSection(e.target.value)}
+            aria-label="Sezione di destinazione"
+          >
+            {SECTIONS.map(s => (
+              <option key={s} value={s}>{SECTION_LABELS[s]}</option>
+            ))}
+          </select>
+        )}
         <input
           ref={nameInputRef}
           className={styles.addName}
@@ -197,6 +227,16 @@ export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onAdd
         <PlusIcon />
       </button>
     </div>
+  )
+}
+
+function SortIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+      <line x1="2" y1="4" x2="12" y2="4"/>
+      <line x1="2" y1="7" x2="9" y2="7"/>
+      <line x1="2" y1="10" x2="6" y2="10"/>
+    </svg>
   )
 }
 

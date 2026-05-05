@@ -14,7 +14,7 @@
 .editing { border-color: var(--accent) !important; }
 .urgent { border-left: 2px solid var(--urgent); padding-left: 10px; }
 
-/* Touch-friendly dot: visually 8px, hit area 32px via padding + clipping */
+/* Visually 8px, hit area 32px via padding + background-clip */
 .dot {
   width: 8px;
   height: 8px;
@@ -36,7 +36,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
 }
 
 .nameRow {
@@ -87,12 +87,14 @@
 .meta {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
 }
 
+/* Hidden on mobile — added date has little value on small screens */
 .date {
   font-size: 11px;
   color: var(--text-hint);
+  opacity: 0.7;
   padding-left: 3px;
 }
 
@@ -111,6 +113,7 @@
   cursor: pointer;
   border-radius: 3px;
   padding: 0 2px;
+  font-weight: 500;
 }
 .expirySoon:hover { background: var(--accent-light); }
 
@@ -124,14 +127,21 @@
 }
 .expiryExpired:hover { background: var(--urgent-light); }
 
+/* Pill-style chip matching qty, for easy tapping */
 .expiryAdd {
+  display: inline-flex;
+  align-items: center;
   font-size: 11px;
   color: var(--text-hint);
   cursor: pointer;
-  opacity: 0.6;
-  padding: 0 2px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  border: 0.5px dashed var(--border-strong);
+  transition: all 0.12s;
+  white-space: nowrap;
+  min-height: 24px;
 }
-.expiryAdd:hover { opacity: 1; }
+.expiryAdd:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
 
 .expiryInput {
   font-size: 11px;
@@ -149,7 +159,7 @@
   color: var(--urgent-text);
   padding: 1px 5px;
   border-radius: 8px;
-  margin-left: 6px;
+  margin-left: 4px;
   vertical-align: middle;
   flex-shrink: 0;
 }
@@ -220,7 +230,7 @@
 .moveBtn { color: var(--text-hint); }
 .moveBtn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
 
-/* Inline section picker for move */
+/* Inline section picker */
 .moveOptions {
   display: flex;
   align-items: center;
@@ -244,6 +254,14 @@
 .moveOption:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
 
 @media (max-width: 600px) {
+  .date { display: none; }
+
+  .expiryAdd {
+    min-height: 28px;
+    padding: 3px 9px;
+    font-size: 12px;
+  }
+
   .iconBtn {
     width: 36px;
     height: 36px;
