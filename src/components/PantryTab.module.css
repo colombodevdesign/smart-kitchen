@@ -70,6 +70,8 @@
   border-radius: 50%;
   background: transparent;
   color: var(--text);
+  -webkit-appearance: none;
+  appearance: none;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -78,7 +80,9 @@
   transition: all 0.15s;
   padding: 0;
 }
+.searchIconBtn svg { color: var(--text); stroke: var(--text); }
 .searchIconBtn:hover { border-color: var(--accent); color: var(--accent); }
+.searchIconBtn:hover svg { color: var(--accent); stroke: var(--accent); }
 
 /* ── Full-width search bar (replaces toolbar when open) ── */
 .searchBar {
