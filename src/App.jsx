@@ -56,7 +56,7 @@ export default function App() {
 
   const {
     inventory,
-    addItem, removeItem, updateItem, toggleUrgent,
+    addItem, removeItem, updateItem, moveItem, toggleUrgent,
     exportCSV, importCSV, clearInventory, getInventoryText,
   } = useInventory(user?.uid ?? null)
 
@@ -126,6 +126,7 @@ export default function App() {
             onUpdate={updateItem}
             onRemove={removeItem}
             onAdd={addItem}
+            onMove={moveItem}
           />
         )}
 
