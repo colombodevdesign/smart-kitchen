@@ -259,7 +259,7 @@ function SortIcon() {
 
 function SearchIcon() {
   return (
-    <svg width="15" height="15" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
       <circle cx="6" cy="6" r="4"/>
       <line x1="9.5" y1="9.5" x2="13" y2="13"/>
     </svg>

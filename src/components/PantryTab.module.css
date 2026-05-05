@@ -66,12 +66,10 @@
 .searchIconBtn {
   width: 36px;
   height: 36px;
-  border: 0.5px solid var(--border-strong);
+  border: 1px solid var(--border-strong);
   border-radius: 50%;
   background: transparent;
-  color: var(--text);
-  -webkit-appearance: none;
-  appearance: none;
+  color: var(--text-muted);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -80,9 +78,7 @@
   transition: all 0.15s;
   padding: 0;
 }
-.searchIconBtn svg { color: var(--text); stroke: var(--text); }
-.searchIconBtn:hover { border-color: var(--accent); color: var(--accent); }
-.searchIconBtn:hover svg { color: var(--accent); stroke: var(--accent); }
+.searchIconBtn:hover { border-color: var(--border-strong); color: var(--text); }
 
 /* ── Full-width search bar (replaces toolbar when open) ── */
 .searchBar {
@@ -154,14 +150,14 @@
   justify-content: center;
   width: 36px;
   height: 36px;
-  border: 0.5px solid var(--border);
+  border: 1px solid var(--border-strong);
   border-radius: 50%;
   color: var(--text-muted);
   transition: all 0.15s;
   cursor: pointer;
   flex-shrink: 0;
 }
-.sortWrap:hover { border-color: var(--border-strong); color: var(--text); }
+.sortWrap:hover { border-color: var(--text-muted); color: var(--text); }
 .sortActive { border-color: var(--accent) !important; color: var(--accent) !important; }
 
 .sortDot {
