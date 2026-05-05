@@ -66,10 +66,10 @@
 .searchIconBtn {
   width: 36px;
   height: 36px;
-  border: 0.5px solid var(--border);
+  border: 0.5px solid var(--border-strong);
   border-radius: 50%;
   background: transparent;
-  color: var(--text-muted);
+  color: var(--text);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -78,7 +78,7 @@
   transition: all 0.15s;
   padding: 0;
 }
-.searchIconBtn:hover { border-color: var(--border-strong); color: var(--text); }
+.searchIconBtn:hover { border-color: var(--accent); color: var(--accent); }
 
 /* ── Full-width search bar (replaces toolbar when open) ── */
 .searchBar {
