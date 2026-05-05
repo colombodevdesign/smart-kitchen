@@ -4,10 +4,10 @@ import { SECTIONS, SECTION_LABELS } from '../data/initialInventory.js'
 import styles from './PantryTab.module.css'
 
 const SORT_LABELS = {
-  none:        'Ordine inserimento',
-  urgent:      'Urgenti prima',
-  'name-asc':  'Nome A → Z',
-  'name-desc': 'Nome Z → A',
+  none:          'Ordine inserimento',
+  urgent:        'Urgenti prima',
+  'name-asc':    'Nome A → Z',
+  'name-desc':   'Nome Z → A',
   'expiry-asc':  'Scadenza ↑',
   'expiry-desc': 'Scadenza ↓',
 }
@@ -50,28 +50,29 @@ export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onAdd
     setNewExpiry('')
   }
 
-  function sortItems(items) {
-    const arr = [...items]
+  // Sort operates on {item, itemSection} pairs — works uniformly for single-section and "all"
+  function sortPairs(pairs) {
+    const arr = [...pairs]
     switch (sortMode) {
       case 'urgent':
-        return arr.sort((a, b) => (b.urgent ? 1 : 0) - (a.urgent ? 1 : 0))
+        return arr.sort((a, b) => (b.item.urgent ? 1 : 0) - (a.item.urgent ? 1 : 0))
       case 'name-asc':
-        return arr.sort((a, b) => a.name.localeCompare(b.name, 'it'))
+        return arr.sort((a, b) => a.item.name.localeCompare(b.item.name, 'it'))
       case 'name-desc':
-        return arr.sort((a, b) => b.name.localeCompare(a.name, 'it'))
+        return arr.sort((a, b) => b.item.name.localeCompare(a.item.name, 'it'))
       case 'expiry-asc':
         return arr.sort((a, b) => {
-          if (!a.expiresAt && !b.expiresAt) return 0
-          if (!a.expiresAt) return 1
-          if (!b.expiresAt) return -1
-          return a.expiresAt - b.expiresAt
+          if (!a.item.expiresAt && !b.item.expiresAt) return 0
+          if (!a.item.expiresAt) return 1
+          if (!b.item.expiresAt) return -1
+          return a.item.expiresAt - b.item.expiresAt
         })
       case 'expiry-desc':
         return arr.sort((a, b) => {
-          if (!a.expiresAt && !b.expiresAt) return 0
-          if (!a.expiresAt) return 1
-          if (!b.expiresAt) return -1
-          return b.expiresAt - a.expiresAt
+          if (!a.item.expiresAt && !b.item.expiresAt) return 0
+          if (!a.item.expiresAt) return 1
+          if (!b.item.expiresAt) return -1
+          return b.item.expiresAt - a.item.expiresAt
         })
       default:
         return arr
@@ -81,17 +82,15 @@ export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onAdd
   const searchActive = search.trim().length > 0
   const searchQuery  = search.trim().toLowerCase()
 
-  const displayItems = searchActive
-    ? SECTIONS.flatMap(s =>
-        inventory[s]
-          .filter(i => i.name.toLowerCase().includes(searchQuery))
-          .map(i => ({ item: i, itemSection: s }))
-      )
-    : section === 'all'
-      ? SECTIONS.flatMap(s => sortItems(inventory[s]).map(i => ({ item: i, itemSection: s })))
-      : sortItems(inventory[section]).map(i => ({ item: i, itemSection: section }))
+  const basePairs = section === 'all'
+    ? SECTIONS.flatMap(s => inventory[s].map(i => ({ item: i, itemSection: s })))
+    : inventory[section].map(i => ({ item: i, itemSection: section }))
 
-  const showSectionBadge = searchActive || section === 'all'
+  const displayItems = searchActive
+    ? basePairs.filter(({ item }) => item.name.toLowerCase().includes(searchQuery))
+    : sortPairs(basePairs)
+
+  const showSectionBadge = section === 'all' || searchActive
   const totalCount = SECTIONS.reduce((n, s) => n + inventory[s].length, 0)
 
   return (
@@ -116,7 +115,29 @@ export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onAdd
             </button>
           ))}
         </div>
+
         <div className={styles.actions}>
+          <div className={`${styles.inlineSearch} ${searchActive ? styles.inlineSearchActive : ''}`}>
+            <SearchIcon />
+            <input
+              ref={searchRef}
+              className={styles.inlineSearchInput}
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Cerca…"
+              aria-label="Cerca prodotti"
+            />
+            {searchActive && (
+              <button
+                className={styles.inlineSearchClear}
+                onClick={() => { setSearch(''); searchRef.current?.focus() }}
+                aria-label="Cancella ricerca"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
           <div
             className={`${styles.sortWrap} ${sortMode !== 'none' ? styles.sortActive : ''}`}
             title={SORT_LABELS[sortMode]}
@@ -135,27 +156,6 @@ export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onAdd
             </select>
           </div>
         </div>
-      </div>
-
-      <div className={styles.searchWrap}>
-        <SearchIcon />
-        <input
-          ref={searchRef}
-          className={styles.searchInput}
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Cerca in tutte le sezioni…"
-          aria-label="Cerca prodotti"
-        />
-        {searchActive && (
-          <button
-            className={styles.searchClear}
-            onClick={() => { setSearch(''); searchRef.current?.focus() }}
-            aria-label="Cancella ricerca"
-          >
-            ✕
-          </button>
-        )}
       </div>
 
       <div className={styles.list}>
@@ -242,7 +242,7 @@ function SortIcon() {
 
 function SearchIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
       <circle cx="6" cy="6" r="4"/>
       <line x1="9.5" y1="9.5" x2="13" y2="13"/>
     </svg>

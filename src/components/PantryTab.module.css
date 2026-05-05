@@ -5,10 +5,21 @@
   align-items: center;
   gap: 8px;
   margin-bottom: 10px;
-  flex-wrap: wrap;
+  min-width: 0;
 }
 
-.sections { display: flex; gap: 6px; flex-wrap: wrap; }
+/* Scrollable tabs row — no wrapping, clips and scrolls horizontally */
+.sections {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 1px; /* tiny buffer so focus ring isn't clipped */
+}
+.sections::-webkit-scrollbar { display: none; }
 
 .sectionBtn {
   display: flex;
@@ -22,6 +33,8 @@
   color: var(--text-muted);
   transition: all 0.15s;
   min-height: 36px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .sectionBtn:hover { border-color: var(--border-strong); color: var(--text); }
 .active { background: var(--accent) !important; border-color: var(--accent) !important; color: #fff !important; }
@@ -35,7 +48,59 @@
 }
 .active .count { background: rgba(255,255,255,0.2); }
 
-.actions { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+/* Right-side actions: inline search + sort icon */
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* ── Inline search ── */
+.inlineSearch {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 10px;
+  height: 36px;
+  width: 130px;
+  border: 0.5px solid var(--border);
+  border-radius: 20px;
+  background: var(--surface);
+  transition: border-color 0.15s, width 0.2s;
+  overflow: hidden;
+}
+.inlineSearch:focus-within { border-color: var(--accent); }
+.inlineSearchActive { border-color: var(--accent) !important; width: 160px; }
+.inlineSearch svg { color: var(--text-hint); flex-shrink: 0; }
+
+.inlineSearchInput {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 12px;
+  outline: none;
+  min-width: 0;
+}
+.inlineSearchInput::placeholder { color: var(--text-hint); }
+
+.inlineSearchClear {
+  background: transparent;
+  border: none;
+  color: var(--text-hint);
+  cursor: pointer;
+  font-size: 11px;
+  line-height: 1;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  min-height: 18px;
+  flex-shrink: 0;
+}
+.inlineSearchClear:hover { color: var(--text); }
 
 /* ── Sort icon button with native select overlay ── */
 .sortWrap {
@@ -66,7 +131,6 @@
   pointer-events: none;
 }
 
-/* transparent select covers the whole button to capture clicks */
 .sortOverlay {
   position: absolute;
   inset: 0;
@@ -74,52 +138,8 @@
   cursor: pointer;
   width: 100%;
   height: 100%;
-  font-size: 16px; /* prevent iOS zoom on focus */
+  font-size: 16px; /* prevent iOS zoom */
 }
-
-/* ── Search bar ── */
-.searchWrap {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 12px;
-  border: 0.5px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--surface);
-  margin-bottom: 10px;
-  transition: border-color 0.12s;
-}
-.searchWrap:focus-within { border-color: var(--accent); }
-.searchWrap svg { color: var(--text-hint); flex-shrink: 0; }
-
-.searchInput {
-  flex: 1;
-  border: none;
-  background: transparent;
-  color: var(--text);
-  font-size: 13px;
-  outline: none;
-  min-width: 0;
-}
-.searchInput::placeholder { color: var(--text-hint); }
-
-.searchClear {
-  background: transparent;
-  border: none;
-  color: var(--text-hint);
-  font-size: 12px;
-  cursor: pointer;
-  padding: 4px 6px;
-  border-radius: 50%;
-  line-height: 1;
-  transition: background 0.1s, color 0.1s;
-  min-width: 28px;
-  min-height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.searchClear:hover { background: var(--surface-hover); color: var(--text); }
 
 .list { margin-bottom: 4px; }
 
@@ -209,10 +229,14 @@
 .fab:active { transform: scale(0.94) !important; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18); }
 
 @media (max-width: 600px) {
+  .inlineSearch { width: 110px; }
+  .inlineSearchActive { width: 140px; }
+
   .addRow { flex-wrap: wrap; }
   .addSectionSelect { flex: 1 1 100%; }
   .addName { flex: 1 1 100%; }
   .addQty { flex: 1; }
   .addExpiry { flex: 0 1 auto; min-width: 0; font-size: 12px; }
+
   .fab { bottom: calc(56px + env(safe-area-inset-bottom) + 16px); right: 20px; }
 }
