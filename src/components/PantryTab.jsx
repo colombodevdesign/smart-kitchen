@@ -15,7 +15,7 @@ const SORT_LABELS = {
 export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onAdd, onMove }) {
   const [section, setSection] = useState('all')
   const [addSection, setAddSection] = useState('credenza')
-  const [sortMode, setSortMode] = useState('none')
+  const [sortMode, setSortMode] = useState('expiry-asc')
   const [search, setSearch] = useState('')
   const [newName, setNewName] = useState('')
   const [newQty, setNewQty] = useState('')

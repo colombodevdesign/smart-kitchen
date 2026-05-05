@@ -8,6 +8,8 @@
   border: 0.5px solid var(--border);
   margin-bottom: 6px;
   transition: border-color 0.12s;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .row:hover { border-color: var(--border-strong); }
@@ -189,8 +191,10 @@
   background: var(--surface);
   color: var(--text);
   outline: none;
-  width: 110px;
-  flex-shrink: 0;
+  width: 90px;
+  max-width: 110px;
+  min-width: 0;
+  flex-shrink: 1;
 }
 
 .qtyEmpty {

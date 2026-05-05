@@ -91,9 +91,14 @@ export function ItemRow({ item, section, showSection, onToggleUrgent, onUpdate, 
               type="date"
               className={styles.expiryInput}
               value={draft}
-              onChange={e => setDraft(e.target.value)}
-              onKeyDown={onKeyDown}
-              onBlur={() => setTimeout(confirm, 120)}
+              onChange={e => {
+                const val = e.target.value
+                setDraft(val)
+                const ts = val ? new Date(val + 'T23:59:59').getTime() : null
+                onUpdate(section, item.id, { expiresAt: ts })
+              }}
+              onKeyDown={e => { if (e.key === 'Escape') cancel() }}
+              onBlur={() => setTimeout(() => setEditingField(null), 120)}
             />
           ) : expiry ? (
             <span
