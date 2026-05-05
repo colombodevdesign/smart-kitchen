@@ -15,9 +15,8 @@
   display: flex;
   gap: 6px;
   overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  padding-bottom: 1px; /* tiny buffer so focus ring isn't clipped */
+  padding-bottom: 1px;
 }
 .sections::-webkit-scrollbar { display: none; }
 
