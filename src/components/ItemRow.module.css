@@ -21,25 +21,6 @@
   padding: 7px 12px;
   min-width: 0;
 }
-.urgent .row { padding-left: 10px; }
-
-/* Urgency dot — visually 8px, hit area 32px via padding trick */
-.dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  border: none;
-  flex-shrink: 0;
-  cursor: pointer;
-  transition: transform 0.12s;
-  padding: 12px;
-  margin: -12px;
-  background-clip: content-box;
-}
-.dot:active { transform: scale(1.4); }
-/* Off state: ring outline so it's visible in dark mode */
-.dotOff { background-color: transparent; box-shadow: 0 0 0 1.5px var(--border-strong); }
-.dotOn  { background-color: var(--urgent); box-shadow: none; }
 
 .main {
   flex: 1;
@@ -275,6 +256,22 @@
 }
 .moveOption:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
 
+.urgencyBtn {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border: 0.5px solid var(--border);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.12s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.urgencyBtn:hover { border-color: var(--urgent); color: var(--urgent); background: var(--urgent-light); }
+.urgencyBtnOn { border-color: var(--urgent) !important; color: var(--urgent) !important; background: var(--urgent-light); }
+
 .deleteBtn {
   font-size: 12px;
   font-weight: 500;
@@ -290,6 +287,15 @@
 }
 .deleteBtn:hover { background: var(--urgent-light); }
 
+/* Search highlight */
+:global(mark) {
+  background: var(--accent-light);
+  color: var(--text);
+  border-radius: 2px;
+  padding: 0 1px;
+  font-style: inherit;
+}
+
 @media (max-width: 600px) {
   .date { display: none; }
 
@@ -300,5 +306,5 @@
 
   .qty { min-height: 32px; padding: 5px 10px; }
 
-  .moveOption, .deleteBtn { min-height: 32px; padding: 5px 12px; font-size: 12px; }
+  .moveOption, .deleteBtn, .urgencyBtn { min-height: 32px; padding: 5px 12px; font-size: 12px; }
 }

@@ -187,6 +187,7 @@ export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onAdd
               item={item}
               section={itemSection}
               showSection={showSectionBadge}
+              searchQuery={searchActive ? searchQuery : ''}
               onToggleUrgent={onToggleUrgent}
               onUpdate={onUpdate}
               onRemove={onRemove}

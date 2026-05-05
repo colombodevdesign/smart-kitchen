@@ -3,7 +3,24 @@ import { formatDate, formatExpiry, expiryStatus } from '../utils/date.js'
 import { SECTIONS, SECTION_LABELS } from '../data/initialInventory.js'
 import styles from './ItemRow.module.css'
 
-export function ItemRow({ item, section, showSection, onToggleUrgent, onUpdate, onRemove, onMove }) {
+function highlight(text, query) {
+  if (!query) return text
+  const lower = text.toLowerCase()
+  const lowerQ = query.toLowerCase()
+  const parts = []
+  let last = 0
+  let idx = lower.indexOf(lowerQ)
+  while (idx !== -1) {
+    if (idx > last) parts.push(text.slice(last, idx))
+    parts.push(<mark key={idx}>{text.slice(idx, idx + query.length)}</mark>)
+    last = idx + query.length
+    idx = lower.indexOf(lowerQ, last)
+  }
+  if (last < text.length) parts.push(text.slice(last))
+  return parts
+}
+
+export function ItemRow({ item, section, showSection, searchQuery, onToggleUrgent, onUpdate, onRemove, onMove }) {
   const [editingField, setEditingField] = useState(null)
   const [draft, setDraft] = useState('')
   const [expanded, setExpanded] = useState(false)
@@ -50,13 +67,6 @@ export function ItemRow({ item, section, showSection, onToggleUrgent, onUpdate, 
   return (
     <div className={`${styles.card} ${item.urgent ? styles.urgent : ''} ${editingField ? styles.editing : ''} ${expanded ? styles.cardExpanded : ''}`}>
       <div className={styles.row}>
-        <button
-          className={`${styles.dot} ${item.urgent ? styles.dotOn : styles.dotOff}`}
-          onClick={() => onToggleUrgent(section, item.id)}
-          title="Segna come da usare presto"
-          aria-label={item.urgent ? 'Rimuovi urgenza' : 'Segna urgente'}
-        />
-
         <div className={styles.main}>
           <div className={styles.nameRow}>
             {editingField === 'name' ? (
@@ -70,7 +80,7 @@ export function ItemRow({ item, section, showSection, onToggleUrgent, onUpdate, 
               />
             ) : (
               <span className={styles.name} onClick={() => startEdit('name')}>
-                {item.name}
+                {searchQuery ? highlight(item.name, searchQuery) : item.name}
                 {item.urgent && <span className={styles.badgeUrgent}>da usare</span>}
               </span>
             )}
@@ -97,7 +107,7 @@ export function ItemRow({ item, section, showSection, onToggleUrgent, onUpdate, 
               />
             ) : expiry ? (
               <span className={expiryClass} onClick={() => startEdit('expiresAt')}>
-                · {expiry}
+                {expiry}
               </span>
             ) : (
               <span className={styles.expiryAdd} onClick={() => startEdit('expiresAt')}>
@@ -150,6 +160,13 @@ export function ItemRow({ item, section, showSection, onToggleUrgent, onUpdate, 
               </button>
             ))}
           </div>
+          <button
+            className={`${styles.urgencyBtn} ${item.urgent ? styles.urgencyBtnOn : ''}`}
+            onClick={() => onToggleUrgent(section, item.id)}
+            aria-label={item.urgent ? 'Rimuovi urgenza' : 'Segna urgente'}
+          >
+            ‼️ {item.urgent ? 'Urgente' : 'Urgente'}
+          </button>
           <button className={styles.deleteBtn} onClick={() => onRemove(section, item.id)}>
             Elimina
           </button>
