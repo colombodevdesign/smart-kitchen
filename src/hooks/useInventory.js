@@ -109,6 +109,21 @@ export function useInventory(uid) {
     })
   }, [])
 
+  const moveItem = useCallback((fromSection, id, toSection) => {
+    if (fromSection === toSection) return
+    setInventory(prev => {
+      const item = prev[fromSection].find(i => i.id === id)
+      if (!item) return prev
+      const next = {
+        ...prev,
+        [fromSection]: prev[fromSection].filter(i => i.id !== id),
+        [toSection]: [...prev[toSection], item],
+      }
+      if (uidRef.current) setDoc(firestoreRef(uidRef.current), next).catch(console.error)
+      return next
+    })
+  }, [])
+
   const toggleUrgent = useCallback((section, id) => {
     setInventory(prev => {
       const next = { ...prev, [section]: prev[section].map(i => i.id === id ? { ...i, urgent: !i.urgent } : i) }
@@ -219,6 +234,7 @@ export function useInventory(uid) {
     addItem,
     removeItem,
     updateItem,
+    moveItem,
     toggleUrgent,
     exportCSV,
     importCSV,

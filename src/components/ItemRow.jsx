@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from 'react'
 import { formatDate, formatExpiry, expiryStatus } from '../utils/date.js'
+import { SECTIONS, SECTION_LABELS } from '../data/initialInventory.js'
 import styles from './ItemRow.module.css'
 
-export function ItemRow({ item, section, onToggleUrgent, onUpdate, onRemove }) {
+export function ItemRow({ item, section, showSection, onToggleUrgent, onUpdate, onRemove, onMove }) {
   const [editingField, setEditingField] = useState(null)
   const [draft, setDraft] = useState('')
+  const [moving, setMoving] = useState(false)
   const inputRef = useRef(null)
 
   useEffect(() => {
@@ -15,6 +17,7 @@ export function ItemRow({ item, section, onToggleUrgent, onUpdate, onRemove }) {
   }, [editingField])
 
   function startEdit(field) {
+    setMoving(false)
     if (field === 'expiresAt') {
       setDraft(item.expiresAt ? new Date(item.expiresAt).toISOString().slice(0, 10) : '')
     } else {
@@ -56,25 +59,30 @@ export function ItemRow({ item, section, onToggleUrgent, onUpdate, onRemove }) {
       />
 
       <div className={styles.main}>
-        {editingField === 'name' ? (
-          <input
-            ref={inputRef}
-            className={styles.nameInput}
-            value={draft}
-            onChange={e => setDraft(e.target.value)}
-            onKeyDown={onKeyDown}
-            onBlur={() => setTimeout(cancel, 120)}
-          />
-        ) : (
-          <span
-            className={styles.name}
-            onClick={() => startEdit('name')}
-            title="Clicca per rinominare"
-          >
-            {item.name}
-            {item.urgent && <span className={styles.badgeUrgent}>da usare</span>}
-          </span>
-        )}
+        <div className={styles.nameRow}>
+          {editingField === 'name' ? (
+            <input
+              ref={inputRef}
+              className={styles.nameInput}
+              value={draft}
+              onChange={e => setDraft(e.target.value)}
+              onKeyDown={onKeyDown}
+              onBlur={() => setTimeout(cancel, 120)}
+            />
+          ) : (
+            <span
+              className={styles.name}
+              onClick={() => startEdit('name')}
+              title="Clicca per rinominare"
+            >
+              {item.name}
+              {item.urgent && <span className={styles.badgeUrgent}>da usare</span>}
+            </span>
+          )}
+          {showSection && (
+            <span className={styles.sectionBadge}>{SECTION_LABELS[section]}</span>
+          )}
+        </div>
         <div className={styles.meta}>
           <span className={styles.date}>{formatDate(item.added)}</span>
           {editingField === 'expiresAt' ? (
@@ -115,7 +123,7 @@ export function ItemRow({ item, section, onToggleUrgent, onUpdate, onRemove }) {
           placeholder="es. 300g"
           onChange={e => setDraft(e.target.value)}
           onKeyDown={onKeyDown}
-          onBlur={() => setTimeout(cancel, 120)}
+          onBlur={() => setTimeout(confirm, 120)}
         />
       ) : item.qty ? (
         <span className={styles.qty} onClick={() => startEdit('qty')} title="Clicca per modificare">
@@ -131,7 +139,40 @@ export function ItemRow({ item, section, onToggleUrgent, onUpdate, onRemove }) {
         <button className={`${styles.iconBtn} ${styles.confirm}`} onClick={confirm} title="Salva">✓</button>
       )}
 
-      <button className={styles.iconBtn} onClick={() => onRemove(section, item.id)} title="Rimuovi">✕</button>
+      {moving ? (
+        <div className={styles.moveOptions}>
+          {SECTIONS.filter(s => s !== section).map(s => (
+            <button
+              key={s}
+              className={styles.moveOption}
+              onClick={() => { onMove(section, item.id, s); setMoving(false) }}
+            >
+              {SECTION_LABELS[s]}
+            </button>
+          ))}
+          <button className={styles.iconBtn} onClick={() => setMoving(false)} title="Annulla">✕</button>
+        </div>
+      ) : (
+        <>
+          <button
+            className={`${styles.iconBtn} ${styles.moveBtn}`}
+            onClick={() => { setEditingField(null); setMoving(true) }}
+            title="Sposta in altra sezione"
+            aria-label="Sposta elemento"
+          >
+            <MoveIcon />
+          </button>
+          <button className={styles.iconBtn} onClick={() => onRemove(section, item.id)} title="Rimuovi" aria-label="Rimuovi elemento">✕</button>
+        </>
+      )}
     </div>
+  )
+}
+
+function MoveIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 6h8M7 3l3 3-3 3"/>
+    </svg>
   )
 }
