@@ -17,6 +17,7 @@ export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onAdd
   const [addSection, setAddSection] = useState('credenza')
   const [sortMode, setSortMode] = useState('expiry-asc')
   const [search, setSearch] = useState('')
+  const [searchOpen, setSearchOpen] = useState(false)
   const [newName, setNewName] = useState('')
   const [newQty, setNewQty] = useState('')
   const [newExpiry, setNewExpiry] = useState('')
@@ -24,6 +25,13 @@ export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onAdd
   const addRowRef    = useRef(null)
   const searchRef    = useRef(null)
   const [showFab, setShowFab] = useState(false)
+
+  useEffect(() => {
+    if (searchOpen) searchRef.current?.focus()
+  }, [searchOpen])
+
+  function openSearch() { setSearchOpen(true) }
+  function closeSearch() { setSearch(''); setSearchOpen(false) }
 
   useEffect(() => {
     const el = addRowRef.current
@@ -79,10 +87,11 @@ export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onAdd
     }
   }
 
-  const searchActive = search.trim().length > 0
   const searchQuery  = search.trim().toLowerCase()
+  const searchActive = searchQuery.length > 0
 
-  const basePairs = section === 'all'
+  // When searching show all sections regardless of active tab
+  const basePairs = (searchActive || section === 'all')
     ? SECTIONS.flatMap(s => inventory[s].map(i => ({ item: i, itemSection: s })))
     : inventory[section].map(i => ({ item: i, itemSection: section }))
 
@@ -95,68 +104,74 @@ export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onAdd
 
   return (
     <div className={styles.wrap}>
-      <div className={styles.toolbar}>
-        <div className={styles.sections}>
-          <button
-            className={`${styles.sectionBtn} ${!searchActive && section === 'all' ? styles.active : ''}`}
-            onClick={() => { setSection('all'); setSearch('') }}
-          >
-            Tutto
-            <span className={styles.count}>{totalCount}</span>
-          </button>
-          {SECTIONS.map(s => (
-            <button
-              key={s}
-              className={`${styles.sectionBtn} ${!searchActive && section === s ? styles.active : ''}`}
-              onClick={() => { setSection(s); setSearch('') }}
-            >
-              {SECTION_LABELS[s]}
-              <span className={styles.count}>{inventory[s].length}</span>
-            </button>
-          ))}
-        </div>
-
-        <div className={styles.actions}>
-          <div className={`${styles.inlineSearch} ${searchActive ? styles.inlineSearchActive : ''}`}>
+      {searchOpen ? (
+        <div className={styles.searchBar}>
+          <div className={styles.searchBarInner}>
             <SearchIcon />
             <input
               ref={searchRef}
-              className={styles.inlineSearchInput}
+              className={styles.searchBarInput}
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Cerca…"
+              placeholder="Cerca prodotti…"
               aria-label="Cerca prodotti"
             />
-            {searchActive && (
+            {search && (
               <button
-                className={styles.inlineSearchClear}
+                className={styles.searchBarClear}
                 onClick={() => { setSearch(''); searchRef.current?.focus() }}
-                aria-label="Cancella ricerca"
-              >
-                ✕
-              </button>
+                aria-label="Cancella testo"
+              >✕</button>
             )}
           </div>
-
-          <div
-            className={`${styles.sortWrap} ${sortMode !== 'none' ? styles.sortActive : ''}`}
-            title={SORT_LABELS[sortMode]}
-          >
-            <SortIcon />
-            {sortMode !== 'none' && <span className={styles.sortDot} />}
-            <select
-              className={styles.sortOverlay}
-              value={sortMode}
-              onChange={e => setSortMode(e.target.value)}
-              aria-label="Ordina per"
+          <button className={styles.searchCancel} onClick={closeSearch}>Annulla</button>
+        </div>
+      ) : (
+        <div className={styles.toolbar}>
+          <div className={styles.sections}>
+            <button
+              className={`${styles.sectionBtn} ${section === 'all' ? styles.active : ''}`}
+              onClick={() => setSection('all')}
             >
-              {Object.entries(SORT_LABELS).map(([val, label]) => (
-                <option key={val} value={val}>{label}</option>
-              ))}
-            </select>
+              Tutto
+              <span className={styles.count}>{totalCount}</span>
+            </button>
+            {SECTIONS.map(s => (
+              <button
+                key={s}
+                className={`${styles.sectionBtn} ${section === s ? styles.active : ''}`}
+                onClick={() => setSection(s)}
+              >
+                {SECTION_LABELS[s]}
+                <span className={styles.count}>{inventory[s].length}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className={styles.actions}>
+            <button className={styles.searchIconBtn} onClick={openSearch} aria-label="Cerca">
+              <SearchIcon />
+            </button>
+            <div
+              className={`${styles.sortWrap} ${sortMode !== 'none' ? styles.sortActive : ''}`}
+              title={SORT_LABELS[sortMode]}
+            >
+              <SortIcon />
+              {sortMode !== 'none' && <span className={styles.sortDot} />}
+              <select
+                className={styles.sortOverlay}
+                value={sortMode}
+                onChange={e => setSortMode(e.target.value)}
+                aria-label="Ordina per"
+              >
+                {Object.entries(SORT_LABELS).map(([val, label]) => (
+                  <option key={val} value={val}>{label}</option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div className={styles.list}>
         {displayItems.length === 0 ? (

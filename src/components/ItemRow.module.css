@@ -1,22 +1,29 @@
+/* Card wrapper: border + background + rounded corners */
+.card {
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  margin-bottom: 6px;
+  transition: border-color 0.12s;
+  overflow: hidden;
+  min-width: 0;
+}
+.card:hover { border-color: var(--border-strong); }
+.editing   { border-color: var(--accent) !important; }
+.cardExpanded { border-color: var(--border-strong); }
+.urgent    { border-left: 2px solid var(--urgent) !important; }
+
+/* Main flex row */
 .row {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 9px 12px;
-  border-radius: var(--radius-md);
-  background: var(--surface);
-  border: 0.5px solid var(--border);
-  margin-bottom: 6px;
-  transition: border-color 0.12s;
+  padding: 7px 12px;
   min-width: 0;
-  overflow: hidden;
 }
+.urgent .row { padding-left: 10px; }
 
-.row:hover { border-color: var(--border-strong); }
-.editing { border-color: var(--accent) !important; }
-.urgent { border-left: 2px solid var(--urgent); padding-left: 10px; }
-
-/* Visually 8px, hit area 32px via padding + background-clip */
+/* Urgency dot — visually 8px, hit area 32px via padding trick */
 .dot {
   width: 8px;
   height: 8px;
@@ -24,14 +31,15 @@
   border: none;
   flex-shrink: 0;
   cursor: pointer;
-  transition: transform 0.1s;
+  transition: transform 0.12s;
   padding: 12px;
   margin: -12px;
   background-clip: content-box;
 }
 .dot:active { transform: scale(1.4); }
-.dotOn  { background-color: var(--urgent); }
-.dotOff { background-color: var(--border-strong); }
+/* Off state: ring outline so it's visible in dark mode */
+.dotOff { background-color: transparent; box-shadow: 0 0 0 1.5px var(--border-strong); }
+.dotOn  { background-color: var(--urgent); box-shadow: none; }
 
 .main {
   flex: 1;
@@ -92,7 +100,6 @@
   gap: 5px;
 }
 
-/* Hidden on mobile — added date has little value on small screens */
 .date {
   font-size: 11px;
   color: var(--text-hint);
@@ -100,36 +107,16 @@
   padding-left: 3px;
 }
 
-.expiry {
-  font-size: 11px;
-  color: var(--text-hint);
-  cursor: pointer;
-  border-radius: 3px;
-  padding: 0 2px;
-}
+.expiry      { font-size: 11px; color: var(--text-hint); cursor: pointer; border-radius: 3px; padding: 0 2px; }
 .expiry:hover { background: var(--surface-hover); }
 
-.expirySoon {
-  font-size: 11px;
-  color: var(--accent);
-  cursor: pointer;
-  border-radius: 3px;
-  padding: 0 2px;
-  font-weight: 500;
-}
+.expirySoon  { font-size: 11px; color: var(--accent); font-weight: 500; cursor: pointer; border-radius: 3px; padding: 0 2px; }
 .expirySoon:hover { background: var(--accent-light); }
 
-.expiryExpired {
-  font-size: 11px;
-  color: var(--urgent);
-  font-weight: 500;
-  cursor: pointer;
-  border-radius: 3px;
-  padding: 0 2px;
-}
+.expiryExpired { font-size: 11px; color: var(--urgent); font-weight: 500; cursor: pointer; border-radius: 3px; padding: 0 2px; }
 .expiryExpired:hover { background: var(--urgent-light); }
 
-/* Pill-style chip matching qty, for easy tapping */
+/* Pill chip for adding expiry — matches qty pill height */
 .expiryAdd {
   display: inline-flex;
   align-items: center;
@@ -177,7 +164,7 @@
   flex-shrink: 0;
   border: 0.5px solid transparent;
   transition: all 0.12s;
-  min-height: 30px;
+  min-height: 28px;
   display: flex;
   align-items: center;
 }
@@ -197,21 +184,19 @@
   flex-shrink: 1;
 }
 
+/* Minimal empty qty — no border, very low-key */
 .qtyEmpty {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-hint);
   cursor: pointer;
-  padding: 4px 10px;
-  border-radius: 10px;
-  border: 0.5px dashed var(--border-strong);
-  transition: all 0.12s;
+  padding: 4px 6px;
+  opacity: 0.45;
   flex-shrink: 0;
-  min-height: 30px;
-  display: flex;
-  align-items: center;
+  transition: opacity 0.12s, color 0.12s;
 }
-.qtyEmpty:hover { border-color: var(--accent); color: var(--text); background: var(--accent-light); }
+.qtyEmpty:hover { opacity: 1; color: var(--accent); }
 
+/* Confirm button shown while editing */
 .iconBtn {
   width: 30px;
   height: 30px;
@@ -228,24 +213,58 @@
   padding: 0;
   line-height: 1;
 }
-.iconBtn:hover { border-color: var(--urgent); color: var(--urgent); background: var(--urgent-light); }
 .confirm { color: var(--success); border-color: var(--success); }
 .confirm:hover { background: var(--success-light); color: var(--success-text); border-color: var(--success); }
-.moveBtn { color: var(--text-hint); }
-.moveBtn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
 
-/* Inline section picker */
-.moveOptions {
+/* ⋯ more button */
+.moreBtn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 0.5px solid transparent;
+  background: transparent;
+  color: var(--text-hint);
   display: flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
   flex-shrink: 0;
+  cursor: pointer;
+  transition: all 0.12s;
+  padding: 0;
+}
+.moreBtn:hover   { border-color: var(--border-strong); color: var(--text); background: var(--surface-hover); }
+.moreBtnActive   { border-color: var(--border-strong); color: var(--text); background: var(--surface-hover); }
+
+/* ── Action strip (move + delete) ── */
+.actionStrip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-top: 0.5px solid var(--border);
+  background: var(--surface-hover);
+  flex-wrap: wrap;
+}
+
+.moveGroup {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.stripLabel {
+  font-size: 11px;
+  color: var(--text-hint);
+  white-space: nowrap;
 }
 
 .moveOption {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
-  padding: 4px 8px;
+  padding: 4px 10px;
   border: 0.5px solid var(--border);
   border-radius: 12px;
   background: transparent;
@@ -253,33 +272,33 @@
   cursor: pointer;
   transition: all 0.12s;
   white-space: nowrap;
-  min-height: 30px;
 }
 .moveOption:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+
+.deleteBtn {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 12px;
+  border: 0.5px solid var(--urgent);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--urgent);
+  cursor: pointer;
+  transition: all 0.12s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.deleteBtn:hover { background: var(--urgent-light); }
 
 @media (max-width: 600px) {
   .date { display: none; }
 
-  .expiryAdd {
-    min-height: 28px;
-    padding: 3px 9px;
-    font-size: 12px;
-  }
+  .expiryAdd { min-height: 28px; padding: 3px 9px; font-size: 12px; }
 
-  .iconBtn {
-    width: 36px;
-    height: 36px;
-    font-size: 14px;
-  }
+  .moreBtn { width: 36px; height: 36px; }
+  .iconBtn { width: 36px; height: 36px; font-size: 14px; }
 
-  .qty, .qtyEmpty {
-    min-height: 34px;
-    padding: 5px 10px;
-  }
+  .qty { min-height: 32px; padding: 5px 10px; }
 
-  .moveOption {
-    min-height: 34px;
-    padding: 5px 10px;
-    font-size: 12px;
-  }
+  .moveOption, .deleteBtn { min-height: 32px; padding: 5px 12px; font-size: 12px; }
 }

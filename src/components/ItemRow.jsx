@@ -6,7 +6,7 @@ import styles from './ItemRow.module.css'
 export function ItemRow({ item, section, showSection, onToggleUrgent, onUpdate, onRemove, onMove }) {
   const [editingField, setEditingField] = useState(null)
   const [draft, setDraft] = useState('')
-  const [moving, setMoving] = useState(false)
+  const [expanded, setExpanded] = useState(false)
   const inputRef = useRef(null)
 
   useEffect(() => {
@@ -17,7 +17,7 @@ export function ItemRow({ item, section, showSection, onToggleUrgent, onUpdate, 
   }, [editingField])
 
   function startEdit(field) {
-    setMoving(false)
+    setExpanded(false)
     if (field === 'expiresAt') {
       setDraft(item.expiresAt ? new Date(item.expiresAt).toISOString().slice(0, 10) : '')
     } else {
@@ -36,9 +36,7 @@ export function ItemRow({ item, section, showSection, onToggleUrgent, onUpdate, 
     setEditingField(null)
   }
 
-  function cancel() {
-    setEditingField(null)
-  }
+  function cancel() { setEditingField(null) }
 
   function onKeyDown(e) {
     if (e.key === 'Enter') confirm()
@@ -50,134 +48,123 @@ export function ItemRow({ item, section, showSection, onToggleUrgent, onUpdate, 
   const expiryClass = status === 'expired' ? styles.expiryExpired : status === 'soon' ? styles.expirySoon : styles.expiry
 
   return (
-    <div className={`${styles.row} ${editingField ? styles.editing : ''} ${item.urgent ? styles.urgent : ''}`}>
-      <button
-        className={`${styles.dot} ${item.urgent ? styles.dotOn : styles.dotOff}`}
-        onClick={() => onToggleUrgent(section, item.id)}
-        title="Segna come da usare presto"
-        aria-label={item.urgent ? 'Rimuovi urgenza' : 'Segna urgente'}
-      />
+    <div className={`${styles.card} ${item.urgent ? styles.urgent : ''} ${editingField ? styles.editing : ''} ${expanded ? styles.cardExpanded : ''}`}>
+      <div className={styles.row}>
+        <button
+          className={`${styles.dot} ${item.urgent ? styles.dotOn : styles.dotOff}`}
+          onClick={() => onToggleUrgent(section, item.id)}
+          title="Segna come da usare presto"
+          aria-label={item.urgent ? 'Rimuovi urgenza' : 'Segna urgente'}
+        />
 
-      <div className={styles.main}>
-        <div className={styles.nameRow}>
-          {editingField === 'name' ? (
-            <input
-              ref={inputRef}
-              className={styles.nameInput}
-              value={draft}
-              onChange={e => setDraft(e.target.value)}
-              onKeyDown={onKeyDown}
-              onBlur={() => setTimeout(cancel, 120)}
-            />
-          ) : (
-            <span
-              className={styles.name}
-              onClick={() => startEdit('name')}
-              title="Clicca per rinominare"
-            >
-              {item.name}
-              {item.urgent && <span className={styles.badgeUrgent}>da usare</span>}
-            </span>
-          )}
-          {showSection && (
-            <span className={styles.sectionBadge}>{SECTION_LABELS[section]}</span>
-          )}
+        <div className={styles.main}>
+          <div className={styles.nameRow}>
+            {editingField === 'name' ? (
+              <input
+                ref={inputRef}
+                className={styles.nameInput}
+                value={draft}
+                onChange={e => setDraft(e.target.value)}
+                onKeyDown={onKeyDown}
+                onBlur={() => setTimeout(cancel, 120)}
+              />
+            ) : (
+              <span className={styles.name} onClick={() => startEdit('name')}>
+                {item.name}
+                {item.urgent && <span className={styles.badgeUrgent}>da usare</span>}
+              </span>
+            )}
+            {showSection && (
+              <span className={styles.sectionBadge}>{SECTION_LABELS[section]}</span>
+            )}
+          </div>
+          <div className={styles.meta}>
+            <span className={styles.date}>{formatDate(item.added)}</span>
+            {editingField === 'expiresAt' ? (
+              <input
+                ref={inputRef}
+                type="date"
+                className={styles.expiryInput}
+                value={draft}
+                onChange={e => {
+                  const val = e.target.value
+                  setDraft(val)
+                  const ts = val ? new Date(val + 'T23:59:59').getTime() : null
+                  onUpdate(section, item.id, { expiresAt: ts })
+                }}
+                onKeyDown={e => { if (e.key === 'Escape') cancel() }}
+                onBlur={() => setTimeout(() => setEditingField(null), 120)}
+              />
+            ) : expiry ? (
+              <span className={expiryClass} onClick={() => startEdit('expiresAt')}>
+                · {expiry}
+              </span>
+            ) : (
+              <span className={styles.expiryAdd} onClick={() => startEdit('expiresAt')}>
+                + scad.
+              </span>
+            )}
+          </div>
         </div>
-        <div className={styles.meta}>
-          <span className={styles.date}>{formatDate(item.added)}</span>
-          {editingField === 'expiresAt' ? (
-            <input
-              ref={inputRef}
-              type="date"
-              className={styles.expiryInput}
-              value={draft}
-              onChange={e => {
-                const val = e.target.value
-                setDraft(val)
-                const ts = val ? new Date(val + 'T23:59:59').getTime() : null
-                onUpdate(section, item.id, { expiresAt: ts })
-              }}
-              onKeyDown={e => { if (e.key === 'Escape') cancel() }}
-              onBlur={() => setTimeout(() => setEditingField(null), 120)}
-            />
-          ) : expiry ? (
-            <span
-              className={expiryClass}
-              onClick={() => startEdit('expiresAt')}
-              title="Clicca per modificare scadenza"
-            >
-              · {expiry}
-            </span>
-          ) : (
-            <span
-              className={styles.expiryAdd}
-              onClick={() => startEdit('expiresAt')}
-              title="Aggiungi data di scadenza"
-            >
-              + scad.
-            </span>
-          )}
-        </div>
+
+        {editingField === 'qty' ? (
+          <input
+            ref={inputRef}
+            className={styles.qtyInput}
+            value={draft}
+            placeholder="es. 300g"
+            onChange={e => setDraft(e.target.value)}
+            onKeyDown={onKeyDown}
+            onBlur={() => setTimeout(confirm, 120)}
+          />
+        ) : item.qty ? (
+          <span className={styles.qty} onClick={() => startEdit('qty')}>{item.qty}</span>
+        ) : (
+          <span className={styles.qtyEmpty} onClick={() => startEdit('qty')}>+ qty</span>
+        )}
+
+        {editingField ? (
+          <button className={`${styles.iconBtn} ${styles.confirm}`} onClick={confirm} title="Salva">✓</button>
+        ) : (
+          <button
+            className={`${styles.moreBtn} ${expanded ? styles.moreBtnActive : ''}`}
+            onClick={() => setExpanded(v => !v)}
+            aria-label={expanded ? 'Chiudi azioni' : 'Azioni'}
+          >
+            <MoreIcon />
+          </button>
+        )}
       </div>
 
-      {editingField === 'qty' ? (
-        <input
-          ref={inputRef}
-          className={styles.qtyInput}
-          value={draft}
-          placeholder="es. 300g"
-          onChange={e => setDraft(e.target.value)}
-          onKeyDown={onKeyDown}
-          onBlur={() => setTimeout(confirm, 120)}
-        />
-      ) : item.qty ? (
-        <span className={styles.qty} onClick={() => startEdit('qty')} title="Clicca per modificare">
-          {item.qty}
-        </span>
-      ) : (
-        <span className={styles.qtyEmpty} onClick={() => startEdit('qty')} title="Aggiungi quantità">
-          + qty
-        </span>
-      )}
-
-      {editingField && (
-        <button className={`${styles.iconBtn} ${styles.confirm}`} onClick={confirm} title="Salva">✓</button>
-      )}
-
-      {moving ? (
-        <div className={styles.moveOptions}>
-          {SECTIONS.filter(s => s !== section).map(s => (
-            <button
-              key={s}
-              className={styles.moveOption}
-              onClick={() => { onMove(section, item.id, s); setMoving(false) }}
-            >
-              {SECTION_LABELS[s]}
-            </button>
-          ))}
-          <button className={styles.iconBtn} onClick={() => setMoving(false)} title="Annulla">✕</button>
-        </div>
-      ) : (
-        <>
-          <button
-            className={`${styles.iconBtn} ${styles.moveBtn}`}
-            onClick={() => { setEditingField(null); setMoving(true) }}
-            title="Sposta in altra sezione"
-            aria-label="Sposta elemento"
-          >
-            <MoveIcon />
+      {expanded && (
+        <div className={styles.actionStrip}>
+          <div className={styles.moveGroup}>
+            <span className={styles.stripLabel}>Sposta in</span>
+            {SECTIONS.filter(s => s !== section).map(s => (
+              <button
+                key={s}
+                className={styles.moveOption}
+                onClick={() => { onMove(section, item.id, s); setExpanded(false) }}
+              >
+                {SECTION_LABELS[s]}
+              </button>
+            ))}
+          </div>
+          <button className={styles.deleteBtn} onClick={() => onRemove(section, item.id)}>
+            Elimina
           </button>
-          <button className={styles.iconBtn} onClick={() => onRemove(section, item.id)} title="Rimuovi" aria-label="Rimuovi elemento">✕</button>
-        </>
+        </div>
       )}
     </div>
   )
 }
 
-function MoveIcon() {
+function MoreIcon() {
   return (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M2 6h8M7 3l3 3-3 3"/>
+    <svg width="16" height="4" viewBox="0 0 16 4" fill="currentColor">
+      <circle cx="2" cy="2" r="1.5"/>
+      <circle cx="8" cy="2" r="1.5"/>
+      <circle cx="14" cy="2" r="1.5"/>
     </svg>
   )
 }
