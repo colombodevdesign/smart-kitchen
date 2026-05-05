@@ -74,6 +74,9 @@
   white-space: nowrap;
   flex-shrink: 0;
 }
+.sectionBadge[data-s="credenza"] { background: rgba(186,117,23,0.10); color: #a0620d; border-color: rgba(186,117,23,0.30); }
+.sectionBadge[data-s="frigo"]    { background: rgba(59,130,246,0.10); color: #2563eb; border-color: rgba(59,130,246,0.30); }
+.sectionBadge[data-s="freezer"]  { background: rgba(6,182,212,0.10);  color: #0891b2; border-color: rgba(6,182,212,0.30); }
 
 .meta {
   display: flex;
@@ -165,17 +168,22 @@
   flex-shrink: 1;
 }
 
-/* Minimal empty qty — no border, very low-key */
+/* Empty qty — dashed pill, same style as expiryAdd */
 .qtyEmpty {
+  display: inline-flex;
+  align-items: center;
   font-size: 11px;
   color: var(--text-hint);
   cursor: pointer;
-  padding: 4px 6px;
-  opacity: 0.45;
+  padding: 2px 8px;
+  border-radius: 10px;
+  border: 0.5px dashed var(--border-strong);
+  transition: all 0.12s;
+  white-space: nowrap;
+  min-height: 24px;
   flex-shrink: 0;
-  transition: opacity 0.12s, color 0.12s;
 }
-.qtyEmpty:hover { opacity: 1; color: var(--accent); }
+.qtyEmpty:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
 
 /* Confirm button shown while editing */
 .iconBtn {
@@ -257,20 +265,29 @@
 .moveOption:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
 
 .urgencyBtn {
-  font-size: 12px;
-  font-weight: 500;
-  padding: 4px 10px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
   border: 0.5px solid var(--border);
-  border-radius: 12px;
   background: transparent;
-  color: var(--text-muted);
   cursor: pointer;
   transition: all 0.12s;
-  white-space: nowrap;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  padding: 0;
 }
-.urgencyBtn:hover { border-color: var(--urgent); color: var(--urgent); background: var(--urgent-light); }
-.urgencyBtnOn { border-color: var(--urgent) !important; color: var(--urgent) !important; background: var(--urgent-light); }
+.urgencyBtn:hover { border-color: var(--urgent); background: var(--urgent-light); }
+.urgencyBtnOn { border-color: var(--urgent) !important; background: var(--urgent-light); }
+
+.moveOption[data-s="credenza"] { border-color: rgba(186,117,23,0.40); color: #a0620d; }
+.moveOption[data-s="credenza"]:hover { border-color: #a0620d; background: rgba(186,117,23,0.10); }
+.moveOption[data-s="frigo"]    { border-color: rgba(59,130,246,0.40); color: #2563eb; }
+.moveOption[data-s="frigo"]:hover    { border-color: #2563eb; background: rgba(59,130,246,0.10); }
+.moveOption[data-s="freezer"]  { border-color: rgba(6,182,212,0.40);  color: #0891b2; }
+.moveOption[data-s="freezer"]:hover  { border-color: #0891b2; background: rgba(6,182,212,0.10); }
 
 .deleteBtn {
   font-size: 12px;
@@ -306,5 +323,6 @@
 
   .qty { min-height: 32px; padding: 5px 10px; }
 
-  .moveOption, .deleteBtn, .urgencyBtn { min-height: 32px; padding: 5px 12px; font-size: 12px; }
+  .moveOption, .deleteBtn { min-height: 32px; padding: 5px 12px; font-size: 12px; }
+  .urgencyBtn { width: 36px; height: 36px; font-size: 15px; }
 }

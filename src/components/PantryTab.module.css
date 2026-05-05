@@ -39,6 +39,13 @@
 .sectionBtn:hover { border-color: var(--border-strong); color: var(--text); }
 .active { background: var(--accent) !important; border-color: var(--accent) !important; color: #fff !important; }
 
+.sectionBtn[data-s="credenza"]:not(.active) { color: #a0620d; border-color: rgba(186,117,23,0.35); }
+.sectionBtn[data-s="credenza"]:not(.active):hover { border-color: #a0620d; background: rgba(186,117,23,0.07); }
+.sectionBtn[data-s="frigo"]:not(.active)    { color: #2563eb; border-color: rgba(59,130,246,0.35); }
+.sectionBtn[data-s="frigo"]:not(.active):hover    { border-color: #2563eb; background: rgba(59,130,246,0.07); }
+.sectionBtn[data-s="freezer"]:not(.active)  { color: #0891b2; border-color: rgba(6,182,212,0.35); }
+.sectionBtn[data-s="freezer"]:not(.active):hover  { border-color: #0891b2; background: rgba(6,182,212,0.07); }
+
 .count {
   font-size: 11px;
   font-weight: 500;

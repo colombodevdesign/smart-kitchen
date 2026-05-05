@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { formatDate, formatExpiry, expiryStatus } from '../utils/date.js'
-import { SECTIONS, SECTION_LABELS } from '../data/initialInventory.js'
+import { SECTIONS, SECTION_LABELS, SECTION_ICONS } from '../data/initialInventory.js'
 import styles from './ItemRow.module.css'
 
 function highlight(text, query) {
@@ -85,7 +85,9 @@ export function ItemRow({ item, section, showSection, searchQuery, onToggleUrgen
               </span>
             )}
             {showSection && (
-              <span className={styles.sectionBadge}>{SECTION_LABELS[section]}</span>
+              <span className={styles.sectionBadge} data-s={section}>
+                {SECTION_ICONS[section]} {SECTION_LABELS[section]}
+              </span>
             )}
           </div>
           <div className={styles.meta}>
@@ -154,9 +156,10 @@ export function ItemRow({ item, section, showSection, searchQuery, onToggleUrgen
               <button
                 key={s}
                 className={styles.moveOption}
+                data-s={s}
                 onClick={() => { onMove(section, item.id, s); setExpanded(false) }}
               >
-                {SECTION_LABELS[s]}
+                {SECTION_ICONS[s]} {SECTION_LABELS[s]}
               </button>
             ))}
           </div>
@@ -164,8 +167,9 @@ export function ItemRow({ item, section, showSection, searchQuery, onToggleUrgen
             className={`${styles.urgencyBtn} ${item.urgent ? styles.urgencyBtnOn : ''}`}
             onClick={() => onToggleUrgent(section, item.id)}
             aria-label={item.urgent ? 'Rimuovi urgenza' : 'Segna urgente'}
+            title={item.urgent ? 'Rimuovi urgenza' : 'Segna urgente'}
           >
-            ‼️ {item.urgent ? 'Urgente' : 'Urgente'}
+            ‼️
           </button>
           <button className={styles.deleteBtn} onClick={() => onRemove(section, item.id)}>
             Elimina

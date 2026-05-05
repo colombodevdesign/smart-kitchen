@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { ItemRow } from './ItemRow.jsx'
-import { SECTIONS, SECTION_LABELS } from '../data/initialInventory.js'
+import { SECTIONS, SECTION_LABELS, SECTION_ICONS } from '../data/initialInventory.js'
 import styles from './PantryTab.module.css'
 
 const SORT_LABELS = {
@@ -140,9 +140,10 @@ export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onAdd
               <button
                 key={s}
                 className={`${styles.sectionBtn} ${section === s ? styles.active : ''}`}
+                data-s={s}
                 onClick={() => setSection(s)}
               >
-                {SECTION_LABELS[s]}
+                {SECTION_ICONS[s]} {SECTION_LABELS[s]}
                 <span className={styles.count}>{inventory[s].length}</span>
               </button>
             ))}
