@@ -155,12 +155,25 @@ export function MealTrackerTab({ meals, onAdd, onRemove, savedRecipes = [], onOp
         )}
       </div>
 
+      <PeriodMealList
+        periodDates={
+          viewMode === 'week'
+            ? weekDays.map(({ year, month, day }) => toDateStr(year, month, day))
+            : monthCells.filter(Boolean).map(d => toDateStr(viewYear, viewMonth, d))
+        }
+        meals={meals}
+        todayStr={todayStr}
+        onSelectMeal={openDetail}
+      />
+
       <button
         type="button"
         className={styles.fab}
         aria-label="Aggiungi pasto di oggi"
         onClick={() => openAdd(todayStr)}
-      >+</button>
+      >
+        <PlusIcon />
+      </button>
 
       <MealFormModal
         open={modalState.mode === 'add'}
@@ -180,5 +193,85 @@ export function MealTrackerTab({ meals, onAdd, onRemove, savedRecipes = [], onOp
         onOpenRecipe={onOpenSavedRecipes ? () => onOpenSavedRecipes() : undefined}
       />
     </div>
+  )
+}
+
+function PeriodMealList({ periodDates, meals, todayStr, onSelectMeal }) {
+  const groups = periodDates
+    .map(dateStr => ({ dateStr, items: meals[dateStr] ?? [] }))
+    .filter(g => g.items.length > 0)
+
+  if (groups.length === 0) {
+    return (
+      <section className={styles.listSection}>
+        <h4 className={styles.listTitle}>Pasti del periodo</h4>
+        <p className={styles.listEmpty}>
+          Nessun pasto registrato. Tocca un giorno o usa il pulsante <strong>+</strong> per aggiungerne uno.
+        </p>
+      </section>
+    )
+  }
+
+  return (
+    <section className={styles.listSection}>
+      <h4 className={styles.listTitle}>Pasti del periodo</h4>
+      <ol className={styles.listGroups}>
+        {groups.map(({ dateStr, items }) => {
+          const isToday = dateStr === todayStr
+          return (
+            <li key={dateStr} className={styles.listGroup}>
+              <header className={`${styles.listDate} ${isToday ? styles.listDateToday : ''}`}>
+                {formatListDate(dateStr)}
+              </header>
+              <ul className={styles.listMeals}>
+                {items.map(m => {
+                  const cat = m.category ? CATEGORY_BY_ID[m.category] : null
+                  return (
+                    <li key={m.id}>
+                      <button
+                        type="button"
+                        className={styles.listMealBtn}
+                        onClick={() => onSelectMeal(dateStr, m)}
+                      >
+                        <span
+                          className={styles.listDot}
+                          style={{ background: cat?.color ?? 'var(--text-hint)' }}
+                          aria-hidden="true"
+                        />
+                        <span className={styles.listMealMain}>
+                          <span className={styles.listMealText}>{m.text}</span>
+                          {cat && <span className={styles.listMealCat}>{cat.label}</span>}
+                        </span>
+                        {m.recipeTitle && (
+                          <span className={styles.listMealRecipe} title={m.recipeTitle}>
+                            ↗ {m.recipeTitle}
+                          </span>
+                        )}
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            </li>
+          )
+        })}
+      </ol>
+    </section>
+  )
+}
+
+function formatListDate(dateStr) {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  const date = new Date(y, m - 1, d)
+  const dow = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'][date.getDay()]
+  return `${dow} ${d} ${MONTH_SHORT[m - 1].toLowerCase()}`
+}
+
+function PlusIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <line x1="12" y1="5" x2="12" y2="19"/>
+      <line x1="5" y1="12" x2="19" y2="12"/>
+    </svg>
   )
 }
