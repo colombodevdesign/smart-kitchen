@@ -63,9 +63,9 @@ export default function App() {
   const ricette = useAI(getInventoryText, 'ricette')
   const spesa   = useAI(getInventoryText, 'spesa')
 
-  const savedRecipes   = useSavedRecipes()
-  const savedShopping  = useSavedShopping()
-  const mealTracker    = useMealTracker()
+  const savedRecipes   = useSavedRecipes(user?.uid ?? null)
+  const savedShopping  = useSavedShopping(user?.uid ?? null)
+  const mealTracker    = useMealTracker(user?.uid ?? null)
 
   const parseRecipesCb  = useCallback(parseRecipes, [])
   const parseShoppingCb = useCallback(parseShoppingItems, [])
@@ -219,6 +219,8 @@ export default function App() {
             meals={mealTracker.meals}
             onAdd={mealTracker.addMeal}
             onRemove={mealTracker.removeMeal}
+            savedRecipes={savedRecipes.recipes}
+            onOpenSavedRecipes={() => handleTabChange('ricette-salvate')}
           />
         )}
         {activeTab === 'settings' && (

@@ -1,0 +1,94 @@
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.categoryRow {
+  display: flex;
+  align-items: center;
+}
+
+.categoryChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: white;
+  border-radius: 999px;
+}
+
+.chipEmoji {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.categoryNone {
+  font-size: 13px;
+  color: var(--text-hint);
+  font-style: italic;
+}
+
+.text {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.recipeRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  background: var(--surface-hover);
+  border-radius: var(--radius-sm);
+}
+
+.recipeLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.recipeLink {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-size: 14px;
+  color: var(--accent);
+  text-align: left;
+  cursor: pointer;
+  font-weight: 500;
+}
+.recipeLink:hover { text-decoration: underline; }
+
+.recipeMissing {
+  font-size: 14px;
+  color: var(--text-hint);
+  font-style: italic;
+}
+
+.btnRemove {
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 9px 16px;
+  border-radius: var(--radius-sm);
+  border: 0.5px solid var(--urgent);
+  background: transparent;
+  color: var(--urgent);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.btnRemove:hover {
+  background: var(--urgent);
+  color: white;
+}

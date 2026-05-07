@@ -1,4 +1,7 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState } from 'react'
+import { MealFormModal } from './MealFormModal.jsx'
+import { MealDetailSheet } from './MealDetailSheet.jsx'
+import { CATEGORY_BY_ID } from '../data/mealCategories.js'
 import styles from './MealTrackerTab.module.css'
 
 const DAY_LABELS = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom']
@@ -25,7 +28,7 @@ function getWeekDays(baseDate, weekOffset) {
   })
 }
 
-export function MealTrackerTab({ meals, onAdd, onRemove }) {
+export function MealTrackerTab({ meals, onAdd, onRemove, savedRecipes = [], onOpenSavedRecipes }) {
   const today = new Date()
   const todayStr = toDateStr(today.getFullYear(), today.getMonth(), today.getDate())
 
@@ -34,25 +37,15 @@ export function MealTrackerTab({ meals, onAdd, onRemove }) {
   const [viewMonth, setViewMonth] = useState(today.getMonth())
   const [weekOffset, setWeekOffset] = useState(0)
 
-  const [addingFor, setAddingFor] = useState(null)
-  const [draft, setDraft]         = useState('')
-  const inputRef = useRef(null)
+  const [modalState, setModalState] = useState({ mode: 'closed' })
 
-  useEffect(() => {
-    if (addingFor) inputRef.current?.focus()
-  }, [addingFor])
+  function openAdd(dateStr)            { setModalState({ mode: 'add', dateStr }) }
+  function openDetail(dateStr, meal)   { setModalState({ mode: 'detail', dateStr, meal }) }
+  function closeModal()                { setModalState({ mode: 'closed' }) }
 
-  function startAdd(dateStr) { setAddingFor(dateStr); setDraft('') }
-
-  function confirmAdd() {
-    if (draft.trim() && addingFor) onAdd(addingFor, draft.trim())
-    setAddingFor(null)
-    setDraft('')
-  }
-
-  function handleKey(e) {
-    if (e.key === 'Enter') confirmAdd()
-    if (e.key === 'Escape') { setAddingFor(null); setDraft('') }
+  function handleSubmit(payload) {
+    if (modalState.mode !== 'add') return
+    onAdd(modalState.dateStr, payload)
   }
 
   function prevPeriod() {
@@ -96,37 +89,38 @@ export function MealTrackerTab({ meals, onAdd, onRemove }) {
   function renderCell(dateStr, dayNum, isWeekView = false) {
     const dayMeals = meals[dateStr] ?? []
     const isToday  = dateStr === todayStr
-    const isAdding = addingFor === dateStr
     return (
-      <div
+      <button
         key={dateStr}
+        type="button"
         className={`${styles.cell} ${isToday ? styles.today : ''} ${isWeekView ? styles.weekCell : ''}`}
+        onClick={() => openAdd(dateStr)}
       >
         <div className={`${styles.dayNum} ${isWeekView ? styles.weekDayNum : ''}`}>{dayNum}</div>
         {dayMeals.length > 0 && (
           <ul className={styles.mealList}>
-            {dayMeals.map(m => (
-              <li key={m.id} className={styles.mealItem}>
-                <span className={`${styles.mealText} ${isWeekView ? styles.weekMealText : ''}`}>{m.text}</span>
-                <button className={styles.removeMeal} onClick={() => onRemove(dateStr, m.id)}>×</button>
-              </li>
-            ))}
+            {dayMeals.map(m => {
+              const cat = m.category ? CATEGORY_BY_ID[m.category] : null
+              return (
+                <li key={m.id} className={styles.mealItem}>
+                  <button
+                    type="button"
+                    className={styles.mealBtn}
+                    onClick={(e) => { e.stopPropagation(); openDetail(dateStr, m) }}
+                  >
+                    <span
+                      className={styles.categoryDot}
+                      style={{ background: cat?.color ?? 'var(--text-hint)' }}
+                      aria-hidden="true"
+                    />
+                    <span className={`${styles.mealText} ${isWeekView ? styles.weekMealText : ''}`}>{m.text}</span>
+                  </button>
+                </li>
+              )
+            })}
           </ul>
         )}
-        {isAdding ? (
-          <input
-            ref={inputRef}
-            className={styles.addInput}
-            value={draft}
-            onChange={e => setDraft(e.target.value)}
-            onKeyDown={handleKey}
-            onBlur={confirmAdd}
-            placeholder="Cosa hai mangiato?"
-          />
-        ) : (
-          <button className={styles.addBtn} onClick={() => startAdd(dateStr)}>+</button>
-        )}
-      </div>
+      </button>
     )
   }
 
@@ -160,6 +154,31 @@ export function MealTrackerTab({ meals, onAdd, onRemove }) {
           renderCell(toDateStr(year, month, day), day, true)
         )}
       </div>
+
+      <button
+        type="button"
+        className={styles.fab}
+        aria-label="Aggiungi pasto di oggi"
+        onClick={() => openAdd(todayStr)}
+      >+</button>
+
+      <MealFormModal
+        open={modalState.mode === 'add'}
+        onClose={closeModal}
+        dateStr={modalState.dateStr}
+        savedRecipes={savedRecipes}
+        onSubmit={handleSubmit}
+      />
+
+      <MealDetailSheet
+        open={modalState.mode === 'detail'}
+        onClose={closeModal}
+        meal={modalState.meal}
+        dateStr={modalState.dateStr}
+        savedRecipes={savedRecipes}
+        onRemove={onRemove}
+        onOpenRecipe={onOpenSavedRecipes ? () => onOpenSavedRecipes() : undefined}
+      />
     </div>
   )
 }
