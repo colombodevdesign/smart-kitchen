@@ -6,8 +6,9 @@ Reference rapido per sessioni future. Aggiorna quando cambia l'architettura.
 
 App React single-page per gestione dispensa con suggerimenti AI stagionali.
 Stack: React 18 + Vite 5 + CSS Modules + Firebase (Auth + Firestore).
-Autenticazione Google/Apple obbligatoria. I dati dispensa vivono su Firestore,
-sincronizzati in real-time tra dispositivi. Nessun backend custom, nessun routing library.
+Autenticazione Google/Apple obbligatoria. Dispensa, pasti, ricette salvate e lista
+spesa vivono su Firestore, sincronizzati in real-time tra dispositivi. Nessun backend
+custom, nessun routing library.
 
 ## Comandi
 
@@ -30,15 +31,27 @@ src/
     useAuth.js              # Firebase Auth: Google/Apple login, onAuthStateChanged
     useInventory.js         # CRUD dispensa + CSV + Firestore sync (fallback localStorage)
     useAI.js                # chiamate Gemini + cache + streaming
+    useMealTracker.js       # CRUD pasti + Firestore sync (fallback localStorage)
+    useSavedRecipes.js      # ricette salvate + Firestore sync
+    useSavedShopping.js     # lista spesa + Firestore sync
   components/
     LoginScreen.jsx         # schermata login Google/Apple
     PantryTab.jsx           # UI dispensa (3 sezioni: credenza/frigo/freezer)
     ItemRow.jsx             # riga item con edit inline e badge scadenza
     AITab.jsx               # display output AI con streaming + markdown
+    SavedRecipesTab.jsx     # ricette salvate
+    SavedShoppingTab.jsx    # lista spesa con check
+    MealTrackerTab.jsx      # calendario pasti mese/settimana + FAB
+    MealFormModal.jsx       # modale aggiunta pasto (descrizione + categoria + ricetta)
+    MealDetailSheet.jsx     # bottom-sheet dettaglio/rimozione pasto
+    Modal.jsx               # wrapper modale generico (centered desktop / bottom-sheet mobile)
+    Sidebar.jsx             # nav desktop
+    BottomNav.jsx           # nav mobile fissa in basso
     SettingsTab.jsx         # profilo utente + API key + import/export CSV
   data/
     initialInventory.js     # costanti SECTIONS e SECTION_LABELS
     seasonal.js             # produce stagionale mese per mese (Lombardia)
+    mealCategories.js       # categorie pasti (colazione/pranzo/cena/spuntino) + colori/emoji
   utils/
     date.js                 # formatDate, formatExpiry, expiryStatus
 ```
@@ -61,10 +74,17 @@ e abilitare il provider in Firebase Console → Authentication → Sign-in metho
 ## Firestore — struttura dati
 
 ```
-/users/{uid}/inventory/data  →  { credenza: [...], frigo: [...], freezer: [...] }
+/users/{uid}/inventory/data      →  { credenza: [...], frigo: [...], freezer: [...] }
+/users/{uid}/meals/data          →  { "YYYY-MM-DD": Meal[] }
+/users/{uid}/savedRecipes/data   →  { items: SavedRecipe[] }
+/users/{uid}/savedShopping/data  →  { items: ShoppingItem[] }
 ```
 
-Al primo login, i dati vengono migrati automaticamente da localStorage a Firestore.
+Wrapping `{ items: [...] }` per ricette/spesa: Firestore non accetta array root in
+`setDoc`, lo stato React resta array piatto. `meals` è già una mappa, niente wrap.
+
+Al primo login, i dati vengono migrati automaticamente da localStorage a Firestore
+(per ogni doc mancante: `setDoc(ref, localData)`).
 
 ## LocalStorage — chiavi residue
 
@@ -74,7 +94,10 @@ Al primo login, i dati vengono migrati automaticamente da localStorage a Firesto
 | `cucina-ai-cache-v1` | cache risposte AI |
 | `cucina-session-ricette-v1` | sessione chat ricette |
 | `cucina-session-spesa-v1` | sessione chat spesa |
-| `cucina-smart-v1` | inventario locale (usato solo quando non loggati) |
+| `cucina-smart-v1` | inventario fallback (solo quando non loggati) |
+| `cucina-pasti-v1` | pasti fallback (solo quando non loggati) |
+| `cucina-ricette-salvate-v1` | ricette salvate fallback (solo quando non loggati) |
+| `cucina-spesa-salvata-v1` | lista spesa fallback (solo quando non loggati) |
 
 ## Auth flow (`src/hooks/useAuth.js`)
 
@@ -84,15 +107,19 @@ Al primo login, i dati vengono migrati automaticamente da localStorage a Firesto
 - `signInWithGoogle()` / `signInWithApple()` → `signInWithPopup`
 - `signOut()` → torna a `LoginScreen`
 
-## useInventory — sync Firestore (`src/hooks/useInventory.js`)
+## Hook con sync Firestore — pattern condiviso
 
-Accetta `uid` come parametro:
-- Con uid: `onSnapshot` per real-time sync, ogni mutazione chiama `setDoc` direttamente
-- Senza uid: solo localStorage (fallback / sviluppo senza Firebase)
-- `snap.metadata.hasPendingWrites` usato per evitare doppi render sui propri write
-- `clearInventory()` svuota sia Firestore che localStorage
+`useInventory`, `useMealTracker`, `useSavedRecipes`, `useSavedShopping` seguono tutti
+lo stesso pattern (`useInventory.js` è il riferimento canonico):
+- Accettano `uid` come parametro.
+- Con uid: `onSnapshot` per real-time sync; ogni mutazione chiama `setDoc(ref, next)`.
+- Senza uid: solo localStorage (fallback / non loggati).
+- `!snap.metadata.hasPendingWrites` per evitare doppi render sui propri write.
+- Migrazione `localStorage → Firestore` al primo login: se `!snap.exists()` fa
+  `setDoc(ref, local)`.
+- `clearInventory()` svuota sia Firestore che localStorage.
 
-## Modello dati — Item
+## Modello dati — Item (dispensa)
 
 ```js
 {
@@ -104,6 +131,22 @@ Accetta `uid` come parametro:
   expiresAt: number | null
 }
 ```
+
+## Modello dati — Meal (pasti)
+
+```js
+{
+  id: string,
+  text: string,
+  category: 'colazione' | 'pranzo' | 'cena' | 'spuntino' | null,
+  recipeId: string | null,        // riferimento opzionale a SavedRecipe
+  recipeTitle: string | null,     // denormalizzato: sopravvive alla cancellazione
+  createdAt: number,
+}
+```
+
+I pasti vecchi privi di `category` vengono renderizzati con dot grigio neutro;
+NON viene fatta migrazione automatica per evitare scritture silenziose multi-device.
 
 ## Integrazione AI (`src/hooks/useAI.js`)
 
@@ -151,6 +194,29 @@ service cloud.firestore {
                    && request.auth.uid == userId
                    && isValidInventory(request.resource.data);
     }
+    match /users/{userId}/meals/data {
+      allow read: if request.auth != null
+                  && request.auth.uid == userId;
+      allow write: if request.auth != null
+                   && request.auth.uid == userId
+                   && request.resource.data is map;
+    }
+    match /users/{userId}/savedRecipes/data {
+      allow read: if request.auth != null
+                  && request.auth.uid == userId;
+      allow write: if request.auth != null
+                   && request.auth.uid == userId
+                   && request.resource.data.keys().hasAll(['items'])
+                   && request.resource.data.items is list;
+    }
+    match /users/{userId}/savedShopping/data {
+      allow read: if request.auth != null
+                  && request.auth.uid == userId;
+      allow write: if request.auth != null
+                   && request.auth.uid == userId
+                   && request.resource.data.keys().hasAll(['items'])
+                   && request.resource.data.items is list;
+    }
   }
   function isValidInventory(data) {
     return data.keys().hasAll(['credenza', 'frigo', 'freezer'])
@@ -161,10 +227,12 @@ service cloud.firestore {
 }
 ```
 
-Ogni utente può leggere e scrivere solo il proprio documento `/users/{uid}/inventory/data`.
-La funzione `isValidInventory` garantisce la struttura minima prima di ogni write.
+Ogni utente può leggere e scrivere solo i propri documenti `/users/{uid}/...`.
+`isValidInventory` garantisce la struttura della dispensa; `meals` accetta una mappa
+arbitraria (chiavi date dinamiche); ricette/spesa richiedono che il payload abbia
+una chiave `items` con un array.
 
 ## Branch di sviluppo
 
-Il branch di default per fix/feature è `claude/cross-device-data-sync-puJOK` (o il branch
-indicato a inizio sessione). Non pushare su `main` direttamente.
+Il branch di default per fix/feature è quello indicato a inizio sessione.
+Non pushare su `main` direttamente.
