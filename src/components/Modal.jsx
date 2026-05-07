@@ -4,17 +4,24 @@ import styles from './Modal.module.css'
 export function Modal({ open, onClose, title, children, footer }) {
   const dialogRef = useRef(null)
   const previouslyFocusedRef = useRef(null)
+  const onCloseRef = useRef(onClose)
+  useEffect(() => { onCloseRef.current = onClose }, [onClose])
 
   useEffect(() => {
     if (!open) return
     previouslyFocusedRef.current = document.activeElement
-    const onKey = (e) => { if (e.key === 'Escape') onClose() }
+    const onKey = (e) => { if (e.key === 'Escape') onCloseRef.current() }
     document.addEventListener('keydown', onKey)
     const prevOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
 
-    const focusTarget = dialogRef.current?.querySelector('input, textarea, button, select')
-    focusTarget?.focus()
+    // Skip auto-focus if an element inside the dialog (e.g. an autoFocus input) already has focus.
+    if (!dialogRef.current?.contains(document.activeElement)) {
+      const focusTarget = dialogRef.current?.querySelector(
+        'input, textarea, select, [data-autofocus]'
+      ) || dialogRef.current?.querySelector('button')
+      focusTarget?.focus()
+    }
 
     return () => {
       document.removeEventListener('keydown', onKey)
@@ -22,7 +29,7 @@ export function Modal({ open, onClose, title, children, footer }) {
       const prev = previouslyFocusedRef.current
       if (prev && typeof prev.focus === 'function') prev.focus()
     }
-  }, [open, onClose])
+  }, [open])
 
   if (!open) return null
 
