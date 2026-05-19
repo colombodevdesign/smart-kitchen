@@ -1,0 +1,108 @@
+.empty {
+  padding: 1.5rem 0.5rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.item {
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  transition: background 0.12s, border-color 0.12s;
+}
+.itemOn {
+  background: var(--accent-light);
+  border-color: var(--accent);
+}
+
+.label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.checkbox {
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  accent-color: var(--accent);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.nameRow {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.qty {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.metaRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 999px;
+  letter-spacing: 0.01em;
+}
+.badgeExpired { background: var(--urgent-light); color: var(--urgent-text); border: 0.5px solid var(--urgent); }
+.badgeSoon    { background: var(--accent-light); color: var(--accent); border: 0.5px solid var(--accent); }
+.badgeUrgent  { background: var(--accent-light); color: var(--accent); border: 0.5px solid transparent; }
+
+.section {
+  font-size: 11px;
+  color: var(--text-hint);
+}
+
+.addBtn {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: opacity 0.12s;
+}
+.addBtn:hover:not(:disabled) { opacity: 0.9; }
+.addBtn:disabled {
+  background: var(--surface-hover);
+  color: var(--text-hint);
+  cursor: not-allowed;
+}

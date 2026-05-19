@@ -1,21 +1,147 @@
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { PantrySuggestionsModal } from './PantrySuggestionsModal.jsx'
 import styles from './SavedShoppingTab.module.css'
 
-export function SavedShoppingTab({ items, onToggle, onRemove, onClearChecked }) {
-  if (items.length === 0) {
-    return (
-      <div className={styles.empty}>
-        <p>Lista della spesa vuota.</p>
-        <p className={styles.hint}>Genera suggerimenti con l'AI e salvali dalla scheda <strong>Spesa Smart</strong>.</p>
-      </div>
-    )
+const NEW_CATEGORY_KEY = '__new__'
+
+function ShoppingItemRow({ item, onToggle, onRemove, onUpdate }) {
+  const [editingField, setEditingField] = useState(null)
+  const [draft, setDraft] = useState('')
+  const inputRef = useRef(null)
+
+  useEffect(() => {
+    if (editingField && inputRef.current) {
+      inputRef.current.focus()
+      inputRef.current.select()
+    }
+  }, [editingField])
+
+  function startEdit(field) {
+    setDraft(item[field] || '')
+    setEditingField(field)
   }
 
-  const grouped = {}
-  for (const item of items) {
-    const cat = item.category ?? 'Generale'
-    if (!grouped[cat]) grouped[cat] = []
-    grouped[cat].push(item)
+  function confirm() {
+    if (!editingField) return
+    const value = draft.trim()
+    if (editingField === 'name') {
+      if (value && value !== item.name) onUpdate(item.id, { name: value })
+    } else if (editingField === 'qty') {
+      if (value !== (item.qty || '')) onUpdate(item.id, { qty: value })
+    }
+    setEditingField(null)
   }
+
+  function cancel() { setEditingField(null) }
+
+  function onKeyDown(e) {
+    if (e.key === 'Enter') confirm()
+    if (e.key === 'Escape') cancel()
+  }
+
+  return (
+    <li className={`${styles.item} ${item.checked ? styles.checked : ''} ${editingField ? styles.editing : ''}`}>
+      <input
+        type="checkbox"
+        checked={item.checked}
+        onChange={() => onToggle(item.id)}
+        className={styles.checkbox}
+        aria-label={`Segna ${item.name}`}
+      />
+      <div className={styles.itemMain}>
+        {editingField === 'name' ? (
+          <input
+            ref={inputRef}
+            className={styles.nameInput}
+            value={draft}
+            onChange={e => setDraft(e.target.value)}
+            onKeyDown={onKeyDown}
+            onBlur={() => setTimeout(confirm, 120)}
+          />
+        ) : (
+          <span className={styles.itemName} onClick={() => !item.checked && startEdit('name')}>
+            {item.name}
+          </span>
+        )}
+      </div>
+      {editingField === 'qty' ? (
+        <input
+          ref={inputRef}
+          className={styles.qtyInput}
+          value={draft}
+          placeholder="es. 500g"
+          onChange={e => setDraft(e.target.value)}
+          onKeyDown={onKeyDown}
+          onBlur={() => setTimeout(confirm, 120)}
+        />
+      ) : item.qty ? (
+        <span className={styles.qty} onClick={() => !item.checked && startEdit('qty')}>{item.qty}</span>
+      ) : (
+        <span className={styles.qtyEmpty} onClick={() => !item.checked && startEdit('qty')}>+ qty</span>
+      )}
+      <button className={styles.deleteBtn} onClick={() => onRemove(item.id)} title="Rimuovi">✕</button>
+    </li>
+  )
+}
+
+export function SavedShoppingTab({
+  items,
+  onToggle,
+  onRemove,
+  onClearChecked,
+  onAddItem,
+  onUpdateItem,
+  onAddFromPantry,
+  inventory,
+}) {
+  const [newName, setNewName] = useState('')
+  const [newQty, setNewQty] = useState('')
+  const [newCategory, setNewCategory] = useState('Generale')
+  const [customCategoryMode, setCustomCategoryMode] = useState(false)
+  const [customCategory, setCustomCategory] = useState('')
+  const [suggestOpen, setSuggestOpen] = useState(false)
+  const nameInputRef = useRef(null)
+
+  const existingCategories = useMemo(() => {
+    const set = new Set(['Generale', ...items.map(i => i.category ?? 'Generale')])
+    return [...set]
+  }, [items])
+
+  function handleCategoryChange(e) {
+    const value = e.target.value
+    if (value === NEW_CATEGORY_KEY) {
+      setCustomCategoryMode(true)
+      setCustomCategory('')
+    } else {
+      setNewCategory(value)
+    }
+  }
+
+  function handleAdd() {
+    if (!newName.trim()) return
+    const category = customCategoryMode
+      ? (customCategory.trim() || 'Generale')
+      : newCategory
+    onAddItem({ name: newName, qty: newQty, category, source: 'manual' })
+    setNewName('')
+    setNewQty('')
+    if (customCategoryMode) {
+      setNewCategory(category)
+      setCustomCategoryMode(false)
+      setCustomCategory('')
+    }
+    nameInputRef.current?.focus()
+  }
+
+  const grouped = useMemo(() => {
+    const g = {}
+    for (const item of items) {
+      const cat = item.category ?? 'Generale'
+      if (!g[cat]) g[cat] = []
+      g[cat].push(item)
+    }
+    return g
+  }, [items])
 
   const checkedCount = items.filter(i => i.checked).length
   const remaining = items.length - checkedCount
@@ -25,7 +151,15 @@ export function SavedShoppingTab({ items, onToggle, onRemove, onClearChecked }) 
       <div className={styles.pageHeader}>
         <h2 className={styles.title}>Lista della Spesa</h2>
         <div className={styles.headerRight}>
-          <span className={styles.count}>{remaining} rimanenti</span>
+          {items.length > 0 && <span className={styles.count}>{remaining} rimanenti</span>}
+          <button
+            type="button"
+            className={styles.pantryBtn}
+            onClick={() => setSuggestOpen(true)}
+            title="Aggiungi prodotti dalla dispensa"
+          >
+            + Da dispensa
+          </button>
           {checkedCount > 0 && (
             <button className={styles.clearBtn} onClick={onClearChecked}>
               Elimina acquistati ({checkedCount})
@@ -34,29 +168,87 @@ export function SavedShoppingTab({ items, onToggle, onRemove, onClearChecked }) 
         </div>
       </div>
 
-      <div className={styles.categories}>
-        {Object.entries(grouped).map(([cat, catItems]) => (
-          <div key={cat} className={styles.category}>
-            <h3 className={styles.catTitle}>{cat}</h3>
-            <ul className={styles.itemList}>
-              {catItems.map(item => (
-                <li key={item.id} className={`${styles.item} ${item.checked ? styles.checked : ''}`}>
-                  <label className={styles.itemLabel}>
-                    <input
-                      type="checkbox"
-                      checked={item.checked}
-                      onChange={() => onToggle(item.id)}
-                      className={styles.checkbox}
-                    />
-                    <span className={styles.itemName}>{item.name}</span>
-                  </label>
-                  <button className={styles.deleteBtn} onClick={() => onRemove(item.id)} title="Rimuovi">✕</button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
+      {items.length === 0 ? (
+        <div className={styles.empty}>
+          <p>Lista della spesa vuota.</p>
+          <p className={styles.hint}>
+            Aggiungi un prodotto qui sotto, pesca dalla dispensa, oppure genera
+            suggerimenti dalla scheda <strong>Spesa Smart</strong>.
+          </p>
+        </div>
+      ) : (
+        <div className={styles.categories}>
+          {Object.entries(grouped).map(([cat, catItems]) => (
+            <div key={cat} className={styles.category}>
+              <h3 className={styles.catTitle}>{cat}</h3>
+              <ul className={styles.itemList}>
+                {catItems.map(item => (
+                  <ShoppingItemRow
+                    key={item.id}
+                    item={item}
+                    onToggle={onToggle}
+                    onRemove={onRemove}
+                    onUpdate={onUpdateItem}
+                  />
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className={styles.addRow}>
+        <input
+          ref={nameInputRef}
+          className={styles.addName}
+          value={newName}
+          onChange={e => setNewName(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleAdd()}
+          placeholder="Nome prodotto…"
+          aria-label="Nome prodotto"
+        />
+        <input
+          className={styles.addQty}
+          value={newQty}
+          onChange={e => setNewQty(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleAdd()}
+          placeholder="Quantità"
+          aria-label="Quantità"
+        />
+        {customCategoryMode ? (
+          <input
+            className={styles.addCategory}
+            value={customCategory}
+            onChange={e => setCustomCategory(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') handleAdd()
+              if (e.key === 'Escape') { setCustomCategoryMode(false); setCustomCategory('') }
+            }}
+            placeholder="Nuova categoria"
+            aria-label="Nuova categoria"
+            autoFocus
+          />
+        ) : (
+          <select
+            className={styles.addCategory}
+            value={newCategory}
+            onChange={handleCategoryChange}
+            aria-label="Categoria"
+          >
+            {existingCategories.map(c => <option key={c} value={c}>{c}</option>)}
+            <option value={NEW_CATEGORY_KEY}>+ Nuova categoria…</option>
+          </select>
+        )}
+        <button type="button" className={styles.addBtn} onClick={handleAdd}>+ Aggiungi</button>
       </div>
+
+      <PantrySuggestionsModal
+        open={suggestOpen}
+        onClose={() => setSuggestOpen(false)}
+        inventory={inventory}
+        existingItems={items}
+        onAdd={onAddFromPantry}
+      />
     </div>
   )
 }

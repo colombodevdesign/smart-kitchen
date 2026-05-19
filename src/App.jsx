@@ -20,8 +20,8 @@ const TABS = [
   { id: 'dispensa',        label: 'Dispensa' },
   { id: 'ricette',         label: 'Ricette AI' },
   { id: 'ricette-salvate', label: 'Ricette Salvate' },
-  { id: 'spesa',           label: 'Spesa Smart' },
   { id: 'lista-spesa',     label: 'Lista Spesa' },
+  { id: 'spesa',           label: 'Spesa Smart' },
   { id: 'pasti',           label: 'Tracker Pasti' },
   { id: 'settings',        label: '⚙' },
 ]
@@ -36,6 +36,18 @@ function parseRecipes(text) {
   })
 }
 
+const QTY_UNITS = 'g|kg|gr|l|ml|cl|pz|pezzi|conf\\.?|bottiglie|lattine|scatole|mazzi|spicchi'
+const QTY_PREFIX = new RegExp(`^(\\d+(?:[.,]\\d+)?\\s*(?:${QTY_UNITS}))\\s+(.+)$`, 'i')
+const QTY_SUFFIX = new RegExp(`^(.+?)\\s+(\\d+(?:[.,]\\d+)?\\s*(?:${QTY_UNITS}))$`, 'i')
+
+function extractQty(raw) {
+  const pre = raw.match(QTY_PREFIX)
+  if (pre) return { name: pre[2].trim(), qty: pre[1].trim() }
+  const suf = raw.match(QTY_SUFFIX)
+  if (suf) return { name: suf[1].trim(), qty: suf[2].trim() }
+  return { name: raw, qty: '' }
+}
+
 function parseShoppingItems(text) {
   const items = []
   let category = 'Generale'
@@ -43,8 +55,15 @@ function parseShoppingItems(text) {
     const t = line.trim()
     if (t.startsWith('## ')) { category = t.slice(3).trim(); continue }
     if (t.startsWith('- ') || t.startsWith('* ')) {
-      const name = t.slice(2).trim()
-      if (name) items.push({ key: `${category}:${name}`, label: name, data: { name, category } })
+      const raw = t.slice(2).trim()
+      if (!raw) continue
+      const { name, qty } = extractQty(raw)
+      if (!name) continue
+      items.push({
+        key: `${category}:${name}`,
+        label: qty ? `${name} (${qty})` : name,
+        data: { name, category, qty },
+      })
     }
   }
   return items
@@ -175,16 +194,16 @@ export default function App() {
           <>
             <div className={styles.subNav}>
               <button
-                className={`${styles.subNavBtn} ${activeTab === 'spesa' ? styles.subNavActive : ''}`}
-                onClick={() => handleTabChange('spesa')}
-              >
-                Genera AI
-              </button>
-              <button
                 className={`${styles.subNavBtn} ${activeTab === 'lista-spesa' ? styles.subNavActive : ''}`}
                 onClick={() => handleTabChange('lista-spesa')}
               >
                 Lista ({savedShopping.items.length})
+              </button>
+              <button
+                className={`${styles.subNavBtn} ${activeTab === 'spesa' ? styles.subNavActive : ''}`}
+                onClick={() => handleTabChange('spesa')}
+              >
+                Genera AI
               </button>
             </div>
             <div className={styles.splitWrap}>
@@ -208,6 +227,10 @@ export default function App() {
                   onToggle={savedShopping.toggleChecked}
                   onRemove={savedShopping.removeItem}
                   onClearChecked={savedShopping.clearChecked}
+                  onAddItem={savedShopping.addItem}
+                  onUpdateItem={savedShopping.updateItem}
+                  onAddFromPantry={savedShopping.addItems}
+                  inventory={inventory}
                 />
               </div>
             </div>

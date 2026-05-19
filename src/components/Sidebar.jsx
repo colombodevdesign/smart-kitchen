@@ -53,8 +53,8 @@ const NAV_ITEMS = [
   { id: 'dispensa',        label: 'Dispensa',        Icon: IconDispensa },
   { id: 'ricette',         label: 'Ricette AI',       Icon: IconRicette },
   { id: 'ricette-salvate', label: 'Ricette Salvate',  Icon: IconRicette,  indent: true },
-  { id: 'spesa',           label: 'Spesa Smart',      Icon: IconSpesa },
-  { id: 'lista-spesa',     label: 'Lista Spesa',      Icon: IconSpesa,    indent: true },
+  { id: 'lista-spesa',     label: 'Lista Spesa',      Icon: IconSpesa },
+  { id: 'spesa',           label: 'Spesa Smart',      Icon: IconSpesa,    indent: true },
   { id: 'pasti',           label: 'Tracker Pasti',    Icon: IconPasti },
 ]
 

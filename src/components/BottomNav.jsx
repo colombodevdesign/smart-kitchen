@@ -52,7 +52,7 @@ function IconSettings() {
 const NAV_ITEMS = [
   { id: 'dispensa', label: 'Dispensa',     Icon: IconDispensa, tabs: ['dispensa'] },
   { id: 'ricette',  label: 'Ricette',      Icon: IconRicette,  tabs: ['ricette', 'ricette-salvate'] },
-  { id: 'spesa',    label: 'Spesa',        Icon: IconSpesa,    tabs: ['spesa', 'lista-spesa'] },
+  { id: 'spesa',    label: 'Spesa',        Icon: IconSpesa,    tabs: ['lista-spesa', 'spesa'] },
   { id: 'pasti',    label: 'Pasti',        Icon: IconPasti,    tabs: ['pasti'] },
   { id: 'settings', label: 'Impostazioni', Icon: IconSettings, tabs: ['settings'] },
 ]
