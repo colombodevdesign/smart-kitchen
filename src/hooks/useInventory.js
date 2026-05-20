@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { doc, onSnapshot, setDoc } from 'firebase/firestore'
 import { db } from '../firebase.js'
+import { SECTIONS } from '../data/initialInventory.js'
 
 const STORAGE_KEY = 'cucina-smart-v1'
 const EMPTY_INVENTORY = { credenza: [], frigo: [], freezer: [] }
@@ -88,6 +89,31 @@ export function useInventory(uid) {
         ...prev,
         [section]: [...prev[section], { id, name: name.trim(), qty: qty.trim(), urgent: false, added: Date.now(), expiresAt }],
       }
+      if (uidRef.current) setDoc(firestoreRef(uidRef.current), next).catch(console.error)
+      return next
+    })
+  }, [])
+
+  const addBatch = useCallback((items) => {
+    const valid = (items ?? []).filter(it =>
+      it && typeof it.name === 'string' && it.name.trim() && SECTIONS.includes(it.section)
+    )
+    if (valid.length === 0) return
+    const base = Date.now()
+    setInventory(prev => {
+      const next = { ...prev }
+      for (const s of SECTIONS) next[s] = [...prev[s]]
+      valid.forEach((it, i) => {
+        const ts = base + i
+        next[it.section].push({
+          id: it.section[0] + ts,
+          name: it.name.trim(),
+          qty: (it.qty ?? '').trim(),
+          urgent: false,
+          added: ts,
+          expiresAt: null,
+        })
+      })
       if (uidRef.current) setDoc(firestoreRef(uidRef.current), next).catch(console.error)
       return next
     })
@@ -232,6 +258,7 @@ export function useInventory(uid) {
   return {
     inventory,
     addItem,
+    addBatch,
     removeItem,
     updateItem,
     moveItem,

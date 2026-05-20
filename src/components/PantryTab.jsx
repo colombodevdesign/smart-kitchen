@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { ItemRow } from './ItemRow.jsx'
+import { VoiceBatchModal } from './VoiceBatchModal.jsx'
 import { SECTIONS, SECTION_LABELS, SECTION_ICONS } from '../data/initialInventory.js'
 import styles from './PantryTab.module.css'
+
+const GEMINI_API_KEY_STORAGE = 'gemini-api-key'
 
 const SORT_LABELS = {
   none:          'Ordine inserimento',
@@ -12,7 +15,7 @@ const SORT_LABELS = {
   'expiry-desc': 'Scadenza ↓',
 }
 
-export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onAdd, onMove }) {
+export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onAdd, onAddBatch, onMove }) {
   const [section, setSection] = useState('all')
   const [addSection, setAddSection] = useState('credenza')
   const [sortMode, setSortMode] = useState('expiry-asc')
@@ -25,6 +28,19 @@ export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onAdd
   const addRowRef    = useRef(null)
   const searchRef    = useRef(null)
   const [showFab, setShowFab] = useState(false)
+  const [voiceOpen, setVoiceOpen] = useState(false)
+  const [hasApiKey, setHasApiKey] = useState(() => !!localStorage.getItem(GEMINI_API_KEY_STORAGE))
+
+  function openVoice() {
+    // Re-check on every open in case the user just configured it in Settings.
+    setHasApiKey(!!localStorage.getItem(GEMINI_API_KEY_STORAGE))
+    setVoiceOpen(true)
+  }
+
+  function handleVoiceConfirm(items) {
+    if (onAddBatch) onAddBatch(items)
+    else if (onAdd) items.forEach(it => onAdd(it.section, it.name, it.qty, null))
+  }
 
   useEffect(() => {
     if (searchOpen) searchRef.current?.focus()
@@ -233,6 +249,16 @@ export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onAdd
           onChange={e => setNewExpiry(e.target.value)}
           title="Data di scadenza (opzionale)"
         />
+        <button
+          type="button"
+          className={styles.micBtn}
+          onClick={hasApiKey ? openVoice : undefined}
+          disabled={!hasApiKey}
+          title={hasApiKey ? 'Aggiungi con la voce' : 'Configura la chiave Gemini in Impostazioni'}
+          aria-label="Aggiungi con la voce"
+        >
+          <MicIcon />
+        </button>
         <button className={styles.addBtn} onClick={handleAdd}>+ Aggiungi</button>
       </div>
 
@@ -243,7 +269,23 @@ export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onAdd
       >
         <PlusIcon />
       </button>
+
+      <VoiceBatchModal
+        open={voiceOpen}
+        onClose={() => setVoiceOpen(false)}
+        onConfirm={handleVoiceConfirm}
+      />
     </div>
+  )
+}
+
+function MicIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="9" y="2" width="6" height="12" rx="3" />
+      <path d="M5 10v2a7 7 0 0 0 14 0v-2" />
+      <line x1="12" y1="19" x2="12" y2="22" />
+    </svg>
   )
 }
 
