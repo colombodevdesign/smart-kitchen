@@ -89,12 +89,11 @@ export default function App() {
   const parseRecipesCb  = useCallback(parseRecipes, [])
   const parseShoppingCb = useCallback(parseShoppingItems, [])
 
-  const handleMoveToPantry = useCallback((section) => {
-    const checked = savedShopping.items.filter(i => i.checked)
-    if (checked.length === 0) return
-    addBatch(checked.map(item => ({ section, name: item.name, qty: item.qty })))
+  const handleMoveToPantry = useCallback((assignments) => {
+    if (!assignments?.length) return
+    addBatch(assignments)
     savedShopping.clearChecked()
-  }, [savedShopping.items, savedShopping.clearChecked, addBatch])
+  }, [savedShopping.clearChecked, addBatch])
 
   const mainRef = useRef(null)
 

@@ -3,11 +3,21 @@ import { Modal } from './Modal.jsx'
 import { PantrySuggestionsModal } from './PantrySuggestionsModal.jsx'
 import styles from './SavedShoppingTab.module.css'
 
-const SECTIONS = [
+const SECTION_OPTIONS = [
   { id: 'frigo',    label: 'Frigo' },
   { id: 'credenza', label: 'Credenza' },
   { id: 'freezer',  label: 'Freezer' },
 ]
+
+const FREEZER_RE = /freezer|surgelat|congelat/i
+const FRIGO_RE   = /frigo|latticin|freschi|ortofrutta|verdura|frutta|carne|pesce|salumi|formagg|uova|banco|yogurt|affettat/i
+
+function guessSection(category) {
+  const c = category ?? ''
+  if (FREEZER_RE.test(c)) return 'freezer'
+  if (FRIGO_RE.test(c)) return 'frigo'
+  return 'credenza'
+}
 
 const NEW_CATEGORY_KEY = '__new__'
 
@@ -109,6 +119,7 @@ export function SavedShoppingTab({
   const [customCategory, setCustomCategory] = useState('')
   const [suggestOpen, setSuggestOpen] = useState(false)
   const [sectionPickerOpen, setSectionPickerOpen] = useState(false)
+  const [itemSections, setItemSections] = useState({})
   const nameInputRef = useRef(null)
 
   const existingCategories = useMemo(() => {
@@ -171,7 +182,17 @@ export function SavedShoppingTab({
           </button>
           {checkedCount > 0 && (
             <>
-              <button className={styles.moveBtn} onClick={() => setSectionPickerOpen(true)}>
+              <button
+                className={styles.moveBtn}
+                onClick={() => {
+                  const initial = {}
+                  items.filter(i => i.checked).forEach(item => {
+                    initial[item.id] = guessSection(item.category)
+                  })
+                  setItemSections(initial)
+                  setSectionPickerOpen(true)
+                }}
+              >
                 → Dispensa ({checkedCount})
               </button>
               <button className={styles.clearBtn} onClick={onClearChecked}>
@@ -268,22 +289,40 @@ export function SavedShoppingTab({
         open={sectionPickerOpen}
         onClose={() => setSectionPickerOpen(false)}
         title="Sposta in dispensa"
+        footer={
+          <button
+            className={styles.confirmBtn}
+            onClick={() => {
+              const assignments = items
+                .filter(i => i.checked)
+                .map(item => ({ name: item.name, qty: item.qty, section: itemSections[item.id] ?? 'credenza' }))
+              onMoveToPantry(assignments)
+              setSectionPickerOpen(false)
+            }}
+          >
+            Aggiungi {checkedCount} {checkedCount === 1 ? 'prodotto' : 'prodotti'} alla dispensa
+          </button>
+        }
       >
-        <p className={styles.pickerHint}>
-          {checkedCount} {checkedCount === 1 ? 'prodotto' : 'prodotti'} da aggiungere alla dispensa
-        </p>
-        <div className={styles.sectionGrid}>
-          {SECTIONS.map(s => (
-            <button
-              key={s.id}
-              className={styles.sectionBtn}
-              onClick={() => {
-                onMoveToPantry(s.id)
-                setSectionPickerOpen(false)
-              }}
-            >
-              {s.label}
-            </button>
+        <div className={styles.assignmentList}>
+          {items.filter(i => i.checked).map(item => (
+            <div key={item.id} className={styles.assignmentRow}>
+              <span className={styles.assignmentName}>
+                {item.name}
+                {item.qty && <span className={styles.assignmentQty}> {item.qty}</span>}
+              </span>
+              <div className={styles.sectionToggle}>
+                {SECTION_OPTIONS.map(s => (
+                  <button
+                    key={s.id}
+                    className={`${styles.sectionOption} ${itemSections[item.id] === s.id ? styles.sectionOptionActive : ''}`}
+                    onClick={() => setItemSections(prev => ({ ...prev, [item.id]: s.id }))}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       </Modal>
