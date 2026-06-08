@@ -152,7 +152,7 @@ export function useAI(getInventoryText, name) {
     const cacheHash = hashString('ricette' + new Date().getMonth() + inventoryText)
     call(
       'Sei un cuoco italiano pratico. Rispondi in italiano. Usa ## per titoli ricette e - per liste.',
-      `Dispensa:\n${inventoryText}\n\nSuggerisci 3 ricette fattibili con questi ingredienti (${month}, Lombardia). Priorità a [DA USARE PRESTO]. Stagionale del mese: ${seasonal}.\n\nPer ogni ricetta: ## nome, ingredienti usati, 3-4 passi, tempo stimato.`,
+      `Dispensa:\n${inventoryText}\n\nSuggerisci 3 ricette fattibili con questi ingredienti (${month}, Lombardia). Gli ingredienti marcati [APERTO] sono stati aperti e vanno consumati al più presto: dai loro priorità nelle ricette. Stagionale del mese: ${seasonal}.\n\nPer ogni ricetta: ## nome, ingredienti usati, 3-4 passi, tempo stimato.`,
       'ricette', cacheHash
     )
   }, [call, getInventoryText])

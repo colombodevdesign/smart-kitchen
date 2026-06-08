@@ -211,7 +211,7 @@ export function useInventory(uid) {
   }, [persist])
 
   const exportCSV = useCallback(() => {
-    const rows = [['sezione', 'nome', 'quantità', 'da usare presto', 'aggiunto il', 'scade il']]
+    const rows = [['sezione', 'nome', 'quantità', 'aperto', 'aggiunto il', 'scade il']]
     for (const [section, items] of Object.entries(inventory)) {
       for (const item of items) {
         rows.push([
@@ -241,7 +241,7 @@ export function useInventory(uid) {
         const label = section.charAt(0).toUpperCase() + section.slice(1)
         const list = items.map(i => {
           let text = i.qty ? `${i.name} ${i.qty}` : i.name
-          if (i.urgent) text += '!'
+          if (i.urgent) text += ' [APERTO]'
           if (i.expiresAt) {
             const days = Math.floor((i.expiresAt - Date.now()) / 86400000)
             if (days < 0) text += '[scad]'

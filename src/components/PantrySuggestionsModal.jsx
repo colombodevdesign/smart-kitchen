@@ -14,7 +14,7 @@ function statusRank(c) {
 function badgeFor(c) {
   if (c.status === 'expired') return { label: 'scaduto', cls: styles.badgeExpired }
   if (c.status === 'soon')    return { label: 'in scadenza', cls: styles.badgeSoon }
-  if (c.urgent)               return { label: 'da usare',   cls: styles.badgeUrgent }
+  if (c.urgent)               return { label: 'aperto',     cls: styles.badgeUrgent }
   return null
 }
 
@@ -95,7 +95,7 @@ export function PantrySuggestionsModal({ open, onClose, inventory, existingItems
     >
       {candidates.length === 0 ? (
         <p className={styles.empty}>
-          Nessun prodotto in scadenza o urgente in dispensa.
+          Nessun prodotto in scadenza o segnato come aperto in dispensa.
         </p>
       ) : (
         <ul className={styles.list}>

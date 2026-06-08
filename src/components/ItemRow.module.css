@@ -11,7 +11,7 @@
 .card:hover { border-color: var(--border-strong); }
 .editing   { border-color: var(--accent) !important; }
 .cardExpanded { border-color: var(--border-strong); }
-.urgent    { border-left: 2px solid var(--urgent) !important; }
+.opened    { border-left: 2px solid var(--accent) !important; }
 
 /* Main flex row */
 .row {
@@ -126,10 +126,10 @@
   padding: 1px 4px;
 }
 
-.badgeUrgent {
+.badgeOpened {
   font-size: 11px;
-  background: var(--urgent-light);
-  color: var(--urgent-text);
+  background: var(--accent-light);
+  color: var(--accent);
   padding: 1px 5px;
   border-radius: 8px;
   margin-left: 4px;
@@ -264,7 +264,7 @@
 }
 .moveOption:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
 
-.urgencyBtn {
+.openedBtn {
   width: 30px;
   height: 30px;
   border-radius: 50%;
@@ -279,8 +279,8 @@
   font-size: 14px;
   padding: 0;
 }
-.urgencyBtn:hover { border-color: var(--urgent); background: var(--urgent-light); }
-.urgencyBtnOn { border-color: var(--urgent) !important; background: var(--urgent-light); }
+.openedBtn:hover { border-color: var(--accent); background: var(--accent-light); }
+.openedBtnOn { border-color: var(--accent) !important; background: var(--accent-light); }
 
 .moveOption[data-s="credenza"] { border-color: rgba(186,117,23,0.40); color: #a0620d; }
 .moveOption[data-s="credenza"]:hover { border-color: #a0620d; background: rgba(186,117,23,0.10); }
@@ -324,5 +324,5 @@
   .qty { min-height: 32px; padding: 5px 10px; }
 
   .moveOption, .deleteBtn { min-height: 32px; padding: 5px 12px; font-size: 12px; }
-  .urgencyBtn { width: 36px; height: 36px; font-size: 15px; }
+  .openedBtn { width: 36px; height: 36px; font-size: 15px; }
 }

@@ -126,7 +126,7 @@ lo stesso pattern (`useInventory.js` è il riferimento canonico):
   id: string,        // section[0] + Date.now()
   name: string,
   qty: string,
-  urgent: boolean,
+  urgent: boolean,   // flag "aperto": elemento aperto, da consumare presto (senza scadenza precisa)
   added: number,     // timestamp ms
   expiresAt: number | null
 }
@@ -158,7 +158,7 @@ NON viene fatta migrazione automatica per evitare scritture silenziose multi-dev
 - Tre funzioni esposte: `fetchRicette()`, `fetchSpesa()`, `sendFollowUp(text)`
 - Stato restituito: `{ loading, messages, streaming, error, cached, ... }`
 - Cache hash-based: invalida se cambia mese o inventario
-- Prompt: italiano, Lombardia, stagionale, priorità agli item `[DA USARE PRESTO]`
+- Prompt: italiano, Lombardia, stagionale, priorità agli item `[APERTO]` (aperti, da consumare presto)
 
 Per cambiare modello: modifica solo `MODEL_NAME` in `useAI.js:7`.
 

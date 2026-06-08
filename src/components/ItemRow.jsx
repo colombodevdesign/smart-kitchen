@@ -65,7 +65,7 @@ export function ItemRow({ item, section, showSection, searchQuery, onToggleUrgen
   const expiryClass = status === 'expired' ? styles.expiryExpired : status === 'soon' ? styles.expirySoon : styles.expiry
 
   return (
-    <div className={`${styles.card} ${item.urgent ? styles.urgent : ''} ${editingField ? styles.editing : ''} ${expanded ? styles.cardExpanded : ''}`}>
+    <div className={`${styles.card} ${item.urgent ? styles.opened : ''} ${editingField ? styles.editing : ''} ${expanded ? styles.cardExpanded : ''}`}>
       <div className={styles.row}>
         <div className={styles.main}>
           <div className={styles.nameRow}>
@@ -81,7 +81,7 @@ export function ItemRow({ item, section, showSection, searchQuery, onToggleUrgen
             ) : (
               <span className={styles.name} onClick={() => startEdit('name')}>
                 {searchQuery ? highlight(item.name, searchQuery) : item.name}
-                {item.urgent && <span className={styles.badgeUrgent}>da usare</span>}
+                {item.urgent && <span className={styles.badgeOpened}>aperto</span>}
               </span>
             )}
             {showSection && (
@@ -164,12 +164,12 @@ export function ItemRow({ item, section, showSection, searchQuery, onToggleUrgen
             ))}
           </div>
           <button
-            className={`${styles.urgencyBtn} ${item.urgent ? styles.urgencyBtnOn : ''}`}
+            className={`${styles.openedBtn} ${item.urgent ? styles.openedBtnOn : ''}`}
             onClick={() => onToggleUrgent(section, item.id)}
-            aria-label={item.urgent ? 'Rimuovi urgenza' : 'Segna urgente'}
-            title={item.urgent ? 'Rimuovi urgenza' : 'Segna urgente'}
+            aria-label={item.urgent ? 'Rimuovi flag aperto' : 'Segna come aperto'}
+            title={item.urgent ? 'Rimuovi flag aperto' : 'Segna come aperto'}
           >
-            ‼️
+            📂
           </button>
           <button className={styles.deleteBtn} onClick={() => onRemove(section, item.id)}>
             Elimina

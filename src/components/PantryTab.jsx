@@ -8,7 +8,7 @@ const GEMINI_API_KEY_STORAGE = 'gemini-api-key'
 
 const SORT_LABELS = {
   none:          'Ordine inserimento',
-  urgent:        'Urgenti prima',
+  urgent:        'Aperti prima',
   'name-asc':    'Nome A → Z',
   'name-desc':   'Nome Z → A',
   'expiry-asc':  'Scadenza ↑',
