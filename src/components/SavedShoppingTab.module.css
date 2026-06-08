@@ -43,6 +43,19 @@
 }
 .pantryBtn:hover { background: var(--accent-light); }
 
+.moveBtn {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  background: var(--accent-light);
+  color: var(--accent);
+  border: 0.5px solid var(--accent);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.moveBtn:hover { background: var(--accent); color: white; }
+
 .clearBtn {
   font-size: 12px;
   padding: 4px 10px;
@@ -54,6 +67,77 @@
   transition: opacity 0.12s;
 }
 .clearBtn:hover { opacity: 0.8; }
+
+.assignmentList {
+  display: flex;
+  flex-direction: column;
+}
+
+.assignmentRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 0.5px solid var(--border);
+}
+.assignmentRow:last-child { border-bottom: none; }
+
+.assignmentName {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.assignmentQty {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.sectionToggle {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.sectionOption {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 7px;
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.sectionOption:hover { border-color: var(--accent); color: var(--accent); }
+
+.sectionOptionActive {
+  background: var(--accent);
+  color: white !important;
+  border-color: var(--accent);
+}
+
+.confirmBtn {
+  width: 100%;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity 0.12s;
+}
+.confirmBtn:hover { opacity: 0.9; }
 
 .empty {
   padding: 2rem;
