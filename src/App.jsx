@@ -89,6 +89,13 @@ export default function App() {
   const parseRecipesCb  = useCallback(parseRecipes, [])
   const parseShoppingCb = useCallback(parseShoppingItems, [])
 
+  const handleMoveToPantry = useCallback((section) => {
+    const checked = savedShopping.items.filter(i => i.checked)
+    if (checked.length === 0) return
+    addBatch(checked.map(item => ({ section, name: item.name, qty: item.qty })))
+    savedShopping.clearChecked()
+  }, [savedShopping.items, savedShopping.clearChecked, addBatch])
+
   const mainRef = useRef(null)
 
   const handleTabChange = useCallback((tabId) => {
@@ -228,6 +235,7 @@ export default function App() {
                   onToggle={savedShopping.toggleChecked}
                   onRemove={savedShopping.removeItem}
                   onClearChecked={savedShopping.clearChecked}
+                  onMoveToPantry={handleMoveToPantry}
                   onAddItem={savedShopping.addItem}
                   onUpdateItem={savedShopping.updateItem}
                   onAddFromPantry={savedShopping.addItems}

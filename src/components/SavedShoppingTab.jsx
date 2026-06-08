@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Modal } from './Modal.jsx'
 import { PantrySuggestionsModal } from './PantrySuggestionsModal.jsx'
 import styles from './SavedShoppingTab.module.css'
+
+const SECTIONS = [
+  { id: 'frigo',    label: 'Frigo' },
+  { id: 'credenza', label: 'Credenza' },
+  { id: 'freezer',  label: 'Freezer' },
+]
 
 const NEW_CATEGORY_KEY = '__new__'
 
@@ -89,6 +96,7 @@ export function SavedShoppingTab({
   onToggle,
   onRemove,
   onClearChecked,
+  onMoveToPantry,
   onAddItem,
   onUpdateItem,
   onAddFromPantry,
@@ -100,6 +108,7 @@ export function SavedShoppingTab({
   const [customCategoryMode, setCustomCategoryMode] = useState(false)
   const [customCategory, setCustomCategory] = useState('')
   const [suggestOpen, setSuggestOpen] = useState(false)
+  const [sectionPickerOpen, setSectionPickerOpen] = useState(false)
   const nameInputRef = useRef(null)
 
   const existingCategories = useMemo(() => {
@@ -161,9 +170,14 @@ export function SavedShoppingTab({
             + Da dispensa
           </button>
           {checkedCount > 0 && (
-            <button className={styles.clearBtn} onClick={onClearChecked}>
-              Elimina acquistati ({checkedCount})
-            </button>
+            <>
+              <button className={styles.moveBtn} onClick={() => setSectionPickerOpen(true)}>
+                → Dispensa ({checkedCount})
+              </button>
+              <button className={styles.clearBtn} onClick={onClearChecked}>
+                Elimina ({checkedCount})
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -249,6 +263,30 @@ export function SavedShoppingTab({
         existingItems={items}
         onAdd={onAddFromPantry}
       />
+
+      <Modal
+        open={sectionPickerOpen}
+        onClose={() => setSectionPickerOpen(false)}
+        title="Sposta in dispensa"
+      >
+        <p className={styles.pickerHint}>
+          {checkedCount} {checkedCount === 1 ? 'prodotto' : 'prodotti'} da aggiungere alla dispensa
+        </p>
+        <div className={styles.sectionGrid}>
+          {SECTIONS.map(s => (
+            <button
+              key={s.id}
+              className={styles.sectionBtn}
+              onClick={() => {
+                onMoveToPantry(s.id)
+                setSectionPickerOpen(false)
+              }}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+      </Modal>
     </div>
   )
 }

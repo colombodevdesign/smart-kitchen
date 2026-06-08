@@ -43,6 +43,19 @@
 }
 .pantryBtn:hover { background: var(--accent-light); }
 
+.moveBtn {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  background: var(--accent-light);
+  color: var(--accent);
+  border: 0.5px solid var(--accent);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.moveBtn:hover { background: var(--accent); color: white; }
+
 .clearBtn {
   font-size: 12px;
   padding: 4px 10px;
@@ -54,6 +67,38 @@
   transition: opacity 0.12s;
 }
 .clearBtn:hover { opacity: 0.8; }
+
+.pickerHint {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.sectionGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+}
+
+.sectionBtn {
+  padding: 20px 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  text-align: center;
+  font-family: inherit;
+}
+.sectionBtn:hover {
+  background: var(--accent-light);
+  border-color: var(--accent);
+  color: var(--accent);
+}
 
 .empty {
   padding: 2rem;
