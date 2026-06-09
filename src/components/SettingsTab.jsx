@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { usePushNotifications } from '../hooks/usePushNotifications.js'
 import styles from './SettingsTab.module.css'
 
 const GEMINI_API_KEY_STORAGE = 'gemini-api-key'
@@ -6,6 +7,7 @@ const GEMINI_API_KEY_STORAGE = 'gemini-api-key'
 export function SettingsTab({ user, onExport, onImport, onClearInventory, onSignOut }) {
   const [importStatus, setImportStatus] = useState(null)
   const fileInputRef = useRef(null)
+  const push = usePushNotifications(user?.uid)
   const [apiKey, setApiKey] = useState(() => localStorage.getItem(GEMINI_API_KEY_STORAGE) ?? '')
   const [showKey, setShowKey] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -90,6 +92,45 @@ export function SettingsTab({ user, onExport, onImport, onClearInventory, onSign
             <span className={styles.dot} />
             {savedKey.slice(0, 8)}…{savedKey.slice(-4)}
           </div>
+        )}
+      </section>
+
+      <section className={styles.section}>
+        <h2 className={styles.sectionTitle}>Notifiche</h2>
+        {!push.supported ? (
+          <p className={styles.desc}>
+            Le notifiche push non sono supportate su questo browser.
+          </p>
+        ) : push.permission === 'denied' ? (
+          <p className={styles.desc}>
+            Permesso negato. Per attivarle vai nelle impostazioni del browser e consenti le notifiche per questo sito.
+          </p>
+        ) : (
+          <>
+            <p className={styles.desc}>
+              Ricevi una notifica il giorno prima della scadenza di un prodotto in dispensa.
+            </p>
+            <div className={styles.notifRow}>
+              <span className={styles.notifLabel}>
+                {push.loading
+                  ? 'Caricamento…'
+                  : push.enabled
+                    ? 'Notifiche attive'
+                    : 'Notifiche disattive'}
+              </span>
+              <button
+                role="switch"
+                aria-checked={push.enabled}
+                className={`${styles.toggle} ${push.enabled ? styles.toggleOn : ''}`}
+                onClick={push.enabled ? push.disable : push.enable}
+                disabled={push.loading}
+                aria-label="Attiva o disattiva notifiche scadenza"
+              >
+                <span className={styles.toggleThumb} />
+              </button>
+            </div>
+            {push.error && <p className={styles.importError}>{push.error}</p>}
+          </>
         )}
       </section>
 

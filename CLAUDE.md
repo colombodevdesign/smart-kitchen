@@ -47,7 +47,7 @@ src/
     Modal.jsx               # wrapper modale generico (centered desktop / bottom-sheet mobile)
     Sidebar.jsx             # nav desktop
     BottomNav.jsx           # nav mobile fissa in basso
-    SettingsTab.jsx         # profilo utente + API key + import/export CSV
+    SettingsTab.jsx         # profilo utente + API key + import/export CSV + toggle notifiche
   data/
     initialInventory.js     # costanti SECTIONS e SECTION_LABELS
     seasonal.js             # produce stagionale mese per mese (Lombardia)
@@ -62,6 +62,7 @@ Variabili d'ambiente Vite (`.env`):
 ```
 VITE_FIREBASE_API_KEY
 VITE_FIREBASE_AUTH_DOMAIN
+VITE_FIREBASE_VAPID_KEY        ← VAPID key per Web Push (Firebase Console → Cloud Messaging → Web Push certificates)
 VITE_FIREBASE_PROJECT_ID
 VITE_FIREBASE_STORAGE_BUCKET
 VITE_FIREBASE_MESSAGING_SENDER_ID
@@ -231,6 +232,34 @@ Ogni utente può leggere e scrivere solo i propri documenti `/users/{uid}/...`.
 `isValidInventory` garantisce la struttura della dispensa; `meals` accetta una mappa
 arbitraria (chiavi date dinamiche); ricette/spesa richiedono che il payload abbia
 una chiave `items` con un array.
+
+## Notifiche push
+
+`src/hooks/usePushNotifications.js` — hook per permission + FCM token:
+- Chiede il permesso browser + recupera il token FCM via `getToken(messaging, { vapidKey })`
+- Salva `{ token, enabled, updatedAt }` in `/users/{uid}/pushToken/data`
+- `onSnapshot` mantiene lo stato sincronizzato; token invalidi vengono rimossi dalla Cloud Function
+
+`src/firebase-messaging-sw.template.js` — SW template:
+- Processato dal plugin Vite (`vite.config.js`) che sostituisce `%%VITE_*%%` con i valori da `.env`
+- Output finale: `firebase-messaging-sw.js` servito alla root in dev e incluso nel dist
+
+`functions/index.js` — Cloud Function schedulata (09:00 Europe/Rome ogni giorno):
+- Scorre tutti gli utenti con `enabled: true` in `pushToken/data`
+- Trova item la cui `expiresAt` ricade nel range `[domani 00:00, domani 23:59]`
+- Invia notifica FCM via Admin SDK; rimuove token invalidi automaticamente
+
+### Setup one-time richiesto
+1. Firebase Console → Impostazioni progetto → Cloud Messaging → **Web Push certificates**
+   → Genera coppia di chiavi → copiare "Key pair" in `.env` come `VITE_FIREBASE_VAPID_KEY`
+2. Upgrade progetto Firebase a **piano Blaze** (necessario per Cloud Functions schedulati)
+3. Deploy functions: `cd functions && npm install && cd .. && firebase deploy --only functions`
+4. Aggiungere regola Firestore per `pushToken`:
+   ```
+   match /users/{userId}/pushToken/data {
+     allow read, write: if request.auth != null && request.auth.uid == userId;
+   }
+   ```
 
 ## Branch di sviluppo
 
