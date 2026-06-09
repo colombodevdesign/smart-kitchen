@@ -1,17 +1,52 @@
+/* Swipe wrapper: clips the sliding card and hosts action backgrounds */
+.swipeWrapper {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  margin-bottom: 6px;
+}
+
+/* Action backgrounds revealed during swipe */
+.bgDelete,
+.bgOpen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  opacity: 0;
+  pointer-events: none;
+}
+.bgDelete {
+  background: var(--urgent);
+  padding-left: 22px;
+  color: #fff;
+}
+.bgOpen {
+  background: var(--accent);
+  justify-content: flex-end;
+  padding-right: 22px;
+  color: #fff;
+}
+.bgIcon  { font-size: 20px; display: inline-block; transform: scale(0.7); }
+.bgLabel { font-size: 13px; font-weight: 600; letter-spacing: 0.01em; }
+
 /* Card wrapper: border + background + rounded corners */
 .card {
   border: 0.5px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--surface);
-  margin-bottom: 6px;
   transition: border-color 0.12s;
   overflow: hidden;
   min-width: 0;
+  touch-action: pan-y;
+  position: relative;
+  z-index: 1;
 }
 .card:hover { border-color: var(--border-strong); }
 .editing   { border-color: var(--accent) !important; }
 .cardExpanded { border-color: var(--border-strong); }
-.urgent    { border-left: 2px solid var(--urgent) !important; }
+.opened    { border-left: 2px solid var(--accent) !important; }
 
 /* Main flex row */
 .row {
@@ -126,10 +161,10 @@
   padding: 1px 4px;
 }
 
-.badgeUrgent {
+.badgeOpened {
   font-size: 11px;
-  background: var(--urgent-light);
-  color: var(--urgent-text);
+  background: var(--accent-light);
+  color: var(--accent);
   padding: 1px 5px;
   border-radius: 8px;
   margin-left: 4px;
@@ -264,7 +299,7 @@
 }
 .moveOption:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
 
-.urgencyBtn {
+.openedBtn {
   width: 30px;
   height: 30px;
   border-radius: 50%;
@@ -279,8 +314,8 @@
   font-size: 14px;
   padding: 0;
 }
-.urgencyBtn:hover { border-color: var(--urgent); background: var(--urgent-light); }
-.urgencyBtnOn { border-color: var(--urgent) !important; background: var(--urgent-light); }
+.openedBtn:hover { border-color: var(--accent); background: var(--accent-light); }
+.openedBtnOn { border-color: var(--accent) !important; background: var(--accent-light); }
 
 .moveOption[data-s="credenza"] { border-color: rgba(186,117,23,0.40); color: #a0620d; }
 .moveOption[data-s="credenza"]:hover { border-color: #a0620d; background: rgba(186,117,23,0.10); }
@@ -324,5 +359,5 @@
   .qty { min-height: 32px; padding: 5px 10px; }
 
   .moveOption, .deleteBtn { min-height: 32px; padding: 5px 12px; font-size: 12px; }
-  .urgencyBtn { width: 36px; height: 36px; font-size: 15px; }
+  .openedBtn { width: 36px; height: 36px; font-size: 15px; }
 }
