@@ -145,17 +145,15 @@ export default function App() {
 
       <main ref={mainRef} className={styles.main}>
         {activeTab === 'dispensa' && (
-          <div className={styles.narrowTab}>
-            <PantryTab
-              inventory={inventory}
-              onToggleUrgent={toggleUrgent}
-              onUpdate={updateItem}
-              onRemove={removeItem}
-              onAdd={addItem}
-              onAddBatch={addBatch}
-              onMove={moveItem}
-            />
-          </div>
+          <PantryTab
+            inventory={inventory}
+            onToggleUrgent={toggleUrgent}
+            onUpdate={updateItem}
+            onRemove={removeItem}
+            onAdd={addItem}
+            onAddBatch={addBatch}
+            onMove={moveItem}
+          />
         )}
 
         {inRicetteGroup && (

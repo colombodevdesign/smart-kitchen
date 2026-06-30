@@ -183,6 +183,21 @@
 
 .list { margin-bottom: 4px; }
 
+/* Desktop: flow items into multiple columns to use the wider layout.
+   auto-fill keeps a comfortable min width, so it's 2 columns around the
+   880px range and 3 on a full-width screen. */
+@media (min-width: 1024px) {
+  .list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 6px 14px;
+    align-content: start;
+  }
+  /* Row gap replaces the per-card margin so spacing stays even. */
+  .list > * { margin-bottom: 0; }
+  .empty { grid-column: 1 / -1; }
+}
+
 .empty {
   text-align: center;
   padding: 2rem;

@@ -110,8 +110,8 @@
     max-width: 1280px;
     padding: 2rem 2.5rem 3rem;
   }
-  /* Single-column, text-heavy tabs read better capped (kept at the prior
-     width); the split panes and the calendar use the full width instead. */
+  /* Form-style single-column tabs (Impostazioni) read better capped at the
+     prior width; the split panes, calendar and pantry grid use full width. */
   .narrowTab {
     max-width: 880px;
     margin: 0 auto;
