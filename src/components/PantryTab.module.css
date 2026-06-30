@@ -183,9 +183,8 @@
 
 .list { margin-bottom: 4px; }
 
-/* Desktop: flow items into multiple columns to use the wider layout.
-   auto-fill keeps a comfortable min width, so it's 2 columns around the
-   880px range and 3 on a full-width screen. */
+/* Desktop, focused on a single section (or showing search results across
+   sections): flow items into multiple columns to use the wider layout. */
 @media (min-width: 1024px) {
   .list {
     display: grid;
@@ -196,6 +195,56 @@
   /* Row gap replaces the per-card margin so spacing stays even. */
   .list > * { margin-bottom: 0; }
   .empty { grid-column: 1 / -1; }
+}
+
+/* ── Desktop "Tutto": one column per category ── */
+.columns { display: flex; flex-direction: column; gap: 18px; }
+
+.column { display: flex; flex-direction: column; min-width: 0; }
+
+.columnHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 2px 8px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+}
+.columnHead[data-s="credenza"] { color: #a0620d; border-color: rgba(186,117,23,0.35); }
+.columnHead[data-s="frigo"]    { color: #2563eb; border-color: rgba(59,130,246,0.35); }
+.columnHead[data-s="freezer"]  { color: #0891b2; border-color: rgba(6,182,212,0.35); }
+
+.columnCount {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: var(--surface-hover);
+  border-radius: 10px;
+  padding: 1px 7px;
+}
+
+.columnList { display: flex; flex-direction: column; min-width: 0; }
+
+.columnEmpty {
+  font-size: 12px;
+  color: var(--text-hint);
+  padding: 14px 4px;
+  text-align: center;
+  border: 0.5px dashed var(--border);
+  border-radius: var(--radius-md);
+}
+
+@media (min-width: 1024px) {
+  .columns {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    align-items: start;
+  }
 }
 
 .empty {

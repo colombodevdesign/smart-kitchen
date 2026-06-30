@@ -15,6 +15,23 @@ const SORT_LABELS = {
   'expiry-desc': 'Scadenza ↓',
 }
 
+// Desktop ≥1024px shows one column per category; below that the layout falls
+// back to the flat, cross-section list. Tracking it in JS (not just CSS) lets
+// us switch the DOM structure, not only the styling.
+function useMediaQuery(query) {
+  const [matches, setMatches] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia(query).matches
+  )
+  useEffect(() => {
+    const mq = window.matchMedia(query)
+    const onChange = e => setMatches(e.matches)
+    setMatches(mq.matches)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [query])
+  return matches
+}
+
 export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onAdd, onAddBatch, onMove }) {
   const [section, setSection] = useState('all')
   const [addSection, setAddSection] = useState('credenza')
@@ -118,6 +135,10 @@ export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onAdd
   const showSectionBadge = section === 'all' || searchActive
   const totalCount = SECTIONS.reduce((n, s) => n + inventory[s].length, 0)
 
+  // On desktop, "Tutto" (no active search) becomes one column per category.
+  const isDesktop = useMediaQuery('(min-width: 1024px)')
+  const showColumns = isDesktop && section === 'all' && !searchActive
+
   return (
     <div className={styles.wrap}>
       {searchOpen ? (
@@ -190,29 +211,64 @@ export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onAdd
         </div>
       )}
 
-      <div className={styles.list}>
-        {displayItems.length === 0 ? (
-          <p className={styles.empty}>
-            {searchActive
-              ? `Nessun risultato per "${search.trim()}"`
-              : 'Nessun prodotto in questa sezione'}
-          </p>
-        ) : (
-          displayItems.map(({ item, itemSection }) => (
-            <ItemRow
-              key={item.id}
-              item={item}
-              section={itemSection}
-              showSection={showSectionBadge}
-              searchQuery={searchActive ? searchQuery : ''}
-              onToggleUrgent={onToggleUrgent}
-              onUpdate={onUpdate}
-              onRemove={onRemove}
-              onMove={onMove}
-            />
-          ))
-        )}
-      </div>
+      {showColumns ? (
+        <div className={styles.columns}>
+          {SECTIONS.map(s => {
+            const colItems = sortPairs(inventory[s].map(i => ({ item: i, itemSection: s })))
+            return (
+              <section key={s} className={styles.column}>
+                <header className={styles.columnHead} data-s={s}>
+                  <span>{SECTION_ICONS[s]} {SECTION_LABELS[s]}</span>
+                  <span className={styles.columnCount}>{colItems.length}</span>
+                </header>
+                <div className={styles.columnList}>
+                  {colItems.length === 0 ? (
+                    <p className={styles.columnEmpty}>Vuoto</p>
+                  ) : (
+                    colItems.map(({ item, itemSection }) => (
+                      <ItemRow
+                        key={item.id}
+                        item={item}
+                        section={itemSection}
+                        showSection={false}
+                        searchQuery=""
+                        onToggleUrgent={onToggleUrgent}
+                        onUpdate={onUpdate}
+                        onRemove={onRemove}
+                        onMove={onMove}
+                      />
+                    ))
+                  )}
+                </div>
+              </section>
+            )
+          })}
+        </div>
+      ) : (
+        <div className={styles.list}>
+          {displayItems.length === 0 ? (
+            <p className={styles.empty}>
+              {searchActive
+                ? `Nessun risultato per "${search.trim()}"`
+                : 'Nessun prodotto in questa sezione'}
+            </p>
+          ) : (
+            displayItems.map(({ item, itemSection }) => (
+              <ItemRow
+                key={item.id}
+                item={item}
+                section={itemSection}
+                showSection={showSectionBadge}
+                searchQuery={searchActive ? searchQuery : ''}
+                onToggleUrgent={onToggleUrgent}
+                onUpdate={onUpdate}
+                onRemove={onRemove}
+                onMove={onMove}
+              />
+            ))
+          )}
+        </div>
+      )}
 
       <div ref={addRowRef} className={styles.addRow}>
         {section === 'all' && (
