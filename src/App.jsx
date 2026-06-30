@@ -145,15 +145,17 @@ export default function App() {
 
       <main ref={mainRef} className={styles.main}>
         {activeTab === 'dispensa' && (
-          <PantryTab
-            inventory={inventory}
-            onToggleUrgent={toggleUrgent}
-            onUpdate={updateItem}
-            onRemove={removeItem}
-            onAdd={addItem}
-            onAddBatch={addBatch}
-            onMove={moveItem}
-          />
+          <div className={styles.narrowTab}>
+            <PantryTab
+              inventory={inventory}
+              onToggleUrgent={toggleUrgent}
+              onUpdate={updateItem}
+              onRemove={removeItem}
+              onAdd={addItem}
+              onAddBatch={addBatch}
+              onMove={moveItem}
+            />
+          </div>
         )}
 
         {inRicetteGroup && (
@@ -255,13 +257,15 @@ export default function App() {
           />
         )}
         {activeTab === 'settings' && (
-          <SettingsTab
-            user={user}
-            onExport={exportCSV}
-            onImport={importCSV}
-            onClearInventory={clearInventory}
-            onSignOut={signOut}
-          />
+          <div className={styles.narrowTab}>
+            <SettingsTab
+              user={user}
+              onExport={exportCSV}
+              onImport={importCSV}
+              onClearInventory={clearInventory}
+              onSignOut={signOut}
+            />
+          </div>
         )}
       </main>
 
