@@ -255,13 +255,15 @@ export default function App() {
           />
         )}
         {activeTab === 'settings' && (
-          <SettingsTab
-            user={user}
-            onExport={exportCSV}
-            onImport={importCSV}
-            onClearInventory={clearInventory}
-            onSignOut={signOut}
-          />
+          <div className={styles.narrowTab}>
+            <SettingsTab
+              user={user}
+              onExport={exportCSV}
+              onImport={importCSV}
+              onClearInventory={clearInventory}
+              onSignOut={signOut}
+            />
+          </div>
         )}
       </main>
 
