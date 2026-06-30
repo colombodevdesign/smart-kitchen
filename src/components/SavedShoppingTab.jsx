@@ -232,49 +232,51 @@ export function SavedShoppingTab({
         </div>
       )}
 
-      <div className={styles.addRow}>
-        <input
-          ref={nameInputRef}
-          className={styles.addName}
-          value={newName}
-          onChange={e => setNewName(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && handleAdd()}
-          placeholder="Nome prodotto…"
-          aria-label="Nome prodotto"
-        />
-        <input
-          className={styles.addQty}
-          value={newQty}
-          onChange={e => setNewQty(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && handleAdd()}
-          placeholder="Quantità"
-          aria-label="Quantità"
-        />
-        {customCategoryMode ? (
+      <div className={styles.addBar}>
+        <div className={styles.addRow}>
           <input
-            className={styles.addCategory}
-            value={customCategory}
-            onChange={e => setCustomCategory(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === 'Enter') handleAdd()
-              if (e.key === 'Escape') { setCustomCategoryMode(false); setCustomCategory('') }
-            }}
-            placeholder="Nuova categoria"
-            aria-label="Nuova categoria"
-            autoFocus
+            ref={nameInputRef}
+            className={styles.addName}
+            value={newName}
+            onChange={e => setNewName(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleAdd()}
+            placeholder="Nome prodotto…"
+            aria-label="Nome prodotto"
           />
-        ) : (
-          <select
-            className={styles.addCategory}
-            value={newCategory}
-            onChange={handleCategoryChange}
-            aria-label="Categoria"
-          >
-            {existingCategories.map(c => <option key={c} value={c}>{c}</option>)}
-            <option value={NEW_CATEGORY_KEY}>+ Nuova categoria…</option>
-          </select>
-        )}
-        <button type="button" className={styles.addBtn} onClick={handleAdd}>+ Aggiungi</button>
+          <input
+            className={styles.addQty}
+            value={newQty}
+            onChange={e => setNewQty(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleAdd()}
+            placeholder="Quantità"
+            aria-label="Quantità"
+          />
+          {customCategoryMode ? (
+            <input
+              className={styles.addCategory}
+              value={customCategory}
+              onChange={e => setCustomCategory(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') handleAdd()
+                if (e.key === 'Escape') { setCustomCategoryMode(false); setCustomCategory('') }
+              }}
+              placeholder="Nuova categoria"
+              aria-label="Nuova categoria"
+              autoFocus
+            />
+          ) : (
+            <select
+              className={styles.addCategory}
+              value={newCategory}
+              onChange={handleCategoryChange}
+              aria-label="Categoria"
+            >
+              {existingCategories.map(c => <option key={c} value={c}>{c}</option>)}
+              <option value={NEW_CATEGORY_KEY}>+ Nuova categoria…</option>
+            </select>
+          )}
+          <button type="button" className={styles.addBtn} onClick={handleAdd}>+ Aggiungi</button>
+        </div>
       </div>
 
       <PantrySuggestionsModal

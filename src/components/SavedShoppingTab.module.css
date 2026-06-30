@@ -276,6 +276,10 @@
 }
 .deleteBtn:hover { color: var(--urgent); background: var(--urgent-light); }
 
+/* Container scoped to the add bar only — keeps fixed-positioned modal
+   overlays (rendered elsewhere in this component) out of the containment. */
+.addBar { container-type: inline-size; }
+
 .addRow {
   display: grid;
   grid-template-columns: 1fr 90px 140px auto;
@@ -318,12 +322,28 @@
 }
 .addBtn:hover { opacity: 0.9; }
 
-@media (max-width: 600px) {
+/* Reflow based on the column's own width (container), not the viewport:
+   on desktop the list lives in a ~388px split column, where the 4-column
+   row would crush the name field to nothing. */
+@container (max-width: 520px) {
   .addRow {
     grid-template-columns: 1fr 1fr;
   }
   .addName    { grid-column: 1 / -1; }
   .addQty     { grid-column: 1; }
   .addCategory{ grid-column: 2; }
-  .addBtn     { grid-column: 1 / -1; padding: 8px 12px; }
+  .addBtn     { grid-column: 1 / -1; padding: 9px 12px; }
+}
+
+/* Fallback for browsers without container query support: use the viewport. */
+@supports not (container-type: inline-size) {
+  @media (max-width: 600px) {
+    .addRow {
+      grid-template-columns: 1fr 1fr;
+    }
+    .addName    { grid-column: 1 / -1; }
+    .addQty     { grid-column: 1; }
+    .addCategory{ grid-column: 2; }
+    .addBtn     { grid-column: 1 / -1; padding: 9px 12px; }
+  }
 }
