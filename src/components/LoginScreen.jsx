@@ -15,8 +15,8 @@ export function LoginScreen({ onGoogle }) {
   return (
     <div className={styles.wrap}>
       <div className={styles.card}>
-        <div className={styles.icon}>🍳</div>
-        <h1 className={styles.logo}>cucina smart</h1>
+        <img src="/icon-192.png" alt="" className={styles.icon} />
+        <h1 className={styles.logo}>smart kitchen</h1>
         <p className={styles.sub}>
           Accedi per sincronizzare la dispensa tra i tuoi dispositivi
         </p>
