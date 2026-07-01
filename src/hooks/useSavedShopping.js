@@ -35,6 +35,7 @@ export function useSavedShopping(uid) {
   useEffect(() => { uidRef.current = uid }, [uid])
 
   useEffect(() => {
+    if (uid === undefined) return // auth still resolving: don't touch state yet
     if (!uid) {
       setItems(loadFromLocalStorage())
       return
@@ -45,7 +46,7 @@ export function useSavedShopping(uid) {
         if (!snap.metadata.hasPendingWrites) {
           setItems((snap.data().items ?? []).map(normalizeItem))
         }
-      } else {
+      } else if (!snap.metadata.fromCache) {
         const local = loadFromLocalStorage()
         setDoc(ref, { items: local }).catch(console.error)
         setItems(local)
@@ -55,7 +56,7 @@ export function useSavedShopping(uid) {
   }, [uid])
 
   useEffect(() => {
-    if (uid) return
+    if (uid || uid === undefined) return
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)) } catch {}
   }, [items, uid])
 

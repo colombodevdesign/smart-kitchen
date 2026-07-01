@@ -73,18 +73,21 @@ export default function App() {
   const { user, signInWithGoogle, signOut } = useAuth()
   const [activeTab, setActiveTab] = useState('dispensa')
 
+  // undefined = auth still resolving, null = logged out, string = uid
+  const authUid = user === undefined ? undefined : (user?.uid ?? null)
+
   const {
     inventory,
     addItem, addBatch, removeItem, updateItem, moveItem, toggleUrgent,
     exportCSV, importCSV, clearInventory, getInventoryText,
-  } = useInventory(user?.uid ?? null)
+  } = useInventory(authUid)
 
   const ricette = useAI(getInventoryText, 'ricette')
   const spesa   = useAI(getInventoryText, 'spesa')
 
-  const savedRecipes   = useSavedRecipes(user?.uid ?? null)
-  const savedShopping  = useSavedShopping(user?.uid ?? null)
-  const mealTracker    = useMealTracker(user?.uid ?? null)
+  const savedRecipes   = useSavedRecipes(authUid)
+  const savedShopping  = useSavedShopping(authUid)
+  const mealTracker    = useMealTracker(authUid)
 
   const parseRecipesCb  = useCallback(parseRecipes, [])
   const parseShoppingCb = useCallback(parseShoppingItems, [])

@@ -45,6 +45,7 @@ export function useInventory(uid) {
 
   // Subscribe to Firestore or load from localStorage
   useEffect(() => {
+    if (uid === undefined) return // auth still resolving: don't touch state yet
     if (!uid) {
       setInventory(loadFromLocalStorage())
       return
@@ -56,8 +57,8 @@ export function useInventory(uid) {
         if (!snap.metadata.hasPendingWrites) {
           setInventory(snap.data())
         }
-      } else {
-        // First login: migrate localStorage data to Firestore
+      } else if (!snap.metadata.fromCache) {
+        // Confirmed by the server (not a cache-miss/offline false negative): first login, migrate localStorage data to Firestore
         const local = loadFromLocalStorage()
         setDoc(ref, local)
         setInventory(local)
@@ -68,7 +69,7 @@ export function useInventory(uid) {
 
   // Persist to localStorage when not using Firestore
   useEffect(() => {
-    if (uid) return
+    if (uid || uid === undefined) return
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(inventory)) } catch {}
   }, [inventory, uid])
 

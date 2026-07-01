@@ -18,6 +18,7 @@ export function useSavedRecipes(uid) {
   useEffect(() => { uidRef.current = uid }, [uid])
 
   useEffect(() => {
+    if (uid === undefined) return // auth still resolving: don't touch state yet
     if (!uid) {
       setRecipes(loadFromLocalStorage())
       return
@@ -26,7 +27,7 @@ export function useSavedRecipes(uid) {
     const unsub = onSnapshot(ref, (snap) => {
       if (snap.exists()) {
         if (!snap.metadata.hasPendingWrites) setRecipes(snap.data().items ?? [])
-      } else {
+      } else if (!snap.metadata.fromCache) {
         const local = loadFromLocalStorage()
         setDoc(ref, { items: local }).catch(console.error)
         setRecipes(local)
@@ -36,7 +37,7 @@ export function useSavedRecipes(uid) {
   }, [uid])
 
   useEffect(() => {
-    if (uid) return
+    if (uid || uid === undefined) return
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(recipes)) } catch {}
   }, [recipes, uid])
 
