@@ -19,6 +19,7 @@ export function useMealTracker(uid) {
   useEffect(() => { uidRef.current = uid }, [uid])
 
   useEffect(() => {
+    if (uid === undefined) return // auth still resolving: don't touch state yet
     if (!uid) {
       setMeals(loadFromLocalStorage())
       return
@@ -27,7 +28,7 @@ export function useMealTracker(uid) {
     const unsub = onSnapshot(ref, (snap) => {
       if (snap.exists()) {
         if (!snap.metadata.hasPendingWrites) setMeals(snap.data())
-      } else {
+      } else if (!snap.metadata.fromCache) {
         const local = loadFromLocalStorage()
         setDoc(ref, local).catch(console.error)
         setMeals(local)
@@ -37,7 +38,7 @@ export function useMealTracker(uid) {
   }, [uid])
 
   useEffect(() => {
-    if (uid) return
+    if (uid || uid === undefined) return
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(meals)) } catch {}
   }, [meals, uid])
 
