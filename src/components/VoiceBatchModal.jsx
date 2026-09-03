@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect } from 'react'
 import { Modal } from './Modal.jsx'
-import { SECTIONS, SECTION_LABELS, SECTION_ICONS } from '../data/initialInventory.js'
+import { BatchReviewList, batchStyles } from './BatchReview.jsx'
 import { useVoiceBatch } from '../hooks/useVoiceBatch.js'
+import { useBatchCandidates } from '../hooks/useBatchCandidates.js'
 import styles from './VoiceBatchModal.module.css'
 
 function formatTime(ms) {
@@ -13,48 +14,31 @@ function formatTime(ms) {
 
 export function VoiceBatchModal({ open, onClose, onConfirm }) {
   const { status, elapsedMs, error, items, start, stop, cancel, reset, maxDurationMs } = useVoiceBatch()
-  const [candidates, setCandidates] = useState([]) // [{ id, name, qty, section, checked }]
+  const { candidates, hydrate, clear, update, remove, toggle, selected, picked } =
+    useBatchCandidates('v')
 
   // Reset on close
   useEffect(() => {
     if (!open) {
       cancel()
-      setCandidates([])
+      clear()
     }
-  }, [open, cancel])
+  }, [open, cancel, clear])
 
   // When processing completes successfully, hydrate the editable candidates list.
   useEffect(() => {
-    if (status === 'ready') {
-      setCandidates(items.map((it, i) => ({
-        ...it,
-        id: `v-${Date.now()}-${i}`,
-        checked: true,
-      })))
-    }
-  }, [status, items])
+    if (status === 'ready') hydrate(items)
+  }, [status, items, hydrate])
 
   const handleRetry = useCallback(() => {
     reset()
-    setCandidates([])
-  }, [reset])
-
-  const updateField = (id, patch) => {
-    setCandidates(prev => prev.map(c => c.id === id ? { ...c, ...patch } : c))
-  }
-  const removeRow = (id) => {
-    setCandidates(prev => prev.filter(c => c.id !== id))
-  }
-  const toggleRow = (id) => {
-    setCandidates(prev => prev.map(c => c.id === id ? { ...c, checked: !c.checked } : c))
-  }
+    clear()
+  }, [reset, clear])
 
   const handleConfirm = () => {
-    const picked = candidates
-      .filter(c => c.checked && c.name.trim())
-      .map(({ name, qty, section }) => ({ name, qty, section }))
-    if (picked.length === 0) return
-    onConfirm(picked)
+    const chosen = picked()
+    if (chosen.length === 0) return
+    onConfirm(chosen)
     onClose()
   }
 
@@ -64,22 +48,21 @@ export function VoiceBatchModal({ open, onClose, onConfirm }) {
   }
 
   const inReview = status === 'ready'
-  const selectedCount = candidates.filter(c => c.checked && c.name.trim()).length
   const progress = Math.min(1, elapsedMs / maxDurationMs)
   const warnTime = elapsedMs >= maxDurationMs - 10_000
 
   const footer = inReview ? (
     <>
-      <button type="button" className={styles.btnSecondary} onClick={handleRetry}>
+      <button type="button" className={batchStyles.btnSecondary} onClick={handleRetry}>
         Registra di nuovo
       </button>
       <button
         type="button"
-        className={styles.btnPrimary}
+        className={batchStyles.btnPrimary}
         onClick={handleConfirm}
-        disabled={selectedCount === 0}
+        disabled={selected.length === 0}
       >
-        {selectedCount > 0 ? `Aggiungi ${selectedCount}` : 'Nessun item'}
+        {selected.length > 0 ? `Aggiungi ${selected.length}` : 'Nessun item'}
       </button>
     </>
   ) : null
@@ -145,7 +128,7 @@ export function VoiceBatchModal({ open, onClose, onConfirm }) {
             <>
               <div className={styles.errorIcon} aria-hidden="true">!</div>
               <p className={styles.errorMsg}>{error.message}</p>
-              <button type="button" className={styles.btnPrimary} onClick={handleRetry}>
+              <button type="button" className={batchStyles.btnPrimary} onClick={handleRetry}>
                 Riprova
               </button>
             </>
@@ -154,63 +137,13 @@ export function VoiceBatchModal({ open, onClose, onConfirm }) {
       )}
 
       {inReview && (
-        <div className={styles.review}>
-          {candidates.length === 0 ? (
-            <p className={styles.empty}>
-              Non ho riconosciuto nessun prodotto. Riprova parlando in modo più chiaro.
-            </p>
-          ) : (
-            <ul className={styles.list}>
-              {candidates.map(c => (
-                <li key={c.id} className={`${styles.row} ${c.checked ? styles.rowOn : ''}`}>
-                  <input
-                    type="checkbox"
-                    className={styles.check}
-                    checked={c.checked}
-                    onChange={() => toggleRow(c.id)}
-                    aria-label={`Includi ${c.name}`}
-                  />
-                  <div className={styles.fields}>
-                    <input
-                      className={styles.nameInput}
-                      value={c.name}
-                      onChange={e => updateField(c.id, { name: e.target.value })}
-                      placeholder="Nome"
-                    />
-                    <input
-                      className={styles.qtyInput}
-                      value={c.qty}
-                      onChange={e => updateField(c.id, { qty: e.target.value })}
-                      placeholder="Quantità"
-                    />
-                    <div className={styles.segmented} role="radiogroup" aria-label="Sezione">
-                      {SECTIONS.map(s => (
-                        <button
-                          key={s}
-                          type="button"
-                          role="radio"
-                          aria-checked={c.section === s}
-                          className={`${styles.segBtn} ${c.section === s ? styles.segOn : ''}`}
-                          data-s={s}
-                          onClick={() => updateField(c.id, { section: s })}
-                          title={SECTION_LABELS[s]}
-                        >
-                          <span aria-hidden="true">{SECTION_ICONS[s]}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className={styles.removeBtn}
-                    onClick={() => removeRow(c.id)}
-                    aria-label={`Rimuovi ${c.name}`}
-                  >×</button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+        <BatchReviewList
+          candidates={candidates}
+          emptyMessage="Non ho riconosciuto nessun prodotto. Riprova parlando in modo più chiaro."
+          onToggle={toggle}
+          onUpdate={update}
+          onRemove={remove}
+        />
       )}
     </Modal>
   )

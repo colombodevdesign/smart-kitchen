@@ -307,7 +307,7 @@
 }
 .addBtn:hover { background: var(--accent-hover); }
 
-.micBtn {
+.aiBtn {
   width: 36px;
   height: 36px;
   display: flex;
@@ -322,11 +322,11 @@
   flex-shrink: 0;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
-.micBtn:hover:not(:disabled) {
+.aiBtn:hover:not(:disabled) {
   background: var(--accent);
   color: #fff;
 }
-.micBtn:disabled {
+.aiBtn:disabled {
   border-color: var(--border);
   color: var(--text-hint);
   cursor: not-allowed;
