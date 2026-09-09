@@ -31,6 +31,9 @@ src/
     useAuth.js              # Firebase Auth: Google/Apple login, onAuthStateChanged
     useInventory.js         # CRUD dispensa + CSV + Firestore sync (fallback localStorage)
     useAI.js                # chiamate Gemini + cache + streaming
+    useVoiceBatch.js        # registrazione audio → Gemini → item dispensa
+    useReceiptScan.js       # foto scontrino → Gemini vision → item dispensa
+    useBatchCandidates.js   # lista candidati editabile condivisa dai due import
     useMealTracker.js       # CRUD pasti + Firestore sync (fallback localStorage)
     useSavedRecipes.js      # ricette salvate + Firestore sync
     useSavedShopping.js     # lista spesa + Firestore sync
@@ -38,6 +41,9 @@ src/
     LoginScreen.jsx         # schermata login Google/Apple
     PantryTab.jsx           # UI dispensa (3 sezioni: credenza/frigo/freezer)
     ItemRow.jsx             # riga item con edit inline e badge scadenza
+    VoiceBatchModal.jsx     # import massivo da voce (registra → verifica → aggiungi)
+    ReceiptScanModal.jsx    # import massivo da foto scontrino (scatta → verifica → aggiungi)
+    BatchReview.jsx         # schermata di verifica condivisa dai due import massivi
     AITab.jsx               # display output AI con streaming + markdown
     SavedRecipesTab.jsx     # ricette salvate
     SavedShoppingTab.jsx    # lista spesa con check
@@ -148,6 +154,31 @@ lo stesso pattern (`useInventory.js` è il riferimento canonico):
 
 I pasti vecchi privi di `category` vengono renderizzati con dot grigio neutro;
 NON viene fatta migrazione automatica per evitare scritture silenziose multi-device.
+
+## Import massivo in dispensa (voce e scontrino)
+
+Due flussi paralleli, stessa struttura e stessa schermata di verifica:
+
+| | Voce | Scontrino |
+|---|---|---|
+| Hook | `useVoiceBatch.js` | `useReceiptScan.js` |
+| Modale | `VoiceBatchModal.jsx` | `ReceiptScanModal.jsx` |
+| Input | `MediaRecorder`, max 60s | `<input type="file" capture="environment">` |
+| Stati | `idle → recording → processing → ready \| error` | `idle → processing → ready \| error` |
+
+- Entrambi chiamano `generateContent` (non streaming) con `responseMimeType: 'application/json'`
+  e un `responseSchema` che vincola `{ name, qty, section }`; lo scontrino aggiunge `raw`
+  (riga originale) mostrato come hint sopra al nome nella verifica.
+- La foto viene ridimensionata a 1600px lato lungo e ricodificata in JPEG su canvas prima
+  dell'invio; l'immagine processata resta come anteprima nella modale.
+- Il prompt scontrino espande le abbreviazioni ("PNE CASER" → "pane casereccio") e scarta
+  righe non alimentari, totali, sconti e intestazioni.
+- `BatchReview.jsx` è la schermata di verifica condivisa (checkbox, nome, quantità,
+  segmented credenza/frigo/freezer) e ospita anche gli stili dei bottoni del footer;
+  `useBatchCandidates.js` gestisce la lista editabile.
+- Alla conferma entrambi passano `[{ name, qty, section }]` a `onAddBatch` → `addBatch`
+  di `useInventory` (item creati con `expiresAt: null` e `urgent: false`).
+- Entrambi i bottoni nella add-row sono disabilitati se manca `gemini-api-key`.
 
 ## Integrazione AI (`src/hooks/useAI.js`)
 
