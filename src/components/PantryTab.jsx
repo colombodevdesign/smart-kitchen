@@ -3,6 +3,7 @@ import { ItemRow } from './ItemRow.jsx'
 import { VoiceBatchModal } from './VoiceBatchModal.jsx'
 import { ReceiptScanModal } from './ReceiptScanModal.jsx'
 import { SECTIONS, SECTION_LABELS, SECTION_ICONS } from '../data/initialInventory.js'
+import { useMediaQuery } from '../hooks/useMediaQuery.js'
 import styles from './PantryTab.module.css'
 
 const GEMINI_API_KEY_STORAGE = 'gemini-api-key'
@@ -14,23 +15,6 @@ const SORT_LABELS = {
   'name-desc':   'Nome Z → A',
   'expiry-asc':  'Scadenza ↑',
   'expiry-desc': 'Scadenza ↓',
-}
-
-// Desktop ≥1024px shows one column per category; below that the layout falls
-// back to the flat, cross-section list. Tracking it in JS (not just CSS) lets
-// us switch the DOM structure, not only the styling.
-function useMediaQuery(query) {
-  const [matches, setMatches] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia(query).matches
-  )
-  useEffect(() => {
-    const mq = window.matchMedia(query)
-    const onChange = e => setMatches(e.matches)
-    setMatches(mq.matches)
-    mq.addEventListener('change', onChange)
-    return () => mq.removeEventListener('change', onChange)
-  }, [query])
-  return matches
 }
 
 const UNDO_MS = 5000

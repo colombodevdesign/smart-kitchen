@@ -1,18 +1,6 @@
 import { useState } from 'react'
+import { md } from '../utils/markdown.js'
 import styles from './SavedRecipesTab.module.css'
-
-function md(text) {
-  return text
-    .replace(/^## (.+)$/gm, '<h3>$1</h3>')
-    .replace(/^# (.+)$/gm, '<h3>$1</h3>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/^- (.+)$/gm, '<li>$1</li>')
-    .replace(/(<li>.*<\/li>\n?)+/gs, m => `<ul>${m}</ul>`)
-    .split('\n')
-    .filter(l => l.trim())
-    .map(l => l.startsWith('<') ? l : `<p>${l}</p>`)
-    .join('')
-}
 
 export function SavedRecipesTab({ recipes, onRemove }) {
   const [expanded, setExpanded] = useState({})

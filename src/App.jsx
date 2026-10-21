@@ -14,6 +14,7 @@ import { SavedShoppingTab } from './components/SavedShoppingTab.jsx'
 import { MealTrackerTab } from './components/MealTrackerTab.jsx'
 import { Sidebar } from './components/Sidebar.jsx'
 import { BottomNav } from './components/BottomNav.jsx'
+import { parseRecipes, parseShoppingItems } from './utils/parsers.js'
 import styles from './App.module.css'
 
 const TABS = [
@@ -25,49 +26,6 @@ const TABS = [
   { id: 'pasti',           label: 'Tracker Pasti' },
   { id: 'settings',        label: '⚙' },
 ]
-
-function parseRecipes(text) {
-  const parts = text.split(/(?=^## )/m).filter(s => s.trim())
-  if (parts.length === 0) return []
-  return parts.map((content, i) => {
-    const match = content.match(/^## (.+)$/m)
-    const title = match ? match[1].trim() : `Ricetta ${i + 1}`
-    return { key: `r-${i}-${title}`, label: title, data: { title, content: content.trim() } }
-  })
-}
-
-const QTY_UNITS = 'g|kg|gr|l|ml|cl|pz|pezzi|conf\\.?|bottiglie|lattine|scatole|mazzi|spicchi'
-const QTY_PREFIX = new RegExp(`^(\\d+(?:[.,]\\d+)?\\s*(?:${QTY_UNITS}))\\s+(.+)$`, 'i')
-const QTY_SUFFIX = new RegExp(`^(.+?)\\s+(\\d+(?:[.,]\\d+)?\\s*(?:${QTY_UNITS}))$`, 'i')
-
-function extractQty(raw) {
-  const pre = raw.match(QTY_PREFIX)
-  if (pre) return { name: pre[2].trim(), qty: pre[1].trim() }
-  const suf = raw.match(QTY_SUFFIX)
-  if (suf) return { name: suf[1].trim(), qty: suf[2].trim() }
-  return { name: raw, qty: '' }
-}
-
-function parseShoppingItems(text) {
-  const items = []
-  let category = 'Generale'
-  for (const line of text.split('\n')) {
-    const t = line.trim()
-    if (t.startsWith('## ')) { category = t.slice(3).trim(); continue }
-    if (t.startsWith('- ') || t.startsWith('* ')) {
-      const raw = t.slice(2).trim()
-      if (!raw) continue
-      const { name, qty } = extractQty(raw)
-      if (!name) continue
-      items.push({
-        key: `${category}:${name}`,
-        label: qty ? `${name} (${qty})` : name,
-        data: { name, category, qty },
-      })
-    }
-  }
-  return items
-}
 
 export default function App() {
   const { user, signInWithGoogle, signOut } = useAuth()
@@ -88,9 +46,6 @@ export default function App() {
   const savedRecipes   = useSavedRecipes(authUid)
   const savedShopping  = useSavedShopping(authUid)
   const mealTracker    = useMealTracker(authUid)
-
-  const parseRecipesCb  = useCallback(parseRecipes, [])
-  const parseShoppingCb = useCallback(parseShoppingItems, [])
 
   const handleMoveToPantry = useCallback((assignments) => {
     if (!assignments?.length) return
@@ -187,7 +142,7 @@ export default function App() {
                   error={ricette.error}
                   cached={ricette.cached}
                   onSend={ricette.sendFollowUp}
-                  parseForSave={parseRecipesCb}
+                  parseForSave={parseRecipes}
                   onSaveItems={savedRecipes.addRecipes}
                 />
               </div>
@@ -228,7 +183,7 @@ export default function App() {
                   error={spesa.error}
                   cached={spesa.cached}
                   onSend={spesa.sendFollowUp}
-                  parseForSave={parseShoppingCb}
+                  parseForSave={parseShoppingItems}
                   onSaveItems={savedShopping.addItems}
                 />
               </div>

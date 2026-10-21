@@ -2,15 +2,12 @@ import { useState } from 'react'
 import { MealFormModal } from './MealFormModal.jsx'
 import { MealDetailSheet } from './MealDetailSheet.jsx'
 import { CATEGORY_BY_ID } from '../data/mealCategories.js'
+import { toDateStr } from '../utils/date.js'
 import styles from './MealTrackerTab.module.css'
 
 const DAY_LABELS = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom']
 const MONTH_LABELS = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre']
 const MONTH_SHORT  = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic']
-
-function toDateStr(year, month, day) {
-  return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-}
 
 function mondayBasedDow(year, month, day) {
   const d = new Date(year, month, day).getDay()

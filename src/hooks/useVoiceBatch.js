@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { GoogleGenAI } from '@google/genai'
+import { MODEL_NAME } from '../ai/model.js'
 
 const GEMINI_API_KEY_STORAGE = 'gemini-api-key'
-const MODEL_NAME = 'gemini-3-flash-preview'
 const MAX_DURATION_MS = 60_000
 
 const PROMPT = `Sei un assistente per gestire una dispensa italiana. L'utente ti invia un audio in cui elenca i prodotti appena comprati. Estrai un elenco strutturato.

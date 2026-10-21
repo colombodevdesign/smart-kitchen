@@ -1,10 +1,10 @@
 import { useState, useCallback, useRef } from 'react'
 import { GoogleGenAI } from '@google/genai'
 import { getSeasonal, getMonthName } from '../data/seasonal'
+import { MODEL_NAME } from '../ai/model.js'
 
 const CACHE_KEY = 'cucina-ai-cache-v1'
 const GEMINI_API_KEY_STORAGE = 'gemini-api-key'
-const MODEL_NAME = 'gemini-3-flash-preview'
 
 function hashString(str) {
   let h = 0

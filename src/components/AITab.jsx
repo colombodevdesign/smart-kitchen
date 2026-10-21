@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { md } from '../utils/markdown.js'
 import styles from './AITab.module.css'
 
 export function AITab({ buttonLabel, onFetch, loading, messages, streaming, error, cached, onSend, parseForSave, onSaveItems }) {

@@ -1,8 +1,8 @@
 import { useCallback, useRef, useState } from 'react'
 import { GoogleGenAI } from '@google/genai'
+import { MODEL_NAME } from '../ai/model.js'
 
 const GEMINI_API_KEY_STORAGE = 'gemini-api-key'
-const MODEL_NAME = 'gemini-3-flash-preview'
 
 // Receipts are photographed at full sensor resolution; the model doesn't need
 // more than this and the inline payload stays small.

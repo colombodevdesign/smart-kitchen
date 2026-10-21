@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { doc, onSnapshot, setDoc } from 'firebase/firestore'
 import { db } from '../firebase.js'
 import { SECTIONS } from '../data/initialInventory.js'
+import { daysUntil, SOON_DAYS } from '../utils/date.js'
 
 const STORAGE_KEY = 'cucina-smart-v1'
 const EMPTY_INVENTORY = { credenza: [], frigo: [], freezer: [] }
@@ -254,10 +255,10 @@ export function useInventory(uid) {
           let text = i.qty ? `${i.name} ${i.qty}` : i.name
           if (i.urgent) text += ' [APERTO]'
           if (i.expiresAt) {
-            const days = Math.floor((i.expiresAt - Date.now()) / 86400000)
+            const days = daysUntil(i.expiresAt)
             if (days < 0) text += '[scad]'
             else if (days === 0) text += '[oggi]'
-            else if (days <= 3) text += `[${days}gg]`
+            else if (days <= SOON_DAYS) text += `[${days}gg]`
           }
           return text
         }).join(', ')
