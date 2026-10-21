@@ -8,7 +8,7 @@ cosa cambiare e cosa è nuovo. Dove il design e il codice divergono è segnato *
 
 | # | Tema | Stato attuale | Nel design | Raccomandazione |
 |---|---|---|---|---|
-| 1 | Swipe su `ItemRow` | Esiste già (`ItemRow.jsx`, `SWIPE_THRESHOLD = 80`): swipe **destra = elimina**, swipe **sinistra = aperto**, azione immediata al rilascio, nessun annulla | Swipe **sinistra** rivela due pulsanti (Aperto, Elimina) + toast "Annulla" | Tenere le direzioni attuali (nessun riapprendimento), aggiungere **toast Annulla** e un reveal parziale con pulsanti per accessibilità/scopribilità. Se si adotta il mock alla lettera, le direzioni cambiano |
+| 1 | Swipe su `ItemRow` | **Deciso e implementato** come nel design: swipe a **sinistra** rivela due pulsanti (Aperto, Elimina), toast "Annulla" dopo l'eliminazione. Prima: destra = elimina, sinistra = aperto, azione immediata senza annulla | — | Fatto: vedi paragrafo "Swipe" in §5 |
 | 2 | Vista mese pasti | Esiste già (`MealTrackerTab.jsx`, `viewMode` `'month'`/`'week'`) | Mese e settimana ridisegnati | Solo restyling, nessuna nuova logica |
 | 3 | Etichetta "Hai X su Y ingredienti" (Salvate, dettaglio) | Non esiste: `SavedRecipe` ha solo testo markdown | Mostrata come stato | Richiede di estrarre gli ingredienti (prompt AI con output strutturato, come per `responseSchema` degli import) e di confrontarli con la dispensa. **Funzione nuova, non restyling**: tenerla fuori dalla prima release |
 | 4 | Navigazione | 7 voci + due sotto-tab (`App.jsx` `TABS`) | 5 destinazioni: Oggi, Dispensa, Cucina, Spesa, Tu | Adottare; vedi §4 |
@@ -115,7 +115,7 @@ const TABS = [
 
 **Dispensa.** Le tre sezioni diventano un segmented (stato locale). Badge: `Scaduta`/`Scade oggi`/`Domani`/data/`Aperto` da `formatExpiry` + `expiryStatus`; sempre testo oltre al colore. Ordinamento per urgenza dentro la sezione. Stato vuoto per sezione.
 
-**Swipe.** Vedi decisione 1. Implementazione: oggi usa `ref` e manipola `style` direttamente (`onTouchMove`); per il reveal parziale basta fermare il card a `-144px` se il rilascio è tra 40 e 80px e mostrare i due pulsanti reali (accessibili da tastiera: i bottoni devono esistere nel DOM anche senza swipe, visibili al focus o in un menu "⋯"). Il toast Annulla richiede di tenere l'ultimo item rimosso in stato e re-inserirlo con `addItem` mantenendo `id` e `added`; timeout 5s. Su desktop niente swipe: azioni nel menu della riga.
+**Swipe (già implementato).** `ItemRow.jsx`: lo swipe a sinistra sposta la card di 144px e mostra due pulsanti reali da 72px (Aperto/Rimuovi flag, Elimina); rilasciando oltre metà corsa (72px) la riga resta aperta, altrimenti si richiude. Un tocco sulla card, uno swipe a destra o l'apertura di un'altra riga la richiudono (una sola riga aperta alla volta, `openRowCloser` a livello di modulo). Con riga chiusa i pulsanti sono `aria-hidden` e `tabIndex=-1`; l'alternativa non gestuale resta il menu "⋯" della riga, invariato. Rispetta `prefers-reduced-motion`. L'eliminazione (da swipe o da "⋯") passa da `PantryTab.handleRemove`, che tiene l'ultimo prodotto rimosso per 5s e mostra il toast "Annulla"; `useInventory.restoreItem` lo reinserisce con lo stesso `id` e `added`. Un solo annulla alla volta: eliminare un secondo prodotto sostituisce il toast. Colori ancora quelli attuali (`--accent`, `--urgent`): il passaggio ai nuovi token (§3) li aggiornerà. Su desktop niente swipe.
 
 **Aggiungi.** `AddSheet` unifica add-row, voce e scontrino. Il bottone voce/scontrino resta disabilitato senza `gemini-api-key`: nello sheet mostrare il motivo con link a Tu → Chiave API.
 
@@ -167,7 +167,7 @@ Il campo `status`/`staleSince` dovrebbe essere scritto solo dalla Function (Admi
 - Nuova callable `sendTestNotification` (`onCall`, richiede `auth`): invia ai token dell'utente e restituisce l'esito **per dispositivo**. Alimenta "Invia notifica di prova" e "Verificato ora".
 
 ### Limiti da conoscere
-- "Riattiva" funziona solo **sul dispositivo corrente**: un browser non può rigenerare il token di un altro dispositivo. Per l'iPad la UI deve dire "Apri l'app su quel dispositivo e tocca Riattiva", non mostrare un pulsante che non può funzionare da qui.
+- Un browser non può rigenerare il token di un altro dispositivo. Per questo un dispositivo non attivo mostra solo lo stato ("Non attivo", "Non raggiungibile da 12 giorni"), **senza pulsante "Riattiva"**. L'istruzione "apri l'app su quel dispositivo per riattivarlo" sta in un tooltip su un'icona info accanto allo stato (`title` + `aria-label`; su touch il tooltip nativo non compare: prevedere un popover al tocco). La riattivazione avviene dal dispositivo stesso, con l'interruttore di questa schermata.
 - Il campo "Non raggiungibile da 12 giorni" deriva da `staleSince`.
 - Piano **Blaze** già richiesto; più invocazioni schedulate (96/giorno) restano nel free tier, ma va ricontrollato.
 - iOS: le push web funzionano solo con la PWA installata (iOS 16.4+).

@@ -40,7 +40,7 @@ src/
   components/
     LoginScreen.jsx         # schermata login Google/Apple
     PantryTab.jsx           # UI dispensa (3 sezioni: credenza/frigo/freezer)
-    ItemRow.jsx             # riga item con edit inline e badge scadenza
+    ItemRow.jsx             # riga item con edit inline, badge scadenza e swipe (Aperto/Elimina)
     VoiceBatchModal.jsx     # import massivo da voce (registra → verifica → aggiungi)
     ReceiptScanModal.jsx    # import massivo da foto scontrino (scatta → verifica → aggiungi)
     BatchReview.jsx         # schermata di verifica condivisa dai due import massivi

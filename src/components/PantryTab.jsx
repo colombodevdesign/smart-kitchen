@@ -33,7 +33,9 @@ function useMediaQuery(query) {
   return matches
 }
 
-export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onAdd, onAddBatch, onMove }) {
+const UNDO_MS = 5000
+
+export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onRestore, onAdd, onAddBatch, onMove }) {
   const [section, setSection] = useState('all')
   const [addSection, setAddSection] = useState('credenza')
   const [sortMode, setSortMode] = useState('expiry-asc')
@@ -46,9 +48,29 @@ export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onAdd
   const addRowRef    = useRef(null)
   const searchRef    = useRef(null)
   const [showFab, setShowFab] = useState(false)
+  const [undo, setUndo] = useState(null) // { section, item } of the last removed product
   const [voiceOpen, setVoiceOpen] = useState(false)
   const [receiptOpen, setReceiptOpen] = useState(false)
   const [hasApiKey, setHasApiKey] = useState(() => !!localStorage.getItem(GEMINI_API_KEY_STORAGE))
+
+  // Deleting from the list keeps the product around for a few seconds so it can be undone.
+  function handleRemove(itemSection, id) {
+    const item = inventory[itemSection]?.find(i => i.id === id)
+    onRemove(itemSection, id)
+    if (item) setUndo({ section: itemSection, item })
+  }
+
+  function handleUndo() {
+    if (!undo) return
+    onRestore?.(undo.section, undo.item)
+    setUndo(null)
+  }
+
+  useEffect(() => {
+    if (!undo) return
+    const t = setTimeout(() => setUndo(null), UNDO_MS)
+    return () => clearTimeout(t)
+  }, [undo])
 
   // Re-check on every open in case the user just configured the key in Settings.
   function openVoice() {
@@ -242,7 +264,7 @@ export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onAdd
                         searchQuery=""
                         onToggleUrgent={onToggleUrgent}
                         onUpdate={onUpdate}
-                        onRemove={onRemove}
+                        onRemove={handleRemove}
                         onMove={onMove}
                       />
                     ))
@@ -270,7 +292,7 @@ export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onAdd
                 searchQuery={searchActive ? searchQuery : ''}
                 onToggleUrgent={onToggleUrgent}
                 onUpdate={onUpdate}
-                onRemove={onRemove}
+                onRemove={handleRemove}
                 onMove={onMove}
               />
             ))
@@ -337,12 +359,19 @@ export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onAdd
       </div>
 
       <button
-        className={`${styles.fab} ${showFab ? styles.fabVisible : ''}`}
+        className={`${styles.fab} ${showFab && !undo ? styles.fabVisible : ''}`}
         onClick={focusAddRow}
         aria-label="Aggiungi prodotto"
       >
         <PlusIcon />
       </button>
+
+      {undo && (
+        <div className={styles.toast} role="status">
+          <span>{undo.item.name} eliminato</span>
+          <button className={styles.toastBtn} onClick={handleUndo}>Annulla</button>
+        </div>
+      )}
 
       <VoiceBatchModal
         open={voiceOpen}

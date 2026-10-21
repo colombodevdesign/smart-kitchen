@@ -367,3 +367,44 @@
 
   .fab { bottom: calc(56px + env(safe-area-inset-bottom) + 16px); right: 20px; }
 }
+
+/* Undo toast shown after removing a product */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 260px;
+  max-width: calc(100vw - 40px);
+  padding: 4px 6px 4px 18px;
+  border-radius: var(--radius-lg);
+  background: var(--text);
+  color: var(--bg);
+  font-size: 14px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28);
+}
+.toastBtn {
+  min-height: 44px;
+  padding: 0 14px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+@media (max-width: 600px) {
+  .toast {
+    left: 20px;
+    right: 20px;
+    transform: none;
+    bottom: calc(56px + env(safe-area-inset-bottom) + 16px);
+    max-width: none;
+  }
+}

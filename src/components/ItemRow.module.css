@@ -6,30 +6,30 @@
   margin-bottom: 6px;
 }
 
-/* Action backgrounds revealed during swipe */
-.bgDelete,
-.bgOpen {
+/* Actions revealed by swiping the card to the left (two 72px buttons) */
+.swipeActions {
   position: absolute;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 144px;
   display: flex;
+}
+.swipeBtn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
-  opacity: 0;
-  pointer-events: none;
-}
-.bgDelete {
-  background: var(--urgent);
-  padding-left: 22px;
+  justify-content: center;
+  gap: 4px;
+  padding: 0;
+  border: none;
   color: #fff;
+  font-size: 12px;
+  font-weight: 700;
 }
-.bgOpen {
-  background: var(--accent);
-  justify-content: flex-end;
-  padding-right: 22px;
-  color: #fff;
-}
-.bgIcon  { font-size: 20px; display: inline-block; transform: scale(0.7); }
-.bgLabel { font-size: 13px; font-weight: 600; letter-spacing: 0.01em; }
+.swipeOpen   { background: var(--accent); }
+.swipeDelete { background: var(--urgent); }
 
 /* Card wrapper: border + background + rounded corners */
 .card {

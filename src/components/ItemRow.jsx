@@ -20,7 +20,19 @@ function highlight(text, query) {
   return parts
 }
 
-const SWIPE_THRESHOLD = 80
+// Swipe left reveals two action buttons (Aperto / Elimina) behind the card.
+const ACTIONS_WIDTH = 72 * 2
+const SNAP_OPEN = ACTIONS_WIDTH / 2
+
+// Only one row keeps its swipe actions open at a time.
+let openRowCloser = null
+
+function applyOffset(card, px, animate) {
+  if (!card) return
+  const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  card.style.transition = animate && !reduce ? 'transform 0.22s ease-out' : 'none'
+  card.style.transform = px ? `translateX(${px}px)` : ''
+}
 
 export function ItemRow({ item, section, showSection, searchQuery, onToggleUrgent, onUpdate, onRemove, onMove }) {
   const [editingField, setEditingField] = useState(null)
@@ -28,11 +40,22 @@ export function ItemRow({ item, section, showSection, searchQuery, onToggleUrgen
   const [expanded, setExpanded] = useState(false)
   const inputRef = useRef(null)
 
-  // Swipe gesture refs
-  const cardRef    = useRef(null)
-  const bgDeleteRef = useRef(null)
-  const bgOpenRef  = useRef(null)
-  const drag = useRef({ startX: 0, startY: 0, active: false, dir: null, hitThreshold: false })
+  // Swipe gesture state
+  const [revealed, setRevealed] = useState(false)
+  const cardRef = useRef(null)
+  const drag = useRef({ startX: 0, startY: 0, startOffset: 0, offset: 0, active: false, pastSnap: false })
+  const closer = useRef(null)
+  if (!closer.current) {
+    closer.current = () => {
+      applyOffset(cardRef.current, 0, true)
+      setRevealed(false)
+      if (openRowCloser === closer.current) openRowCloser = null
+    }
+  }
+
+  useEffect(() => () => {
+    if (openRowCloser === closer.current) openRowCloser = null
+  }, [])
 
   useEffect(() => {
     if (editingField && inputRef.current) {
@@ -72,8 +95,16 @@ export function ItemRow({ item, section, showSection, searchQuery, onToggleUrgen
 
   function onTouchStart(e) {
     if (editingField || expanded) return
+    if (openRowCloser && openRowCloser !== closer.current) openRowCloser()
     const t = e.touches[0]
-    drag.current = { startX: t.clientX, startY: t.clientY, active: false, dir: null, hitThreshold: false }
+    drag.current = {
+      startX: t.clientX,
+      startY: t.clientY,
+      startOffset: revealed ? -ACTIONS_WIDTH : 0,
+      offset: revealed ? -ACTIONS_WIDTH : 0,
+      active: false,
+      pastSnap: revealed,
+    }
   }
 
   function onTouchMove(e) {
@@ -87,92 +118,45 @@ export function ItemRow({ item, section, showSection, searchQuery, onToggleUrgen
       // Abort if gesture is mostly vertical (let the page scroll naturally)
       if (Math.abs(dy) > Math.abs(dx) * 0.75) return
       d.active = true
-      d.dir = dx > 0 ? 'right' : 'left'
-    }
-    if (!d.active) return
-
-    // Clamp translation with slight resistance past threshold
-    const offset = d.dir === 'right'
-      ? Math.min(dx, SWIPE_THRESHOLD * 1.4)
-      : Math.max(dx, -SWIPE_THRESHOLD * 1.4)
-
-    const card = cardRef.current
-    if (card) {
-      card.style.transform = `translateX(${offset}px)`
-      card.style.transition = 'none'
     }
 
-    const progress = Math.min(Math.abs(offset) / SWIPE_THRESHOLD, 1)
+    // Clamp to [-ACTIONS_WIDTH, 0] with slight resistance past the actions
+    let offset = Math.min(0, d.startOffset + dx)
+    if (offset < -ACTIONS_WIDTH) offset = -ACTIONS_WIDTH + (offset + ACTIONS_WIDTH) * 0.3
+    d.offset = offset
+    applyOffset(cardRef.current, offset, false)
 
-    if (d.dir === 'right' && bgDeleteRef.current) {
-      bgDeleteRef.current.style.opacity = String(progress)
-      const icon = bgDeleteRef.current.querySelector('[data-swipe-icon]')
-      if (icon) icon.style.transform = `scale(${0.7 + 0.4 * progress})`
-    }
-    if (d.dir === 'left' && bgOpenRef.current) {
-      bgOpenRef.current.style.opacity = String(progress)
-      const icon = bgOpenRef.current.querySelector('[data-swipe-icon]')
-      if (icon) icon.style.transform = `scale(${0.7 + 0.4 * progress})`
-    }
-
-    if (Math.abs(offset) >= SWIPE_THRESHOLD && !d.hitThreshold) {
-      d.hitThreshold = true
-      navigator.vibrate?.(40)
-    } else if (Math.abs(offset) < SWIPE_THRESHOLD && d.hitThreshold) {
-      d.hitThreshold = false
+    const past = offset <= -SNAP_OPEN
+    if (past !== d.pastSnap) {
+      d.pastSnap = past
+      if (past) navigator.vibrate?.(20)
     }
   }
 
   function onTouchEnd() {
     const d = drag.current
     if (!d.active) return
-
-    const card = cardRef.current
-    const bgDel = bgDeleteRef.current
-    const bgOpn = bgOpenRef.current
-
-    function resetBg() {
-      if (bgDel) { bgDel.style.opacity = '0' }
-      if (bgOpn) { bgOpn.style.opacity = '0' }
-    }
-
-    if (d.hitThreshold) {
-      if (card) {
-        card.style.transition = 'transform 0.18s ease-in'
-        card.style.transform = `translateX(${d.dir === 'right' ? '110%' : '-110%'})`
-      }
-      const dir = d.dir
-      setTimeout(() => {
-        if (dir === 'right') {
-          onRemove(section, item.id)
-        } else {
-          onToggleUrgent(section, item.id)
-        }
-        if (card) { card.style.transition = 'none'; card.style.transform = '' }
-        resetBg()
-      }, 180)
-    } else {
-      if (card) {
-        card.style.transition = 'transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1)'
-        card.style.transform = ''
-      }
-      resetBg()
-    }
-
     d.active = false
+
+    const open = d.offset <= -SNAP_OPEN
+    applyOffset(cardRef.current, open ? -ACTIONS_WIDTH : 0, true)
+    setRevealed(open)
+    if (open) openRowCloser = closer.current
+    else if (openRowCloser === closer.current) openRowCloser = null
   }
 
   function onTouchCancel() {
-    const d = drag.current
-    if (!d.active) return
-    const card = cardRef.current
-    if (card) {
-      card.style.transition = 'transform 0.25s ease'
-      card.style.transform = ''
-    }
-    if (bgDeleteRef.current) bgDeleteRef.current.style.opacity = '0'
-    if (bgOpenRef.current) bgOpenRef.current.style.opacity = '0'
-    d.active = false
+    if (!drag.current.active) return
+    drag.current.active = false
+    applyOffset(cardRef.current, revealed ? -ACTIONS_WIDTH : 0, true)
+  }
+
+  // A tap on the card while the actions are open just closes them.
+  function onCardClickCapture(e) {
+    if (!revealed) return
+    e.stopPropagation()
+    e.preventDefault()
+    closer.current()
   }
 
   // ────────────────────────────────────────────────────────────────
@@ -183,15 +167,26 @@ export function ItemRow({ item, section, showSection, searchQuery, onToggleUrgen
 
   return (
     <div className={styles.swipeWrapper}>
-      {/* Background revealed on swipe-right → delete */}
-      <div ref={bgDeleteRef} className={styles.bgDelete} aria-hidden="true">
-        <span data-swipe-icon="" className={styles.bgIcon}>🗑️</span>
-        <span className={styles.bgLabel}>Elimina</span>
-      </div>
-      {/* Background revealed on swipe-left → toggle opened */}
-      <div ref={bgOpenRef} className={styles.bgOpen} aria-hidden="true">
-        <span className={styles.bgLabel}>{item.urgent ? 'Rimuovi' : 'Aperto'}</span>
-        <span data-swipe-icon="" className={styles.bgIcon}>📂</span>
+      {/* Actions revealed by swiping the card to the left */}
+      <div className={styles.swipeActions} aria-hidden={!revealed}>
+        <button
+          className={`${styles.swipeBtn} ${styles.swipeOpen}`}
+          tabIndex={revealed ? 0 : -1}
+          onClick={() => { onToggleUrgent(section, item.id); closer.current() }}
+          aria-label={item.urgent ? 'Rimuovi flag aperto' : 'Segna come aperto'}
+        >
+          <FlagIcon />
+          <span>{item.urgent ? 'Rimuovi' : 'Aperto'}</span>
+        </button>
+        <button
+          className={`${styles.swipeBtn} ${styles.swipeDelete}`}
+          tabIndex={revealed ? 0 : -1}
+          onClick={() => onRemove(section, item.id)}
+          aria-label="Elimina prodotto"
+        >
+          <TrashIcon />
+          <span>Elimina</span>
+        </button>
       </div>
 
       <div
@@ -201,6 +196,7 @@ export function ItemRow({ item, section, showSection, searchQuery, onToggleUrgen
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
         onTouchCancel={onTouchCancel}
+        onClickCapture={onCardClickCapture}
       >
         <div className={styles.row}>
           <div className={styles.main}>
@@ -314,6 +310,22 @@ export function ItemRow({ item, section, showSection, searchQuery, onToggleUrgen
         )}
       </div>
     </div>
+  )
+}
+
+function FlagIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M5 21V4M5 4h11l-2 4 2 4H5"/>
+    </svg>
+  )
+}
+
+function TrashIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/>
+    </svg>
   )
 }
 

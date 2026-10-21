@@ -78,7 +78,7 @@ export default function App() {
 
   const {
     inventory,
-    addItem, addBatch, removeItem, updateItem, moveItem, toggleUrgent,
+    addItem, addBatch, removeItem, restoreItem, updateItem, moveItem, toggleUrgent,
     exportCSV, importCSV, clearInventory, getInventoryText,
   } = useInventory(authUid)
 
@@ -153,6 +153,7 @@ export default function App() {
             onToggleUrgent={toggleUrgent}
             onUpdate={updateItem}
             onRemove={removeItem}
+            onRestore={restoreItem}
             onAdd={addItem}
             onAddBatch={addBatch}
             onMove={moveItem}

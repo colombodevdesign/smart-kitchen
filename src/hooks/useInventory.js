@@ -128,6 +128,16 @@ export function useInventory(uid) {
     })
   }, [])
 
+  // Re-inserts an item removed a moment ago, keeping its id and timestamps (undo).
+  const restoreItem = useCallback((section, item) => {
+    setInventory(prev => {
+      if (prev[section].some(i => i.id === item.id)) return prev
+      const next = { ...prev, [section]: [...prev[section], item] }
+      if (uidRef.current) setDoc(firestoreRef(uidRef.current), next).catch(console.error)
+      return next
+    })
+  }, [])
+
   const updateItem = useCallback((section, id, patch) => {
     setInventory(prev => {
       const next = { ...prev, [section]: prev[section].map(i => i.id === id ? { ...i, ...patch } : i) }
@@ -261,6 +271,7 @@ export function useInventory(uid) {
     addItem,
     addBatch,
     removeItem,
+    restoreItem,
     updateItem,
     moveItem,
     toggleUrgent,
