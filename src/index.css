@@ -1,48 +1,160 @@
+/* ── Fonts (self-hosted, variable, latin subset) ─────────────────────── */
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 800;
+  src: url('/fonts/bricolage-grotesque-latin-wght-normal.woff2') format('woff2-variations');
+}
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 1000;
+  src: url('/fonts/dm-sans-latin-wght-normal.woff2') format('woff2-variations');
+}
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* ── Tokens ──────────────────────────────────────────────────────────────
+   Light is the default. Dark lives in ONE block, selected by data-theme on
+   <html>: the inline script in index.html (and utils/theme.js) resolves
+   "Sistema" to light/dark before first paint, so no media query is needed. */
 :root {
-  --bg: #fafaf8;
-  --surface: #ffffff;
-  --surface-hover: #f5f4f0;
-  --border: rgba(0,0,0,0.1);
-  --border-strong: rgba(0,0,0,0.18);
-  --text: #1a1a18;
-  --text-muted: #6b6b67;
-  --text-hint: #a0a09a;
-  --accent: #BA7517;
-  --accent-hover: #EF9F27;
-  --accent-light: #faeeda;
-  --urgent: #E24B4A;
-  --urgent-light: #FCEBEB;
-  --urgent-text: #A32D2D;
-  --success: #1D9E75;
-  --success-light: #E1F5EE;
-  --success-text: #0F6E56;
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
+  color-scheme: light;
+
+  --bg: #F3F5F0;
+  --surface: #FFFFFF;
+  --surface-hover: #E9EEE6;
+  --border: #D5DDD1;
+  --border-strong: #9AAA9F;
+  --text: #17251D;
+  --text-muted: #55655B;
+  --text-hint: #55655B;
+
+  --accent: #1E5A43;
+  --accent-hover: #17493A;
+  --accent-light: #DDEADF;
+  --on-accent: #FFFFFF;
+
+  --highlight: #F0B93A;          /* yellow: AI and "da usare presto" */
+  --highlight-ink: #2A1D00;
+  --hero: #1E5A43;               /* hero card, same in both themes */
+  --on-hero: #FFFFFF;
+  --on-hero-muted: #CFE3D8;
+
+  --urgent: #A82A1C;
+  --urgent-light: #F9DDD8;
+  --urgent-text: #8F1F14;
+  --success: #1E5A43;
+  --success-light: #DDEADF;
+  --success-text: #1E5A43;
+  --warn-light: #FBE8B8;
+  --warn-text: #6B4300;
+  --info-light: #DCE7F3;
+  --info-text: #1B4A78;
+
+  /* meal categories */
+  --cat-colazione: #D99A12;
+  --cat-pranzo: #1E5A43;
+  --cat-cena: #3F63B8;
+  --cat-spuntino: #C9552A;
+
+  --toast-bg: #17251D;
+  --toast-fg: #F3F5F0;
+  --scrim: rgba(23, 37, 29, 0.55);
+  --shadow-sm: 0 1px 3px rgba(23, 37, 29, 0.14);
+  --shadow-md: 0 6px 16px rgba(23, 37, 29, 0.14);
+  --shadow-lg: 0 8px 20px rgba(23, 37, 29, 0.28);
+  --shadow-accent: rgba(30, 90, 67, 0.28);   /* rings and pulses around accent elements */
+  --toggle-thumb: #FFFFFF;
+
+  --radius-xs: 8px;
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-pill: 999px;
+  --tap: 44px;
+
+  --font-display: 'Bricolage Grotesque', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-body: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+
+  /* layout */
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --nav-h: 64px;
+  --bottom-nav-h: 0px;                       /* set below on mobile */
+  --float-bottom: calc(var(--bottom-nav-h) + 16px);   /* FABs, toasts */
+
+  /* z-index scale */
+  --z-row: 1;
+  --z-sticky: 10;
+  --z-fab: 50;
+  --z-modal: 1000;
+  --z-toast: 1100;
+  --z-popover: 1200;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #161614;
-    --surface: #1f1f1c;
-    --surface-hover: #2a2a26;
-    --border: rgba(255,255,255,0.1);
-    --border-strong: rgba(255,255,255,0.18);
-    --text: #f0f0ec;
-    --text-muted: #9a9a94;
-    --text-hint: #5a5a56;
-    --accent-light: #2a1f08;
-    --urgent-light: #2a0f0f;
-    --urgent-text: #F09595;
-    --success-light: #081a12;
-    --success-text: #5DCAA5;
-  }
+@media (max-width: 600px) {
+  :root { --bottom-nav-h: calc(var(--nav-h) + var(--safe-b)); }
 }
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --bg: #101A14;
+  --surface: #18251D;
+  --surface-hover: #1F3026;
+  --border: #2E4236;
+  --border-strong: #5C7466;
+  --text: #EAF1EA;
+  --text-muted: #A3B5A8;
+  --text-hint: #A3B5A8;
+
+  --accent: #5FC79A;
+  --accent-hover: #7FD6AC;
+  --accent-light: #214A38;
+  --on-accent: #0B1F15;
+
+  --urgent: #B83222;
+  --urgent-light: #3A1A17;
+  --urgent-text: #FFB4A8;
+  --success: #5FC79A;
+  --success-light: #1A3326;
+  --success-text: #8FDDB6;
+  --warn-light: #3B2C0B;
+  --warn-text: #F5CF7A;
+  --info-light: #172C44;
+  --info-text: #A9CBF0;
+
+  --cat-colazione: #F0B93A;
+  --cat-pranzo: #5FC79A;
+  --cat-cena: #8FA9E8;
+  --cat-spuntino: #E8895A;
+
+  --toast-bg: #EAF1EA;
+  --toast-fg: #101A14;
+  --scrim: rgba(0, 0, 0, 0.62);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 6px 16px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 20px rgba(0, 0, 0, 0.5);
+  --shadow-accent: rgba(95, 199, 154, 0.28);
+  --toggle-thumb: #0B1F15;
+}
+
+/* Section / category colour hooks: components set data-s / data-cat and read
+   the local variables, so the palette lives here only. */
+[data-s] {
+  --s-ink: var(--text-muted);
+  --s-bg: var(--surface-hover);
+  --s-bd: var(--border);
+}
+[data-cat='colazione'] { --cat: var(--cat-colazione); }
+[data-cat='pranzo']    { --cat: var(--cat-pranzo); }
+[data-cat='cena']      { --cat: var(--cat-cena); }
+[data-cat='spuntino']  { --cat: var(--cat-spuntino); }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-family: var(--font-body);
   background: var(--bg);
   color: var(--text);
   font-size: 15px;
@@ -68,6 +180,15 @@ input, button, textarea, select {
 }
 
 button { cursor: pointer; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
 
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
