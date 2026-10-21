@@ -14,30 +14,33 @@ export function LoginScreen({ onGoogle }) {
 
   return (
     <div className={styles.wrap}>
-      <div className={styles.card}>
-        <img src="/icon-192.png" alt="" className={styles.icon} />
-        <h1 className={styles.logo}>smart kitchen</h1>
+      <div className={styles.art} aria-hidden="true">
+        <span className={styles.sun} />
+        <span className={styles.leaf} />
+        <span className={styles.ring} />
+      </div>
+
+      <div className={styles.brand}>
+        <h1 className={styles.logo}>smart<br />kitchen</h1>
+        <p className={styles.tagline}>Cosa scade, cosa cucini, cosa compri.</p>
+      </div>
+
+      <section className={styles.sheet} aria-label="Accesso">
         <p className={styles.sub}>
-          Accedi per sincronizzare la dispensa tra i tuoi dispositivi
+          Accedi per ritrovare dispensa, ricette e lista della spesa su tutti i tuoi dispositivi.
         </p>
 
-        <div className={styles.buttons}>
-          <button
-            className={styles.googleBtn}
-            onClick={handleGoogle}
-            disabled={loading}
-          >
-            {loading ? <Spinner /> : <GoogleIcon />}
-            Continua con Google
-          </button>
-        </div>
+        <button className={styles.googleBtn} onClick={handleGoogle} disabled={loading}>
+          {loading ? <Spinner /> : <GoogleIcon />}
+          Continua con Google
+        </button>
 
-        {error && <p className={styles.error}>{error}</p>}
+        {error && <p className={styles.error} role="alert">{error}</p>}
 
         <p className={styles.note}>
-          I dati vengono salvati in modo sicuro su Firebase e rimangono privati.
+          I dati sono salvati in modo sicuro su Firebase e restano privati.
         </p>
-      </div>
+      </section>
     </div>
   )
 }

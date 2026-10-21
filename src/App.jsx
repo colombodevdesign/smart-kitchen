@@ -6,6 +6,7 @@ import { useSavedRecipes } from './hooks/useSavedRecipes.js'
 import { useSavedShopping } from './hooks/useSavedShopping.js'
 import { useMealTracker } from './hooks/useMealTracker.js'
 import { useNavigation } from './hooks/useNavigation.js'
+import { useOnline } from './hooks/useOnline.js'
 import { LoginScreen } from './components/LoginScreen.jsx'
 import { TodayTab } from './components/TodayTab.jsx'
 import { PantryTab } from './components/PantryTab.jsx'
@@ -16,6 +17,7 @@ import { Sidebar } from './components/Sidebar.jsx'
 import { BottomNav } from './components/BottomNav.jsx'
 import { AddFlow } from './components/AddFlow.jsx'
 import { useToast } from './components/ui/Toast.jsx'
+import { OfflineBanner } from './components/ui/OfflineBanner.jsx'
 import { todayStr } from './utils/date.js'
 import { TABS } from './nav/tabs.js'
 import styles from './App.module.css'
@@ -24,6 +26,7 @@ export default function App() {
   const { user, signInWithGoogle, signOut } = useAuth()
   const nav = useNavigation('oggi')
   const toast = useToast()
+  const online = useOnline()
 
   // undefined = auth still resolving, null = logged out, string = uid
   const authUid = user === undefined ? undefined : (user?.uid ?? null)
@@ -138,6 +141,8 @@ export default function App() {
         <Sidebar activeTab={nav.tab} onTabChange={handleTabChange} onAdd={() => openAdd('sheet')} />
 
         <main ref={mainRef} className={styles.main}>
+          {!online && <OfflineBanner />}
+
           {nav.tab === 'oggi' && (
             <TodayTab
               inventory={inventory}
@@ -195,6 +200,10 @@ export default function App() {
           {nav.tab === 'tu' && (
             <TuTab
               user={user}
+              online={online}
+              detail={nav.detail}
+              onOpenNotifications={() => nav.openDetail({ type: 'notifiche' })}
+              onCloseDetail={nav.closeDetail}
               onExport={exportCSV}
               onImport={importCSV}
               onClearInventory={clearInventory}
