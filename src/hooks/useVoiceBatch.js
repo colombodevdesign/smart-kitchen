@@ -81,7 +81,7 @@ function parseApiError(err) {
   if (msg.includes('429') || msg.toLowerCase().includes('quota'))
     return 'Quota Gemini esaurita. Riprova tra qualche minuto.'
   if (msg.includes('API_KEY_INVALID') || msg.includes('API key'))
-    return 'API key non valida. Controlla le Impostazioni.'
+    return 'API key non valida. Controllala in Tu.'
   if (msg.toLowerCase().includes('unsupported') || msg.includes('400'))
     return 'Il modello non ha accettato l\'audio. Riprova o segnala il problema.'
   return msg || 'Errore di connessione con Gemini.'
@@ -134,7 +134,7 @@ export function useVoiceBatch() {
     }
     const apiKey = localStorage.getItem(GEMINI_API_KEY_STORAGE)
     if (!apiKey) {
-      setError({ message: 'API key non configurata. Vai in Impostazioni per inserirla.' })
+      setError({ message: 'API key non configurata. Impostala in Tu.' })
       setStatus('error')
       return
     }
