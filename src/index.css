@@ -156,6 +156,9 @@
 [data-cat='cena']      { --cat: var(--cat-cena); }
 [data-cat='spuntino']  { --cat: var(--cat-spuntino); }
 
+/* Component CSS sets display on many wrappers; hidden must always win. */
+[hidden] { display: none !important; }
+
 body {
   font-family: var(--font-body);
   background: var(--bg);

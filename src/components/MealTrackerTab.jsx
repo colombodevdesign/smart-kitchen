@@ -187,7 +187,7 @@ export function MealTrackerTab({ meals, onAdd, onRemove, savedRecipes = [], onOp
         dateStr={modalState.dateStr}
         savedRecipes={savedRecipes}
         onRemove={onRemove}
-        onOpenRecipe={onOpenSavedRecipes ? () => onOpenSavedRecipes() : undefined}
+        onOpenRecipe={onOpenSavedRecipes ? (id) => onOpenSavedRecipes(id) : undefined}
       />
     </div>
   )

@@ -1,6 +1,7 @@
 import { AITab } from './AITab.jsx'
 import { SavedRecipesTab } from './SavedRecipesTab.jsx'
 import { MealTrackerTab } from './MealTrackerTab.jsx'
+import { RecipeDetail } from './RecipeDetail.jsx'
 import { PageHeader } from './ui/PageHeader.jsx'
 import { Segmented } from './ui/Segmented.jsx'
 import { useMediaQuery } from '../hooks/useMediaQuery.js'
@@ -9,7 +10,10 @@ import styles from './Containers.module.css'
 
 // Cucina = AI recipes + saved recipes + meal tracker. On mobile these are three
 // segments; on desktop AI and saved recipes sit side by side under "Ricette".
-export function CucinaTab({ sub, onSubChange, ricette, savedRecipes, mealTracker, onGoApiKey }) {
+export function CucinaTab({
+  sub, onSubChange, ricette, savedRecipes, mealTracker, inventory, onGoApiKey,
+  detailId, onOpenRecipe, onCloseDetail, onCookTonight, onAddMissing,
+}) {
   const isDesktop = useMediaQuery('(min-width: 1024px)')
   const view = isDesktop && sub === 'salvate' ? 'ricette' : sub
 
@@ -27,8 +31,23 @@ export function CucinaTab({ sub, onSubChange, ricette, savedRecipes, mealTracker
   const showAI = view === 'ricette'
   const showSaved = view === 'salvate' || (isDesktop && view === 'ricette')
 
+  const detailRecipe = detailId ? savedRecipes.recipes.find(r => r.id === detailId) : null
+
   return (
-    <div className={styles.wrap}>
+    <>
+    {detailRecipe && (
+      <RecipeDetail
+        recipe={detailRecipe}
+        inventory={inventory}
+        onBack={onCloseDetail}
+        onRemove={(id) => { savedRecipes.removeRecipe(id); onCloseDetail() }}
+        onCookTonight={onCookTonight}
+        onPlan={() => { onCloseDetail(); onSubChange('pasti') }}
+        onAddMissing={onAddMissing}
+        onAnalyze={(r) => savedRecipes.analyzeIngredients([r])}
+      />
+    )}
+    <div className={styles.wrap} hidden={!!detailRecipe}>
       <PageHeader title="Cucina" />
       <Segmented options={options} value={view} onChange={onSubChange} ariaLabel="Sezione di Cucina" />
 
@@ -53,7 +72,14 @@ export function CucinaTab({ sub, onSubChange, ricette, savedRecipes, mealTracker
           />
         </div>
         <div hidden={!showSaved}>
-          <SavedRecipesTab recipes={savedRecipes.recipes} onRemove={savedRecipes.removeRecipe} />
+          <SavedRecipesTab
+            recipes={savedRecipes.recipes}
+            inventory={inventory}
+            onOpen={onOpenRecipe}
+            onRemove={savedRecipes.removeRecipe}
+            onCookTonight={onCookTonight}
+            onAddMissing={onAddMissing}
+          />
         </div>
       </div>
 
@@ -63,9 +89,10 @@ export function CucinaTab({ sub, onSubChange, ricette, savedRecipes, mealTracker
           onAdd={mealTracker.addMeal}
           onRemove={mealTracker.removeMeal}
           savedRecipes={savedRecipes.recipes}
-          onOpenSavedRecipes={() => onSubChange('salvate')}
+          onOpenSavedRecipes={(id) => (id && savedRecipes.recipes.some(r => r.id === id) ? onOpenRecipe(id) : onSubChange('salvate'))}
         />
       </div>
     </div>
+    </>
   )
 }

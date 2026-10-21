@@ -15,13 +15,15 @@ import { TuTab } from './components/TuTab.jsx'
 import { Sidebar } from './components/Sidebar.jsx'
 import { BottomNav } from './components/BottomNav.jsx'
 import { AddFlow } from './components/AddFlow.jsx'
-import { ToastProvider } from './components/ui/Toast.jsx'
+import { useToast } from './components/ui/Toast.jsx'
+import { todayStr } from './utils/date.js'
 import { TABS } from './nav/tabs.js'
 import styles from './App.module.css'
 
 export default function App() {
   const { user, signInWithGoogle, signOut } = useAuth()
   const nav = useNavigation('oggi')
+  const toast = useToast()
 
   // undefined = auth still resolving, null = logged out, string = uid
   const authUid = user === undefined ? undefined : (user?.uid ?? null)
@@ -63,6 +65,30 @@ export default function App() {
     nav.go('tu')
   }, [closeAdd, nav.go])
 
+  // Saved recipes: put one on tonight's menu / push its missing ingredients to the shopping list.
+  const handleCookTonight = useCallback((recipe) => {
+    mealTracker.addMeal(todayStr(), {
+      text: recipe.title, category: 'cena', recipeId: recipe.id, recipeTitle: recipe.title,
+    })
+    toast.show({ message: 'Aggiunta ai pasti di stasera', ms: 3000 })
+    nav.go('oggi')
+  }, [mealTracker.addMeal, toast.show, nav.go])
+
+  const handleAddMissing = useCallback((ingredients) => {
+    const already = new Set(savedShopping.items.filter(i => !i.checked).map(i => i.name.trim().toLowerCase()))
+    const fresh = ingredients.filter(i => !already.has(i.name.trim().toLowerCase()))
+    if (fresh.length === 0) {
+      toast.show({ message: 'Sono già tutti nella lista della spesa', ms: 3000 })
+      return
+    }
+    savedShopping.addItems(fresh.map(i => ({ name: i.name, qty: i.qty, category: 'Generale', source: 'recipe' })))
+    toast.show({
+      message: fresh.length === 1 ? '1 ingrediente aggiunto alla spesa' : `${fresh.length} ingredienti aggiunti alla spesa`,
+      actionLabel: 'Vedi',
+      onAction: () => nav.go('spesa', 'lista'),
+    })
+  }, [savedShopping.items, savedShopping.addItems, toast.show, nav.go])
+
   // "Cosa cucino con questi?": open Cucina and generate straight away.
   const handleCook = useCallback(() => {
     nav.go('cucina', 'ricette')
@@ -86,7 +112,7 @@ export default function App() {
   }
 
   return (
-    <ToastProvider>
+    <>
       <div className={styles.app} data-detail={nav.detail ? 'true' : undefined}>
         {/* Tablet: sticky top header with scrollable tabs */}
         <header className={styles.header}>
@@ -144,7 +170,13 @@ export default function App() {
               ricette={ricette}
               savedRecipes={savedRecipes}
               mealTracker={mealTracker}
+              inventory={inventory}
               onGoApiKey={handleGoApiKey}
+              detailId={nav.detail?.type === 'recipe' ? nav.detail.id : null}
+              onOpenRecipe={(id) => nav.openDetail({ type: 'recipe', id })}
+              onCloseDetail={nav.closeDetail}
+              onCookTonight={handleCookTonight}
+              onAddMissing={handleAddMissing}
             />
           )}
 
@@ -183,6 +215,6 @@ export default function App() {
         {/* Mobile: bottom nav (hidden on ≥601px via CSS, and in detail views) */}
         {!nav.detail && <BottomNav activeTab={nav.tab} onTabChange={handleTabChange} />}
       </div>
-    </ToastProvider>
+    </>
   )
 }
