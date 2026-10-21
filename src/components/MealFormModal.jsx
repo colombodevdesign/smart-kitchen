@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Modal } from './Modal.jsx'
 import { MEAL_CATEGORIES } from '../data/mealCategories.js'
 import styles from './MealFormModal.module.css'
@@ -13,10 +13,13 @@ function formatDateLabel(dateStr) {
   return `${DAYS[date.getDay()]} ${d} ${MONTHS_SHORT[m - 1]}`
 }
 
-export function MealFormModal({ open, onClose, dateStr, savedRecipes = [], onSubmit }) {
+export function MealFormModal({ open, onClose, dateStr, defaultCategory = null, savedRecipes = [], onSubmit }) {
   const [text, setText]         = useState('')
-  const [category, setCategory] = useState(null)
+  const [category, setCategory] = useState(defaultCategory)
   const [recipeId, setRecipeId] = useState('')
+
+  // Opening from "Aggiungi la cena" pre-selects the category.
+  useEffect(() => { if (open) setCategory(defaultCategory) }, [open, defaultCategory])
 
   const reset = () => { setText(''); setCategory(null); setRecipeId('') }
 
