@@ -6,7 +6,7 @@ Reference rapido per sessioni future. Aggiorna quando cambia l'architettura.
 
 App React single-page per gestione dispensa con suggerimenti AI stagionali.
 Stack: React 18 + Vite 5 + CSS Modules + Firebase (Auth + Firestore).
-Autenticazione Google/Apple obbligatoria. Dispensa, pasti, ricette salvate e lista
+Autenticazione Google obbligatoria. Dispensa, pasti, ricette salvate e lista
 spesa vivono su Firestore, sincronizzati in real-time tra dispositivi. Nessun backend
 custom, nessun routing library.
 
@@ -23,44 +23,66 @@ Richiede `.env` con le variabili Firebase (vedi `.env.example`).
 ## Struttura
 
 ```
+index.html                  # script inline che applica il tema prima del primo paint
+public/
+  fonts/                    # Bricolage Grotesque + DM Sans (variabili, latin, self-hosted) + licenze
+  manifest.json, icon-*.png # PWA (le icone sono segnaposto: sostituire con l'artwork vero)
 src/
-  main.jsx                  # entry point React
-  firebase.js               # inizializzazione Firebase app, auth, db
-  App.jsx                   # root: auth guard + tab navigation + state orchestration
+  main.jsx                  # entry: ToastProvider + watchSystemTheme
+  firebase.js               # app, auth, db, messagingPromise, callFunction (import dinamico di firebase/functions)
+  App.jsx                   # auth guard + orchestrazione stato + 5 destinazioni + AddFlow
+  nav/tabs.js               # TABS (oggi, dispensa, cucina, spesa, tu) e sotto-sezioni
+  ai/
+    model.js                # MODEL_NAME (unico punto dove cambiare modello)
+    prompts.js              # prompt ricette/spesa, PROMPT_VERSION (entra nell'hash della cache)
+    errors.js               # classifyError → no-key | quota | invalid-key | offline | unknown
+    extractIngredients.js   # estrazione batch degli ingredienti delle ricette (generateContent + responseSchema)
   hooks/
-    useAuth.js              # Firebase Auth: Google/Apple login, onAuthStateChanged
-    useInventory.js         # CRUD dispensa + CSV + Firestore sync (fallback localStorage)
-    useAI.js                # chiamate Gemini + cache + streaming
-    useVoiceBatch.js        # registrazione audio → Gemini → item dispensa
-    useReceiptScan.js       # foto scontrino → Gemini vision → item dispensa
+    useAuth.js              # Firebase Auth (Google), onAuthStateChanged
+    useNavigation.js        # {tab, sub, detail} + history.pushState/popstate (nessun router)
+    useInventory.js         # CRUD dispensa + CSV + Firestore sync (fallback localStorage), restoreItem
+    useMealTracker.js       # pasti + sync
+    useSavedRecipes.js      # ricette salvate + sync + estrazione ingredienti in background
+    useSavedShopping.js     # lista spesa + sync
+    useAI.js                # Gemini: ricette/spesa/follow-up, streaming, cache
+    useVoiceBatch.js        # voce → item dispensa
+    useReceiptScan.js       # scontrino → item dispensa
     useBatchCandidates.js   # lista candidati editabile condivisa dai due import
-    useMealTracker.js       # CRUD pasti + Firestore sync (fallback localStorage)
-    useSavedRecipes.js      # ricette salvate + Firestore sync
-    useSavedShopping.js     # lista spesa + Firestore sync
+    useNotifications.js     # preferenze + dispositivi push, enable/disable, notifica di prova; useForegroundPush
+    useOnline.js            # navigator.onLine + eventi
+    useMediaQuery.js
   components/
-    LoginScreen.jsx         # schermata login Google/Apple
-    PantryTab.jsx           # UI dispensa (3 sezioni: credenza/frigo/freezer)
-    ItemRow.jsx             # riga item con edit inline, badge scadenza e swipe (Aperto/Elimina)
-    VoiceBatchModal.jsx     # import massivo da voce (registra → verifica → aggiungi)
-    ReceiptScanModal.jsx    # import massivo da foto scontrino (scatta → verifica → aggiungi)
-    BatchReview.jsx         # schermata di verifica condivisa dai due import massivi
-    AITab.jsx               # display output AI con streaming + markdown
-    SavedRecipesTab.jsx     # ricette salvate
-    SavedShoppingTab.jsx    # lista spesa con check
-    MealTrackerTab.jsx      # calendario pasti mese/settimana + FAB
-    MealFormModal.jsx       # modale aggiunta pasto (descrizione + categoria + ricetta)
-    MealDetailSheet.jsx     # bottom-sheet dettaglio/rimozione pasto
-    Modal.jsx               # wrapper modale generico (centered desktop / bottom-sheet mobile)
-    Sidebar.jsx             # nav desktop
-    BottomNav.jsx           # nav mobile fissa in basso
-    SettingsTab.jsx         # profilo utente + API key + import/export CSV + toggle notifiche
+    ui/                     # Icon, Segmented, StatusBadge, Chip, EmptyState, Toast(+useToast), PageHeader, OfflineBanner, RecipeCard
+    TodayTab, PantryTab, ItemRow, CucinaTab, AITab, SavedRecipesTab, RecipeDetail, MealTrackerTab,
+    SpesaTab, SavedShoppingTab, PantrySuggestionsModal, TuTab, ProfileTab, NotificationSettings,
+    AddFlow, AddSheet, VoiceBatchModal, ReceiptScanModal, BatchReview,
+    MealFormModal, MealDetailSheet, Modal, BottomNav, Sidebar, LoginScreen
   data/
-    initialInventory.js     # costanti SECTIONS e SECTION_LABELS
-    seasonal.js             # produce stagionale mese per mese (Lombardia)
-    mealCategories.js       # categorie pasti (colazione/pranzo/cena/spuntino) + colori/emoji
+    initialInventory.js     # SECTIONS, SECTION_LABELS
+    seasonal.js             # produce stagionale per mese (Lombardia)
+    mealCategories.js       # categorie pasti {id, label, icon}; i colori sono token --cat-*
   utils/
-    date.js                 # formatDate, formatExpiry, expiryStatus
+    date.js                 # SOON_DAYS, daysUntil (giorni di calendario), toDateStr, formatExpiry, expiryStatus
+    pantry.js               # statusRank, itemBadge, getUseSoonItems, getPantryCandidates
+    markdown.js             # md(): escape HTML poi #/##→h3, ###→h4, **bold**, liste
+    parsers.js              # parseRecipes (split su "## "), parseShoppingItems, extractQty
+    ingredientMatch.js      # "Hai X ingredienti su Y": matching per radici (puro)
+    apiKey.js, theme.js
+functions/
+  index.js                  # sendExpiryNotifications (ogni 15 min) + callable sendTestNotification
+  lib/schedule.js           # ora locale / finestre di giorno con Intl (DST-safe), shouldSendNow
+  lib/notify.js             # raggruppamento messaggi, invio, token stale (funzioni pure con db/messaging iniettati)
+docs/
+  design-brief.md, ui-implementation-notes.md   # design e note di implementazione
+  firestore-rules.md                            # regole Firestore da applicare a mano
 ```
+
+## Navigazione
+
+Cinque destinazioni: Oggi, Dispensa, Cucina (Ricette AI / Salvate / Pasti), Spesa (Lista / Idee AI), Tu.
+`useNavigation` tiene `{tab, sub, detail}`; le viste di dettaglio (ricetta, notifiche) aggiungono una voce
+alla history, quindi il tasto indietro del telefono le chiude. A ≥1024px Cucina e Spesa mostrano lo split a
+due colonne. `BottomNav` e il FAB si nascondono quando `nav.detail` è attivo (`data-detail`).
 
 ## Firebase — configurazione
 
@@ -75,16 +97,18 @@ VITE_FIREBASE_MESSAGING_SENDER_ID
 VITE_FIREBASE_APP_ID
 ```
 
-Per Apple Sign-In è necessario configurare un Service ID in Apple Developer Portal
-e abilitare il provider in Firebase Console → Authentication → Sign-in method.
+L'unico provider è Google (Firebase Console → Authentication → Sign-in method).
 
 ## Firestore — struttura dati
 
 ```
-/users/{uid}/inventory/data      →  { credenza: [...], frigo: [...], freezer: [...] }
-/users/{uid}/meals/data          →  { "YYYY-MM-DD": Meal[] }
-/users/{uid}/savedRecipes/data   →  { items: SavedRecipe[] }
-/users/{uid}/savedShopping/data  →  { items: ShoppingItem[] }
+/users/{uid}/inventory/data            →  { credenza: [...], frigo: [...], freezer: [...] }
+/users/{uid}/meals/data                →  { "YYYY-MM-DD": Meal[] }
+/users/{uid}/savedRecipes/data         →  { items: SavedRecipe[] }
+/users/{uid}/savedShopping/data        →  { items: ShoppingItem[] }
+/users/{uid}/notificationPrefs/data    →  { enabled, hour, minute, tz, daysBefore: number[], lastRunDay, updatedAt }
+/users/{uid}/pushTokens/{deviceId}     →  { token, label, platform, status: 'active'|'stale', lastOkAt, staleSince, updatedAt }
+/users/{uid}/pushToken/data            →  LEGACY (dispositivo singolo): { token, enabled, updatedAt }
 ```
 
 Wrapping `{ items: [...] }` per ricette/spesa: Firestore non accetta array root in
@@ -93,12 +117,19 @@ Wrapping `{ items: [...] }` per ricette/spesa: Firestore non accetta array root 
 Al primo login, i dati vengono migrati automaticamente da localStorage a Firestore
 (per ogni doc mancante: `setDoc(ref, localData)`).
 
-## LocalStorage — chiavi residue
+`pushToken/data` è scritto ancora in doppia copia da `useNotifications` finché la Function precedente
+non è stata ridistribuita; i punti sono marcati `TODO(remove next release)` (client, `functions/lib/notify.js`
+fallback e regole).
+
+## LocalStorage — chiavi
 
 | Chiave | Contenuto |
 |---|---|
 | `gemini-api-key` | API key Gemini (rimane locale per sicurezza) |
-| `cucina-ai-cache-v1` | cache risposte AI |
+| `theme` | preferenza tema: `system` \| `light` \| `dark` |
+| `sk-device-id` | id di questo dispositivo per `pushTokens/{deviceId}` |
+| `sk-notif-migrated-{uid}` | flag: migrazione da `pushToken/data` già tentata |
+| `cucina-ai-cache-v1` | cache risposte AI (l'hash include `PROMPT_VERSION`) |
 | `cucina-session-ricette-v1` | sessione chat ricette |
 | `cucina-session-spesa-v1` | sessione chat spesa |
 | `cucina-smart-v1` | inventario fallback (solo quando non loggati) |
@@ -109,10 +140,9 @@ Al primo login, i dati vengono migrati automaticamente da localStorage a Firesto
 ## Auth flow (`src/hooks/useAuth.js`)
 
 - `user === undefined` → Firebase sta inizializzando (mostra spinner)
-- `user === null` → non loggato (mostra `LoginScreen`)
+- `user === null` → non loggato (mostra `LoginScreen`, solo Google)
 - `user === object` → loggato (mostra app)
-- `signInWithGoogle()` / `signInWithApple()` → `signInWithPopup`
-- `signOut()` → torna a `LoginScreen`
+- `signInWithGoogle()` → `signInWithPopup`; `signOut()` → torna a `LoginScreen`
 
 ## Hook con sync Firestore — pattern condiviso
 
@@ -180,117 +210,86 @@ Due flussi paralleli, stessa struttura e stessa schermata di verifica:
   di `useInventory` (item creati con `expiresAt: null` e `urgent: false`).
 - Entrambi i bottoni nella add-row sono disabilitati se manca `gemini-api-key`.
 
-## Integrazione AI (`src/hooks/useAI.js`)
+## Integrazione AI
 
-- SDK: `@google/genai` (pacchetto ufficiale GA, non il vecchio `@google/generative-ai`)
-- Modello: `gemini-3-flash-preview` (costante `MODEL_NAME`)
-- Streaming: `ai.models.generateContentStream({ model, contents, config: { systemInstruction } })`
-- Chunk testo: `chunk.text` (stringa, non metodo) — nessun `maxOutputTokens` hardcoded
-- Multi-turn: `contents` è un array `[{role:'user'|'model', parts:[{text}]}, ...]` — storia API in `apiHistoryRef`
-- Tre funzioni esposte: `fetchRicette()`, `fetchSpesa()`, `sendFollowUp(text)`
-- Stato restituito: `{ loading, messages, streaming, error, cached, ... }`
-- Cache hash-based: invalida se cambia mese o inventario
-- Prompt: italiano, Lombardia, stagionale, priorità agli item `[APERTO]` (aperti, da consumare presto)
+- SDK: `@google/genai`. Modello: `MODEL_NAME` in `src/ai/model.js` (usato da `useAI`, `useVoiceBatch`,
+  `useReceiptScan` e `extractIngredients`: per cambiarlo si modifica solo quel file).
+- Prompt in `src/ai/prompts.js`. **Formato ricetta**: `## Titolo`, una riga meta (tempo/porzioni), poi
+  `### Ingredienti` e `### Procedimento`. Le sezioni interne usano `###` perché `parseRecipes` spezza le
+  ricette su `## `; il testo prima del primo `##` viene scartato. Se cambi il formato, alza `PROMPT_VERSION`.
+- Marcatori nell'inventario inviato: `[scad]`/`[oggi]`/`[Ngg]` (scade presto) e `[APERTO]`; priorità: scade
+  presto > aperto; i già scaduti vanno controllati prima di usarli.
+- Streaming: `generateContentStream`, `chunk.text` (stringa). Multi-turn con `apiHistoryRef`.
+- Funzioni esposte da `useAI`: `fetchRicette()`, `fetchSpesa()`, `sendFollowUp(text)`; stato `{ loading, messages,
+  streaming, error, errorCode, cached, ... }`. `errorCode`: `no-key | quota | invalid-key | offline | unknown`.
+- "Hai X ingredienti su Y" (`useSavedRecipes` + `ai/extractIngredients.js` + `utils/ingredientMatch.js`):
+  dopo il salvataggio una chiamata batch estrae `{ ingredients: [{ name, qty, qb }] }` per ricetta (mai
+  bloccante; "Analizza ingredienti" fa il backfill). Il matching è per radici: un ingrediente è "in dispensa" se
+  le sue radici sono un sottoinsieme di quelle del prodotto con la stessa radice principale ("pasta" ≈ "pasta
+  penne", ≠ "pasta sfoglia"). Non confronta le quantità.
 
-Per cambiare modello: modifica solo `MODEL_NAME` in `useAI.js:7`.
+## Componente AITab
 
-## Componente AITab (`src/components/AITab.jsx`)
+Parser markdown minimale (`utils/markdown.js`, con escape HTML). Mostra le ricette come schede
+(`ui/RecipeCard`), `aria-live="polite"` + `aria-busy` durante lo streaming, scroll automatico solo se
+l'utente è già in fondo. Ricette senza `###` cadono su rendering markdown semplice.
 
-Renderizza l'output in streaming con parser markdown minimale:
-- `## title` → `<h3>`
-- `**text**` → `<strong>`
-- `- item` → `<li>`
+## CSS e tema
 
-## CSS
-
-Variabili globali in `src/index.css`. Palette warm brown (`--accent: #BA7517`).
-Dark mode via `prefers-color-scheme`. Max-width 720px. Breakpoint mobile 600px.
-Ogni componente ha il suo `.module.css`.
+Token in `src/index.css`: `:root` chiaro e **un solo** blocco `:root[data-theme='dark']`. Lo script inline in
+`index.html` (e `utils/theme.js`) risolve "Sistema/Chiaro/Scuro" a `light`/`dark`, imposta `data-theme`,
+`color-scheme` e `<meta name="theme-color">` prima del paint; per questo non servono media query nel CSS.
+Palette verde orto (`--accent: #1E5A43`) + giallo zucca (`--highlight`), Bricolage Grotesque (titoli,
+`--font-display`) + DM Sans. Regole: nessun colore hex nei `.module.css` (solo token), nessun `style` inline
+per i colori, target tattili `--tap` (44px) / `--tap-lg` (56px), z-index dalla scala `--z-*`,
+`--bottom-nav-h` e `--float-bottom` per tutto ciò che sta sopra la nav. Colori sezione e categoria pasto
+arrivano da `data-s` / `data-cat`. `[hidden]` è forzato a `display: none`. Breakpoint: 600px (mobile),
+1024px (sidebar desktop). Ogni componente ha il suo `.module.css`.
 
 ## Firestore Security Rules
 
-Le rules sono applicate direttamente dalla Firebase Console (Firestore Database → Rules).
-Nessun file `firestore.rules` nel repo — applicare manualmente dopo ogni modifica.
-
-```
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if false;
-    }
-    match /users/{userId}/inventory/data {
-      allow read: if request.auth != null
-                  && request.auth.uid == userId;
-      allow write: if request.auth != null
-                   && request.auth.uid == userId
-                   && isValidInventory(request.resource.data);
-    }
-    match /users/{userId}/meals/data {
-      allow read: if request.auth != null
-                  && request.auth.uid == userId;
-      allow write: if request.auth != null
-                   && request.auth.uid == userId
-                   && request.resource.data is map;
-    }
-    match /users/{userId}/savedRecipes/data {
-      allow read: if request.auth != null
-                  && request.auth.uid == userId;
-      allow write: if request.auth != null
-                   && request.auth.uid == userId
-                   && request.resource.data.keys().hasAll(['items'])
-                   && request.resource.data.items is list;
-    }
-    match /users/{userId}/savedShopping/data {
-      allow read: if request.auth != null
-                  && request.auth.uid == userId;
-      allow write: if request.auth != null
-                   && request.auth.uid == userId
-                   && request.resource.data.keys().hasAll(['items'])
-                   && request.resource.data.items is list;
-    }
-  }
-  function isValidInventory(data) {
-    return data.keys().hasAll(['credenza', 'frigo', 'freezer'])
-        && data.credenza is list
-        && data.frigo    is list
-        && data.freezer  is list;
-  }
-}
-```
-
-Ogni utente può leggere e scrivere solo i propri documenti `/users/{uid}/...`.
-`isValidInventory` garantisce la struttura della dispensa; `meals` accetta una mappa
-arbitraria (chiavi date dinamiche); ricette/spesa richiedono che il payload abbia
-una chiave `items` con un array.
+Il testo completo delle regole è in `docs/firestore-rules.md` (nessun `firestore.rules` nel repo:
+applicarle a mano dalla Console dopo ogni modifica). Ogni utente legge e scrive solo i propri documenti;
+`notificationPrefs` ha regole di lettura e scrittura separate con validazione dei campi, `pushTokens`
+accetta solo token `active` dal client (`stale` lo imposta la Function).
 
 ## Notifiche push
 
-`src/hooks/usePushNotifications.js` — hook per permission + FCM token:
-- Chiede il permesso browser + recupera il token FCM via `getToken(messaging, { vapidKey })`
-- Salva `{ token, enabled, updatedAt }` in `/users/{uid}/pushToken/data`
-- `onSnapshot` mantiene lo stato sincronizzato; token invalidi vengono rimossi dalla Cloud Function
+**Client** — `hooks/useNotifications.js` (schermata `NotificationSettings`):
+- `enable()` chiede il permesso, registra `/firebase-messaging-sw.js`, ottiene il token FCM e scrive
+  `pushTokens/{deviceId}` + `notificationPrefs/data` (`enabled:true`, `tz` del dispositivo).
+  `disable()` scrive solo `enabled:false` e non tocca i token.
+- All'apertura dell'app, se gli avvisi sono attivi e il permesso concesso, il token viene verificato e
+  riscritto in silenzio (auto-riparazione). Un dispositivo "non raggiungibile" si riattiva aprendo l'app lì:
+  non esiste un pulsante "Riattiva" (il motivo sta in un tooltip).
+- `useForegroundPush` (in `App`) mostra le push ricevute con l'app aperta come toast.
+- `sendTest()` chiama la callable `sendTestNotification` e mostra l'esito per dispositivo.
 
-`src/firebase-messaging-sw.template.js` — SW template:
-- Processato dal plugin Vite (`vite.config.js`) che sostituisce `%%VITE_*%%` con i valori da `.env`
-- Output finale: `firebase-messaging-sw.js` servito alla root in dev e incluso nel dist
+**Functions** (`functions/`, Node 22, CommonJS):
+- `sendExpiryNotifications`: schedule `*/15 * * * *`. Per ogni utente con `notificationPrefs.enabled`
+  controlla se l'ora locale (`tz`) è nella finestra `[hour:minute, +30 min)` (minuti arrotondati al quarto
+  d'ora) e se `lastRunDay` non è oggi; raccoglie i prodotti che scadono nei giorni di `daysBefore`
+  (giorni di calendario locali, DST-safe), invia un messaggio raggruppato per giorno a tutti i token attivi
+  con `sendEach`. I token rifiutati da FCM diventano `status:'stale'` (eliminati dopo 30 giorni).
+  Gli utenti senza prefs ma con il vecchio `pushToken/data` abilitato ricevono ancora l'avviso alle 09:00.
+  La lista utenti arriva da `listDocuments()` + `getAll` delle prefs a blocchi di 100: nessun indice
+  necessario, ma costa una lettura per utente a ogni tick (valutare un `collectionGroup` se gli utenti crescono).
+- `sendTestNotification` (callable, richiede auth): invia a tutti i dispositivi (anche stale) e restituisce
+  `{ results: [{ deviceId, label, status: 'ok'|'stale'|'error' }] }`.
+- `lib/schedule.js` e `lib/notify.js` sono pure (db/messaging iniettati), provabili con `node`.
 
-`functions/index.js` — Cloud Function schedulata (09:00 Europe/Rome ogni giorno):
-- Scorre tutti gli utenti con `enabled: true` in `pushToken/data`
-- Trova item la cui `expiresAt` ricade nel range `[domani 00:00, domani 23:59]`
-- Invia notifica FCM via Admin SDK; rimuove token invalidi automaticamente
+`src/firebase-messaging-sw.template.js` è elaborato dal plugin Vite (`%%VITE_*%%` → `.env`) e servito alla
+root come `firebase-messaging-sw.js`.
 
 ### Setup one-time richiesto
-1. Firebase Console → Impostazioni progetto → Cloud Messaging → **Web Push certificates**
-   → Genera coppia di chiavi → copiare "Key pair" in `.env` come `VITE_FIREBASE_VAPID_KEY`
-2. Upgrade progetto Firebase a **piano Blaze** (necessario per Cloud Functions schedulati)
-3. Deploy functions: `cd functions && npm install && cd .. && firebase deploy --only functions`
-4. Aggiungere regola Firestore per `pushToken`:
-   ```
-   match /users/{userId}/pushToken/data {
-     allow read, write: if request.auth != null && request.auth.uid == userId;
-   }
-   ```
+1. Firebase Console → Cloud Messaging → **Web Push certificates** → copiare la chiave in `.env` come
+   `VITE_FIREBASE_VAPID_KEY`.
+2. Piano **Blaze** (Cloud Functions schedulate). 96 esecuzioni al giorno: ricontrollare il free tier.
+3. Pubblicare le regole di `docs/firestore-rules.md`.
+4. `cd functions && npm install && cd .. && firebase deploy --only functions` (aggiorna il job esistente
+   `sendExpiryNotifications` e crea `sendTestNotification`).
+5. Poi deploy del client. Ordine: **regole → Functions → client**.
+6. iOS: le push web funzionano solo con la PWA aggiunta alla Home (iOS 16.4+).
 
 ## Branch di sviluppo
 

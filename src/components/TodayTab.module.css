@@ -87,7 +87,7 @@
   justify-content: space-between;
   gap: 12px;
   min-height: 48px;
-  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  border-top: 1px solid var(--hero-line);
 }
 
 .heroName {
@@ -104,7 +104,7 @@
   padding: 4px 10px;
   font-size: 13px;
   font-weight: 700;
-  background: rgba(255, 255, 255, 0.16);
+  background: var(--hero-fill);
   border-radius: var(--radius-pill);
 }
 
@@ -194,8 +194,8 @@
   right: 20px;
   bottom: var(--float-bottom);
   z-index: var(--z-fab);
-  width: 56px;
-  height: 56px;
+  width: var(--tap-lg);
+  height: var(--tap-lg);
   display: flex;
   align-items: center;
   justify-content: center;

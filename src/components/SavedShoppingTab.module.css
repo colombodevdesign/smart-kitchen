@@ -37,7 +37,7 @@
 }
 .moveBtn {
   flex: 1;
-  min-height: 56px;
+  min-height: var(--tap-lg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -53,8 +53,8 @@
 .moveBtn:hover { background: var(--accent-hover); }
 .clearBtn {
   flex: none;
-  width: 56px;
-  min-height: 56px;
+  width: var(--tap-lg);
+  min-height: var(--tap-lg);
   display: flex;
   align-items: center;
   justify-content: center;

@@ -212,8 +212,8 @@
   right: 20px;
   bottom: var(--float-bottom);
   z-index: var(--z-fab);
-  width: 56px;
-  height: 56px;
+  width: var(--tap-lg);
+  height: var(--tap-lg);
   display: flex;
   align-items: center;
   justify-content: center;

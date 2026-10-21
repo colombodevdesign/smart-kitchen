@@ -128,7 +128,7 @@
 .addRow { display: flex; flex-direction: column; gap: 8px; }
 
 .add {
-  min-height: 56px;
+  min-height: var(--tap-lg);
   display: flex;
   align-items: center;
   justify-content: center;

@@ -1,5 +1,19 @@
 # Nuova UI — note di implementazione
 
+> **Stato.** Queste note sono state implementate (vedi `CLAUDE.md` per la struttura attuale). Durante
+> l'implementazione sono emerse correzioni, già applicate qui sotto e riassunte così:
+> 1. Regole Firestore: `request.resource` è nullo in lettura, quindi `notificationPrefs` ha regole di
+>    lettura e scrittura separate; `pushTokens` deve permettere al client di riattivare (`status == 'active'`)
+>    e di cancellare. Testo completo in `docs/firestore-rules.md`.
+> 2. Il tema si applica con uno `<script>` inline in `index.html`, non in `main.jsx`: dopo il render c'è un flash.
+> 3. Media query e `[data-theme]` non possono condividere una regola: il bootstrap risolve sempre il tema a
+>    `light`/`dark` e il CSS ha un solo blocco `:root[data-theme='dark']`.
+> 4. `parseRecipes` spezza su `## `: le sezioni interne della ricetta usano `###`.
+> 5. `md()` ora fa escape HTML prima delle regex (l'output è usato con `dangerouslySetInnerHTML`).
+> 6. Le soglie di scadenza usano un unico `daysUntil()` a giorni di calendario.
+> 7. Le push in primo piano non le mostra il browser: `onMessage` → toast.
+> 8. Il login è solo Google (nel codice non c'è mai stato Apple, il brief lo citava per errore).
+
 Companion del canvas di design ("Smart Kitchen — Nuova UI") e di `docs/design-brief.md`.
 Le note partono dallo stato reale del codice (`src/`, `functions/`) e dicono cosa riusare,
 cosa cambiare e cosa è nuovo. Dove il design e il codice divergono è segnato **DECIDERE**.
@@ -121,7 +135,7 @@ const TABS = [
 
 **Ricette AI.** `AITab` oggi renderizza markdown minimale (`##` → `<h3>`, `**`, `-`). Il design usa schede: spezzare l'output con `parseRecipes` (già in `App.jsx`) e renderizzare una card per ricetta, con la card in streaming evidenziata. I chip degli ingredienti in scadenza richiedono dati strutturati (vedi decisione 3); in prima release si possono omettere.
 
-**Salvate e dettaglio.** `SavedRecipe.content` è markdown: il dettaglio può renderizzare le sezioni `## Ingredienti` / `## Procedimento` se il prompt le produce in modo coerente; altrimenti mostrare il testo come in `AITab`. Gli stati ingrediente (in dispensa / scade / manca) e "Aggiungi mancanti alla spesa" dipendono dalla decisione 3.
+**Salvate e dettaglio.** `SavedRecipe.content` è markdown: il dettaglio renderizza le sezioni `### Ingredienti` / `### Procedimento` (tre `#`: `## ` separa le ricette) se il prompt le produce in modo coerente; altrimenti mostrare il testo come in `AITab`. Gli stati ingrediente (in dispensa / scade / manca) e "Aggiungi mancanti alla spesa" dipendono dalla decisione 3.
 
 **Pasti.** Solo restyling di `MealTrackerTab`; il FAB attuale si sposta in "Aggiungi la cena" per slot vuoto. Aggiornare i colori delle categorie (§3).
 
@@ -132,7 +146,7 @@ const TABS = [
 ## 6. Profilo e notifiche
 
 ### Front-end
-`SettingsTab.jsx` → `ProfileTab.jsx` (righe) + `NotificationSettings.jsx`. Il toggle `role="switch"` e `usePushNotifications` esistono già e vanno riusati. Da correggere: `disable()` oggi **sovrascrive il token con `''`**, perdendolo; dovrebbe scrivere solo `enabled: false`.
+`SettingsTab.jsx` → `ProfileTab.jsx` (righe) + `NotificationSettings.jsx`. `usePushNotifications` è diventato `useNotifications` (preferenze + dispositivi). `disable()` scriveva `token: ''` perdendo il token: ora scrive solo `enabled: false`.
 
 ### Dati (nuovi)
 ```
@@ -144,23 +158,16 @@ const TABS = [
 /users/{uid}/pushTokens/{deviceId}      // sostituisce pushToken/data (un doc per dispositivo)
   { token, label, platform, status: 'active'|'stale', lastOkAt, staleSince, updatedAt }
 ```
-`deviceId` generato e salvato in `localStorage`. Migrazione: al primo accesso, se esiste `pushToken/data`, copiarlo in `pushTokens/{deviceId}`.
+`deviceId` generato e salvato in `localStorage`. Migrazione: al primo accesso senza prefs, se esiste `pushToken/data` abilitato viene copiato in `pushTokens/legacy` e si creano le prefs di default; il client continua a scrivere anche `pushToken/data` per una release (`TODO(remove next release)`) così la vecchia Function non si ferma prima del deploy.
 
-**Regole Firestore** (da applicare a mano in console, come da CLAUDE.md):
-```
-match /users/{userId}/notificationPrefs/data {
-  allow read, write: if request.auth != null && request.auth.uid == userId
-    && request.resource.data.hour is int && request.resource.data.daysBefore is list;
-}
-match /users/{userId}/pushTokens/{deviceId} {
-  allow read, write: if request.auth != null && request.auth.uid == userId;
-}
-```
-Il campo `status`/`staleSince` dovrebbe essere scritto solo dalla Function (Admin SDK bypassa le regole); lato client restringere la scrittura a `token`, `label`, `platform`, `updatedAt`.
+**Regole Firestore**: da applicare a mano in console, **prima** di Functions e client. Il testo corretto
+(lettura e scrittura separate, validazione dei campi, `pushTokens` solo `active` dal client, cancellazione
+consentita) è in `docs/firestore-rules.md`. La versione che avevo scritto qui prima usava un'unica regola
+`read, write` che legge `request.resource` anche in lettura (sempre nullo → errore) e impediva di riattivare un token.
 
 ### Cloud Function (`functions/index.js`)
 - Schedule da `0 9 * * *` a **ogni 15 minuti** (`*/15 * * * *`).
-- A ogni tick: `collectionGroup('notificationPrefs')` con `enabled == true`; per ciascuno calcolare l'ora locale con `tz` e inviare solo se coincide con `hour:minute` (arrotondato al quarto d'ora). Evitare di scorrere tutti gli utenti come ora (`listDocuments`).
+- A ogni tick: lista utenti con `listDocuments()` e prefs lette a blocchi con `getAll`; per ciascuno si calcola l'ora locale con `tz` e si invia se cade in `[hour:minute, +30 min)` (arrotondato al quarto d'ora) e `lastRunDay` non è oggi. Scelto al posto di `collectionGroup('notificationPrefs')` per non richiedere un indice; costa una lettura per utente a ogni tick, da rivedere se gli utenti crescono.
 - Finestre: per ogni `d` in `daysBefore`, intervallo `[00:00, 23:59]` del giorno locale `oggi + d`. Il codice attuale usa l'ora del server, non quella dell'utente.
 - Testo: raggruppare per giorno ("Oggi: Latte intero · Domani: Zucchine, +2"); max 3 nomi per riga.
 - Invio a tutti i token `active`; su `registration-token-not-registered` marcare `status: 'stale'`, `staleSince` (non cancellare, serve alla UI). Cancellare solo dopo 30 giorni.
@@ -174,14 +181,17 @@ Il campo `status`/`staleSince` dovrebbe essere scritto solo dalla Function (Admi
 
 ## 7. Tema scuro
 
-Oggi `@media (prefers-color-scheme: dark)` ridefinisce le variabili. Per il selettore manuale:
+Il CSS ha **un solo** blocco scuro, `:root[data-theme='dark']`. Non si può condividere una regola tra una media query
+e un attributo, quindi il tema "Sistema" viene risolto in JavaScript:
 
 ```css
 :root { /* chiaro */ }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { /* scuro */ } }
-:root[data-theme="dark"] { /* scuro (stessi valori) */ }
+:root[data-theme='dark'] { /* scuro */ }
 ```
-Salvare la scelta in `localStorage['theme']` (`system|light|dark`), applicarla all'avvio in `main.jsx` prima del render per evitare il flash, e aggiornare `<meta name="theme-color">` di conseguenza. Per evitare di duplicare il blocco scuro, definirlo una volta con un selettore combinato.
+La scelta sta in `localStorage['theme']` (`system|light|dark`). Uno `<script>` **inline in `index.html`** risolve
+la preferenza (leggendo `prefers-color-scheme` se è "Sistema") e imposta `data-theme`, `color-scheme` e
+`<meta name="theme-color">` prima del primo paint: farlo in `main.jsx` causerebbe un flash del tema sbagliato.
+`utils/theme.js` ripete la stessa logica e ascolta `matchMedia` finché la preferenza è "Sistema".
 
 Differenze da ricordare (i colori non si invertono meccanicamente):
 - Pulsante primario: sfondo `--accent` chiaro (`#5FC79A`) con testo **scuro** (`--on-accent`).
@@ -220,5 +230,5 @@ Aggiornare `CLAUDE.md` ad ogni passo che cambia struttura (nuovi componenti, nuo
 
 ## 10. Fuori scope di questo design
 
-Login con altri provider, condivisione dispensa tra utenti, ricerca testuale avanzata, tabella nutrizionale,
+Login con altri provider (Apple compreso), condivisione dispensa tra utenti, ricerca testuale avanzata, tabella nutrizionale,
 lista spesa condivisa. Se servono, partono da qui come nuovi brief.

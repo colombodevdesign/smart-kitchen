@@ -132,8 +132,8 @@
 }
 .planBtn {
   flex: none;
-  width: 56px;
-  height: 56px;
+  width: var(--tap-lg);
+  height: var(--tap-lg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -144,7 +144,7 @@
 }
 .cook {
   flex: 1;
-  height: 56px;
+  height: var(--tap-lg);
   font-size: 16px;
   font-weight: 700;
   color: var(--on-accent);

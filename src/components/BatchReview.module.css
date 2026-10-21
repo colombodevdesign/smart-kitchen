@@ -109,13 +109,13 @@
   background: transparent;
   border: none;
   color: var(--text-hint);
-  font-size: 20px;
-  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  width: 28px;
-  height: 28px;
+  width: var(--tap);
+  height: var(--tap);
   border-radius: var(--radius-sm);
-  margin-top: 4px;
   flex-shrink: 0;
   transition: background 0.12s, color 0.12s;
 }

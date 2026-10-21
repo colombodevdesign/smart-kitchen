@@ -42,6 +42,9 @@
   --hero: #1E5A43;               /* hero card, same in both themes */
   --on-hero: #FFFFFF;
   --on-hero-muted: #CFE3D8;
+  --hero-art: #2E7A5C;            /* login illustration */
+  --hero-line: color-mix(in srgb, var(--on-hero) 18%, transparent);
+  --hero-fill: color-mix(in srgb, var(--on-hero) 16%, transparent);
 
   --urgent: #A82A1C;
   --urgent-light: #F9DDD8;
@@ -77,6 +80,7 @@
   --radius-lg: 24px;
   --radius-pill: 999px;
   --tap: 44px;
+  --tap-lg: 56px;                /* primary buttons, FAB */
 
   --font-display: 'Bricolage Grotesque', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   --font-body: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;

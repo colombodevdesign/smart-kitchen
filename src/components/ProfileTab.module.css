@@ -82,7 +82,7 @@
 .list li + li { border-top: 1px solid var(--border); }
 .row {
   width: 100%;
-  min-height: 56px;
+  min-height: var(--tap-lg);
   display: flex;
   align-items: center;
   gap: 12px;

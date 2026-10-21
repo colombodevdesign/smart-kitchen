@@ -11,7 +11,7 @@ fedeltà prima di approfondirne una.
 ## 2. Il prodotto in breve
 
 PWA React per gestire la dispensa di casa e decidere cosa cucinare, con suggerimenti AI
-stagionali (Lombardia, in italiano). Login obbligatorio Google/Apple; i dati si sincronizzano
+stagionali (Lombardia, in italiano). Login obbligatorio con Google; i dati si sincronizzano
 in tempo reale tra dispositivi.
 
 **Utente tipo**: persona o famiglia che cucina a casa, usa soprattutto lo **smartphone in cucina
@@ -38,7 +38,7 @@ patinato. Testi UI in **italiano**, tono informale ma chiaro.
 ## 4. Schermate e funzioni da progettare
 
 ### 4.1 Login
-Logo/wordmark "smart kitchen", pulsanti Google e Apple, breve claim. Primo impatto del brand.
+Logo/wordmark "smart kitchen", pulsante Google, breve claim. Primo impatto del brand.
 
 ### 4.2 Dispensa (schermata principale)
 - Tre sezioni: **Credenza**, **Frigo**, **Freezer**.

@@ -81,7 +81,7 @@
 
 .submit {
   width: 100%;
-  min-height: 56px;
+  min-height: var(--tap-lg);
   font-size: 16px;
   font-weight: 700;
   color: var(--on-accent);
