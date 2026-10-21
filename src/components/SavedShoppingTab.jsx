@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Modal } from './Modal.jsx'
 import { PantrySuggestionsModal } from './PantrySuggestionsModal.jsx'
+import { Icon } from './ui/Icon.jsx'
+import { EmptyState } from './ui/EmptyState.jsx'
+import { getPantryCandidates } from '../utils/pantry.js'
+import { SECTION_LABELS } from '../data/initialInventory.js'
 import styles from './SavedShoppingTab.module.css'
 
 const SECTION_OPTIONS = [
@@ -76,9 +80,9 @@ function ShoppingItemRow({ item, onToggle, onRemove, onUpdate }) {
             onBlur={() => setTimeout(confirm, 120)}
           />
         ) : (
-          <span className={styles.itemName} onClick={() => !item.checked && startEdit('name')}>
+          <button type="button" className={styles.itemName} disabled={item.checked} onClick={() => startEdit('name')}>
             {item.name}
-          </span>
+          </button>
         )}
       </div>
       {editingField === 'qty' ? (
@@ -92,11 +96,13 @@ function ShoppingItemRow({ item, onToggle, onRemove, onUpdate }) {
           onBlur={() => setTimeout(confirm, 120)}
         />
       ) : item.qty ? (
-        <span className={styles.qty} onClick={() => !item.checked && startEdit('qty')}>{item.qty}</span>
+        <button type="button" className={styles.qty} disabled={item.checked} onClick={() => startEdit('qty')}>{item.qty}</button>
       ) : (
-        <span className={styles.qtyEmpty} onClick={() => !item.checked && startEdit('qty')}>+ qty</span>
+        <button type="button" className={styles.qtyEmpty} disabled={item.checked} onClick={() => startEdit('qty')}>+ quantità</button>
       )}
-      <button className={styles.deleteBtn} onClick={() => onRemove(item.id)} title="Rimuovi">✕</button>
+      <button type="button" className={styles.deleteBtn} onClick={() => onRemove(item.id)} aria-label={`Rimuovi ${item.name}`}>
+        <Icon name="close" size={16} />
+      </button>
     </li>
   )
 }
@@ -166,51 +172,50 @@ export function SavedShoppingTab({
   const checkedCount = items.filter(i => i.checked).length
   const remaining = items.length - checkedCount
 
+  // Pantry products that are expiring or opened and not already on the list.
+  const candidates = useMemo(() => {
+    const names = new Set(items.filter(i => !i.checked).map(i => i.name.trim().toLowerCase()))
+    return getPantryCandidates(inventory, names)
+  }, [inventory, items])
+
+  function addAllCandidates() {
+    onAddFromPantry(candidates.map(c => ({
+      name: c.name, qty: c.qty, category: SECTION_LABELS[c.section], source: 'pantry',
+    })))
+  }
+
+  function openMovePicker() {
+    const initial = {}
+    items.filter(i => i.checked).forEach(item => { initial[item.id] = guessSection(item.category) })
+    setItemSections(initial)
+    setSectionPickerOpen(true)
+  }
+
   return (
     <div className={styles.wrap}>
-      <div className={styles.pageHeader}>
-        <h2 className={styles.title}>Lista della Spesa</h2>
-        <div className={styles.headerRight}>
-          {items.length > 0 && <span className={styles.count}>{remaining} rimanenti</span>}
-          <button
-            type="button"
-            className={styles.pantryBtn}
-            onClick={() => setSuggestOpen(true)}
-            title="Aggiungi prodotti dalla dispensa"
-          >
-            + Da dispensa
-          </button>
-          {checkedCount > 0 && (
-            <>
-              <button
-                className={styles.moveBtn}
-                onClick={() => {
-                  const initial = {}
-                  items.filter(i => i.checked).forEach(item => {
-                    initial[item.id] = guessSection(item.category)
-                  })
-                  setItemSections(initial)
-                  setSectionPickerOpen(true)
-                }}
-              >
-                → Dispensa ({checkedCount})
-              </button>
-              <button className={styles.clearBtn} onClick={onClearChecked}>
-                Elimina ({checkedCount})
-              </button>
-            </>
-          )}
-        </div>
-      </div>
+      {items.length > 0 && <p className={styles.summary}>{remaining} {remaining === 1 ? 'rimanente' : 'rimanenti'}</p>}
+
+      {candidates.length > 0 && (
+        <section className={styles.suggest} aria-label="Prodotti che stanno per scadere">
+          <div className={styles.suggestText}>
+            <strong>
+              {candidates.length === 1 ? '1 prodotto sta' : `${candidates.length} prodotti stanno`} per scadere
+            </strong>
+            <span>{candidates.slice(0, 3).map(c => c.name).join(', ')}{candidates.length > 3 ? '…' : ''}</span>
+          </div>
+          <div className={styles.suggestActions}>
+            <button type="button" className={styles.suggestAdd} onClick={addAllCandidates}>Aggiungi</button>
+            <button type="button" className={styles.suggestPick} onClick={() => setSuggestOpen(true)}>Scegli</button>
+          </div>
+        </section>
+      )}
 
       {items.length === 0 ? (
-        <div className={styles.empty}>
-          <p>Lista della spesa vuota.</p>
-          <p className={styles.hint}>
-            Aggiungi un prodotto qui sotto, pesca dalla dispensa, oppure genera
-            suggerimenti dalla scheda <strong>Spesa Smart</strong>.
-          </p>
-        </div>
+        <EmptyState
+          icon="cart"
+          title="Lista della spesa vuota"
+          text="Aggiungi un prodotto qui sotto, riprendi quelli che stanno per scadere o genera idee dalla scheda Idee AI."
+        />
       ) : (
         <div className={styles.categories}>
           {Object.entries(grouped).map(([cat, catItems]) => (
@@ -229,6 +234,17 @@ export function SavedShoppingTab({
               </ul>
             </div>
           ))}
+        </div>
+      )}
+
+      {checkedCount > 0 && (
+        <div className={styles.actionBar}>
+          <button type="button" className={styles.moveBtn} onClick={openMovePicker}>
+            <Icon name="check" size={20} strokeWidth={2} /> Sposta {checkedCount} in dispensa
+          </button>
+          <button type="button" className={styles.clearBtn} onClick={onClearChecked} aria-label={`Elimina ${checkedCount} prodotti spuntati`}>
+            <Icon name="trash" size={20} />
+          </button>
         </div>
       )}
 
@@ -317,6 +333,8 @@ export function SavedShoppingTab({
                 {SECTION_OPTIONS.map(s => (
                   <button
                     key={s.id}
+                    type="button"
+                    aria-pressed={itemSections[item.id] === s.id}
                     className={`${styles.sectionOption} ${itemSections[item.id] === s.id ? styles.sectionOptionActive : ''}`}
                     onClick={() => setItemSections(prev => ({ ...prev, [item.id]: s.id }))}
                   >
