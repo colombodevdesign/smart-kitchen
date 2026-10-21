@@ -135,7 +135,7 @@
   font-size: 13px;
   font-weight: 500;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   border: none;
   border-radius: var(--radius-sm);
   transition: background 0.15s;
@@ -228,8 +228,8 @@
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+  background: var(--toggle-thumb);
+  box-shadow: var(--shadow-sm);
   transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .toggleOn .toggleThumb { transform: translateX(18px); }

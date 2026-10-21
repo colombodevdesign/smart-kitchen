@@ -36,23 +36,17 @@
   flex-shrink: 0;
 }
 .sectionBtn:hover { border-color: var(--border-strong); color: var(--text); }
-.active { background: var(--accent) !important; border-color: var(--accent) !important; color: #fff !important; }
+.active { background: var(--accent) !important; border-color: var(--accent) !important; color: var(--on-accent) !important; }
 
-.sectionBtn[data-s="credenza"]:not(.active) { color: #a0620d; border-color: rgba(186,117,23,0.35); }
-.sectionBtn[data-s="credenza"]:not(.active):hover { border-color: #a0620d; background: rgba(186,117,23,0.07); }
-.sectionBtn[data-s="frigo"]:not(.active)    { color: #2563eb; border-color: rgba(59,130,246,0.35); }
-.sectionBtn[data-s="frigo"]:not(.active):hover    { border-color: #2563eb; background: rgba(59,130,246,0.07); }
-.sectionBtn[data-s="freezer"]:not(.active)  { color: #0891b2; border-color: rgba(6,182,212,0.35); }
-.sectionBtn[data-s="freezer"]:not(.active):hover  { border-color: #0891b2; background: rgba(6,182,212,0.07); }
 
 .count {
   font-size: 11px;
   font-weight: 500;
-  background: rgba(0,0,0,0.12);
+  background: var(--surface-hover);
   border-radius: 10px;
   padding: 1px 5px;
 }
-.active .count { background: rgba(255,255,255,0.2); }
+.active .count { background: color-mix(in srgb, var(--on-accent) 22%, transparent); }
 
 /* Right-side actions: search icon + sort icon */
 .actions {
@@ -214,9 +208,6 @@
   color: var(--text-muted);
   border-bottom: 1px solid var(--border);
 }
-.columnHead[data-s="credenza"] { color: #a0620d; border-color: rgba(186,117,23,0.35); }
-.columnHead[data-s="frigo"]    { color: #2563eb; border-color: rgba(59,130,246,0.35); }
-.columnHead[data-s="freezer"]  { color: #0891b2; border-color: rgba(6,182,212,0.35); }
 
 .columnCount {
   font-size: 11px;
@@ -298,7 +289,7 @@
   font-size: 13px;
   font-weight: 500;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   border: none;
   border-radius: var(--radius-sm);
   white-space: nowrap;
@@ -324,7 +315,7 @@
 }
 .aiBtn:hover:not(:disabled) {
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 .aiBtn:disabled {
   border-color: var(--border);
@@ -345,18 +336,18 @@
   height: 52px;
   border-radius: 50%;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   border: none;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
-  z-index: 50;
+  box-shadow: var(--shadow-lg);
+  z-index: var(--z-fab);
   opacity: 0;
   pointer-events: none;
   transform: scale(0.8);
   transition: opacity 0.2s, transform 0.2s, background 0.15s, box-shadow 0.15s;
 }
 .fabVisible { opacity: 1; pointer-events: auto; transform: scale(1); }
-.fab:hover { background: var(--accent-hover); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28); }
-.fab:active { transform: scale(0.94) !important; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18); }
+.fab:hover { background: var(--accent-hover); box-shadow: var(--shadow-lg); }
+.fab:active { transform: scale(0.94) !important; box-shadow: var(--shadow-sm); }
 
 @media (max-width: 600px) {
   .addRow { flex-wrap: wrap; }
@@ -365,7 +356,7 @@
   .addQty { flex: 1; }
   .addExpiry { flex: 0 1 auto; min-width: 0; font-size: 12px; }
 
-  .fab { bottom: calc(56px + env(safe-area-inset-bottom) + 16px); right: 20px; }
+  .fab { bottom: var(--float-bottom); right: 20px; }
 }
 
 /* Undo toast shown after removing a product */
@@ -374,7 +365,7 @@
   left: 50%;
   bottom: 24px;
   transform: translateX(-50%);
-  z-index: 60;
+  z-index: var(--z-toast);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -383,10 +374,10 @@
   max-width: calc(100vw - 40px);
   padding: 4px 6px 4px 18px;
   border-radius: var(--radius-lg);
-  background: var(--text);
-  color: var(--bg);
+  background: var(--toast-bg);
+  color: var(--toast-fg);
   font-size: 14px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28);
+  box-shadow: var(--shadow-lg);
 }
 .toastBtn {
   min-height: 44px;
@@ -404,7 +395,7 @@
     left: 20px;
     right: 20px;
     transform: none;
-    bottom: calc(56px + env(safe-area-inset-bottom) + 16px);
+    bottom: var(--float-bottom);
     max-width: none;
   }
 }

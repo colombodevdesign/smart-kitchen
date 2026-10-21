@@ -104,9 +104,6 @@
   background: var(--accent-light);
   border-color: var(--accent);
 }
-.segBtn[data-s="credenza"].segOn { border-color: #a0620d; background: rgba(186,117,23,0.12); }
-.segBtn[data-s="frigo"].segOn    { border-color: #2563eb; background: rgba(59,130,246,0.12); }
-.segBtn[data-s="freezer"].segOn  { border-color: #0891b2; background: rgba(6,182,212,0.12); }
 
 .removeBtn {
   background: transparent;
@@ -123,7 +120,7 @@
   transition: background 0.12s, color 0.12s;
 }
 .removeBtn:hover {
-  color: var(--urgent, #E24B4A);
+  color: var(--urgent);
   background: var(--surface-hover);
 }
 
@@ -133,7 +130,7 @@
   font-weight: 600;
   padding: 8px 14px;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   border: none;
   border-radius: var(--radius-sm);
   cursor: pointer;

@@ -14,27 +14,27 @@
   border-radius: 50%;
   border: none;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 6px 20px rgba(186, 117, 23, 0.28);
+  box-shadow: 0 6px 20px var(--shadow-accent);
   transition: transform 0.12s, background 0.15s, box-shadow 0.15s;
 }
 .micBig:hover { background: var(--accent-hover); }
 .micBig:active { transform: scale(0.95); }
 
 .micRecording {
-  background: var(--urgent, #E24B4A);
-  box-shadow: 0 0 0 0 rgba(226, 75, 74, 0.55);
+  background: var(--urgent);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--urgent) 55%, transparent);
   animation: pulse 1.4s ease-out infinite;
 }
 
 @keyframes pulse {
-  0%   { box-shadow: 0 0 0 0 rgba(226, 75, 74, 0.55); }
-  70%  { box-shadow: 0 0 0 18px rgba(226, 75, 74, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(226, 75, 74, 0); }
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--urgent) 55%, transparent); }
+  70%  { box-shadow: 0 0 0 18px color-mix(in srgb, var(--urgent) 0%, transparent); }
+  100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--urgent) 0%, transparent); }
 }
 
 .helper {
@@ -63,7 +63,7 @@
   font-weight: 400;
   color: var(--text-muted);
 }
-.timerWarn { color: var(--urgent, #E24B4A); }
+.timerWarn { color: var(--urgent); }
 
 .progressTrack {
   width: 100%;
@@ -78,7 +78,7 @@
   background: var(--accent);
   transition: width 0.2s linear;
 }
-.progressWarn { background: var(--urgent, #E24B4A); }
+.progressWarn { background: var(--urgent); }
 
 .spinner {
   width: 32px;
@@ -94,8 +94,8 @@
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: var(--urgent-light, rgba(226,75,74,0.12));
-  color: var(--urgent, #E24B4A);
+  background: var(--urgent-light);
+  color: var(--urgent);
   display: flex;
   align-items: center;
   justify-content: center;

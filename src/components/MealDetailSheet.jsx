@@ -1,6 +1,7 @@
 import { Modal } from './Modal.jsx'
 import { CATEGORY_BY_ID } from '../data/mealCategories.js'
 import styles from './MealDetailSheet.module.css'
+import { Icon } from './ui/Icon.jsx'
 
 const DAYS = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato']
 const MONTHS_SHORT = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic']
@@ -40,8 +41,8 @@ export function MealDetailSheet({ open, onClose, meal, dateStr, savedRecipes = [
       <div className={styles.body}>
         <div className={styles.categoryRow}>
           {cat ? (
-            <span className={styles.categoryChip} style={{ background: cat.color }}>
-              <span className={styles.chipEmoji}>{cat.emoji}</span>
+            <span className={styles.categoryChip} data-cat={cat.id}>
+              <Icon name={cat.icon} size={16} />
               {cat.label}
             </span>
           ) : (

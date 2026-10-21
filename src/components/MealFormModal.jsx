@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Modal } from './Modal.jsx'
 import { MEAL_CATEGORIES } from '../data/mealCategories.js'
 import styles from './MealFormModal.module.css'
+import { Icon } from './ui/Icon.jsx'
 
 const DAYS = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato']
 const MONTHS_SHORT = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic']
@@ -79,9 +80,10 @@ export function MealFormModal({ open, onClose, dateStr, savedRecipes = [], onSub
                   key={cat.id}
                   className={`${styles.chip} ${selected ? styles.chipSelected : ''}`}
                   onClick={() => setCategory(cat.id)}
-                  style={selected ? { borderColor: cat.color, background: cat.color } : undefined}
+                  data-cat={cat.id}
+                  aria-pressed={selected}
                 >
-                  <span className={styles.chipEmoji}>{cat.emoji}</span>
+                  <Icon name={cat.icon} size={18} />
                   <span>{cat.label}</span>
                 </button>
               )

@@ -61,14 +61,12 @@
 .chip:hover { background: var(--surface-hover); }
 
 .chipSelected {
-  color: white;
-  font-weight: 600;
+  color: var(--text);
+  font-weight: 700;
+  background: color-mix(in srgb, var(--cat) 16%, var(--surface));
+  border-color: var(--cat);
 }
-
-.chipEmoji {
-  font-size: 16px;
-  line-height: 1;
-}
+.chip svg { color: var(--cat); }
 
 .btnSecondary,
 .btnPrimary {

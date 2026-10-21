@@ -8,7 +8,7 @@
   background: var(--surface);
   border-right: 0.5px solid var(--border);
   flex-direction: column;
-  z-index: 10;
+  z-index: var(--z-sticky);
   overflow-y: auto;
 }
 

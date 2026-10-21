@@ -24,7 +24,7 @@
   gap: 4px;
   padding: 0;
   border: none;
-  color: #fff;
+  color: var(--on-accent);
   font-size: 12px;
   font-weight: 700;
 }
@@ -41,7 +41,7 @@
   min-width: 0;
   touch-action: pan-y;
   position: relative;
-  z-index: 1;
+  z-index: var(--z-row);
 }
 .card:hover { border-color: var(--border-strong); }
 .editing   { border-color: var(--accent) !important; }
@@ -109,9 +109,6 @@
   white-space: nowrap;
   flex-shrink: 0;
 }
-.sectionBadge[data-s="credenza"] { background: rgba(186,117,23,0.10); color: #a0620d; border-color: rgba(186,117,23,0.30); }
-.sectionBadge[data-s="frigo"]    { background: rgba(59,130,246,0.10); color: #2563eb; border-color: rgba(59,130,246,0.30); }
-.sectionBadge[data-s="freezer"]  { background: rgba(6,182,212,0.10);  color: #0891b2; border-color: rgba(6,182,212,0.30); }
 
 .meta {
   display: flex;
@@ -317,12 +314,6 @@
 .openedBtn:hover { border-color: var(--accent); background: var(--accent-light); }
 .openedBtnOn { border-color: var(--accent) !important; background: var(--accent-light); }
 
-.moveOption[data-s="credenza"] { border-color: rgba(186,117,23,0.40); color: #a0620d; }
-.moveOption[data-s="credenza"]:hover { border-color: #a0620d; background: rgba(186,117,23,0.10); }
-.moveOption[data-s="frigo"]    { border-color: rgba(59,130,246,0.40); color: #2563eb; }
-.moveOption[data-s="frigo"]:hover    { border-color: #2563eb; background: rgba(59,130,246,0.10); }
-.moveOption[data-s="freezer"]  { border-color: rgba(6,182,212,0.40);  color: #0891b2; }
-.moveOption[data-s="freezer"]:hover  { border-color: #0891b2; background: rgba(6,182,212,0.10); }
 
 .deleteBtn {
   font-size: 12px;

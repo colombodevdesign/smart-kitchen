@@ -107,7 +107,7 @@ export function MealTrackerTab({ meals, onAdd, onRemove, savedRecipes = [], onOp
                   >
                     <span
                       className={styles.categoryDot}
-                      style={{ background: cat?.color ?? 'var(--text-hint)' }}
+                      data-cat={cat?.id}
                       aria-hidden="true"
                     />
                     <span className={`${styles.mealText} ${isWeekView ? styles.weekMealText : ''}`}>{m.text}</span>
@@ -232,7 +232,7 @@ function PeriodMealList({ periodDates, meals, todayStr, onSelectMeal }) {
                       >
                         <span
                           className={styles.listDot}
-                          style={{ background: cat?.color ?? 'var(--text-hint)' }}
+                          data-cat={cat?.id}
                           aria-hidden="true"
                         />
                         <span className={styles.listMealMain}>
