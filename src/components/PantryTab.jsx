@@ -1,16 +1,19 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ItemRow } from './ItemRow.jsx'
-import { VoiceBatchModal } from './VoiceBatchModal.jsx'
-import { ReceiptScanModal } from './ReceiptScanModal.jsx'
+import { Icon, SectionIcon } from './ui/Icon.jsx'
+import { PageHeader } from './ui/PageHeader.jsx'
+import { Segmented } from './ui/Segmented.jsx'
+import { EmptyState } from './ui/EmptyState.jsx'
+import { useToast } from './ui/Toast.jsx'
 import { SECTIONS, SECTION_LABELS } from '../data/initialInventory.js'
 import { useMediaQuery } from '../hooks/useMediaQuery.js'
-import { useToast } from './ui/Toast.jsx'
+import { expiryStatus } from '../utils/date.js'
+import { getPantryCandidates, statusRank } from '../utils/pantry.js'
+import { hasApiKey } from '../utils/apiKey.js'
 import styles from './PantryTab.module.css'
-import { SectionIcon } from './ui/Icon.jsx'
-
-const GEMINI_API_KEY_STORAGE = 'gemini-api-key'
 
 const SORT_LABELS = {
+  priority:      'Da usare prima',
   none:          'Ordine inserimento',
   urgent:        'Aperti prima',
   'name-asc':    'Nome A → Z',
@@ -19,23 +22,55 @@ const SORT_LABELS = {
   'expiry-desc': 'Scadenza ↓',
 }
 
-export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onRestore, onAdd, onAddBatch, onMove }) {
-  const [section, setSection] = useState('all')
-  const [addSection, setAddSection] = useState('credenza')
-  const [sortMode, setSortMode] = useState('expiry-asc')
+const EMPTY_TITLE = {
+  credenza: 'La credenza è vuota',
+  frigo: 'Il frigo è vuoto',
+  freezer: 'Il freezer è vuoto',
+}
+
+function byExpiry(dir) {
+  return (a, b) => {
+    if (!a.item.expiresAt && !b.item.expiresAt) return 0
+    if (!a.item.expiresAt) return 1
+    if (!b.item.expiresAt) return -1
+    return dir * (a.item.expiresAt - b.item.expiresAt)
+  }
+}
+
+// Sort operates on {item, itemSection} pairs — works for one section or all of them.
+function sortPairs(pairs, sortMode) {
+  const arr = [...pairs]
+  switch (sortMode) {
+    case 'priority':
+      return arr.sort((a, b) => {
+        const ra = statusRank({ status: expiryStatus(a.item.expiresAt), urgent: a.item.urgent })
+        const rb = statusRank({ status: expiryStatus(b.item.expiresAt), urgent: b.item.urgent })
+        return ra - rb || byExpiry(1)(a, b) || a.item.name.localeCompare(b.item.name, 'it')
+      })
+    case 'urgent':
+      return arr.sort((a, b) => (b.item.urgent ? 1 : 0) - (a.item.urgent ? 1 : 0))
+    case 'name-asc':
+      return arr.sort((a, b) => a.item.name.localeCompare(b.item.name, 'it'))
+    case 'name-desc':
+      return arr.sort((a, b) => b.item.name.localeCompare(a.item.name, 'it'))
+    case 'expiry-asc':
+      return arr.sort(byExpiry(1))
+    case 'expiry-desc':
+      return arr.sort(byExpiry(-1))
+    default:
+      return arr
+  }
+}
+
+export function PantryTab({
+  inventory, onToggleUrgent, onUpdate, onRemove, onRestore, onMove, onOpenAdd, onGoApiKey,
+}) {
+  const [section, setSection] = useState('frigo')
+  const [sortMode, setSortMode] = useState('priority')
   const [search, setSearch] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
-  const [newName, setNewName] = useState('')
-  const [newQty, setNewQty] = useState('')
-  const [newExpiry, setNewExpiry] = useState('')
-  const nameInputRef = useRef(null)
-  const addRowRef    = useRef(null)
-  const searchRef    = useRef(null)
-  const [showFab, setShowFab] = useState(false)
+  const searchRef = useRef(null)
   const toast = useToast()
-  const [voiceOpen, setVoiceOpen] = useState(false)
-  const [receiptOpen, setReceiptOpen] = useState(false)
-  const [hasApiKey, setHasApiKey] = useState(() => !!localStorage.getItem(GEMINI_API_KEY_STORAGE))
 
   // Deleting from the list keeps the product around for a few seconds so it can be undone.
   function handleRemove(itemSection, id) {
@@ -50,109 +85,79 @@ export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onRes
     }
   }
 
-  // Re-check on every open in case the user just configured the key in Settings.
-  function openVoice() {
-    setHasApiKey(!!localStorage.getItem(GEMINI_API_KEY_STORAGE))
-    setVoiceOpen(true)
-  }
-
-  function openReceipt() {
-    setHasApiKey(!!localStorage.getItem(GEMINI_API_KEY_STORAGE))
-    setReceiptOpen(true)
-  }
-
-  // Shared by the voice and receipt imports: both hand back [{name, qty, section}].
-  function handleBatchConfirm(items) {
-    if (onAddBatch) onAddBatch(items)
-    else if (onAdd) items.forEach(it => onAdd(it.section, it.name, it.qty, null))
-  }
-
   useEffect(() => {
     if (searchOpen) searchRef.current?.focus()
   }, [searchOpen])
 
-  function openSearch() { setSearchOpen(true) }
   function closeSearch() { setSearch(''); setSearchOpen(false) }
-
-  useEffect(() => {
-    const el = addRowRef.current
-    if (!el) return
-    const observer = new IntersectionObserver(
-      ([entry]) => setShowFab(!entry.isIntersecting),
-      { threshold: 0.8 }
-    )
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [])
-
-  function focusAddRow() {
-    nameInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    nameInputRef.current?.focus()
-  }
-
-  function handleAdd() {
-    if (!newName.trim()) return
-    const target = section === 'all' ? addSection : section
-    onAdd(target, newName, newQty, newExpiry || null)
-    setNewName('')
-    setNewQty('')
-    setNewExpiry('')
-  }
-
-  // Sort operates on {item, itemSection} pairs — works uniformly for single-section and "all"
-  function sortPairs(pairs) {
-    const arr = [...pairs]
-    switch (sortMode) {
-      case 'urgent':
-        return arr.sort((a, b) => (b.item.urgent ? 1 : 0) - (a.item.urgent ? 1 : 0))
-      case 'name-asc':
-        return arr.sort((a, b) => a.item.name.localeCompare(b.item.name, 'it'))
-      case 'name-desc':
-        return arr.sort((a, b) => b.item.name.localeCompare(a.item.name, 'it'))
-      case 'expiry-asc':
-        return arr.sort((a, b) => {
-          if (!a.item.expiresAt && !b.item.expiresAt) return 0
-          if (!a.item.expiresAt) return 1
-          if (!b.item.expiresAt) return -1
-          return a.item.expiresAt - b.item.expiresAt
-        })
-      case 'expiry-desc':
-        return arr.sort((a, b) => {
-          if (!a.item.expiresAt && !b.item.expiresAt) return 0
-          if (!a.item.expiresAt) return 1
-          if (!b.item.expiresAt) return -1
-          return b.item.expiresAt - a.item.expiresAt
-        })
-      default:
-        return arr
-    }
-  }
 
   const searchQuery  = search.trim().toLowerCase()
   const searchActive = searchQuery.length > 0
 
-  // When searching show all sections regardless of active tab
-  const basePairs = (searchActive || section === 'all')
-    ? SECTIONS.flatMap(s => inventory[s].map(i => ({ item: i, itemSection: s })))
-    : inventory[section].map(i => ({ item: i, itemSection: section }))
-
-  const displayItems = searchActive
-    ? basePairs.filter(({ item }) => item.name.toLowerCase().includes(searchQuery))
-    : sortPairs(basePairs)
-
-  const showSectionBadge = section === 'all' || searchActive
-  const totalCount = SECTIONS.reduce((n, s) => n + inventory[s].length, 0)
-
-  // On desktop, "Tutto" (no active search) becomes one column per category.
+  // Desktop shows one column per section; everywhere else one section at a time
+  // (a search always looks across all sections).
   const isDesktop = useMediaQuery('(min-width: 1024px)')
-  const showColumns = isDesktop && section === 'all' && !searchActive
+  const showColumns = isDesktop && !searchActive
+
+  const pairs = (s) => inventory[s].map(i => ({ item: i, itemSection: s }))
+  const displayItems = searchActive
+    ? SECTIONS.flatMap(pairs).filter(({ item }) => item.name.toLowerCase().includes(searchQuery))
+    : sortPairs(pairs(section), sortMode)
+
+  const useSoonCount = useMemo(() => {
+    const only = { credenza: [], frigo: [], freezer: [], [section]: inventory[section] }
+    return getPantryCandidates(only).length
+  }, [inventory, section])
+
+  const sectionOptions = SECTIONS.map(s => ({ value: s, label: SECTION_LABELS[s], count: inventory[s].length }))
+  const keyOk = hasApiKey()
+
+  function renderRows(list, { showSection, query }) {
+    return list.map(({ item, itemSection }) => (
+      <ItemRow
+        key={item.id}
+        item={item}
+        section={itemSection}
+        showSection={showSection}
+        searchQuery={query}
+        onToggleUrgent={onToggleUrgent}
+        onUpdate={onUpdate}
+        onRemove={handleRemove}
+        onMove={onMove}
+      />
+    ))
+  }
 
   return (
     <div className={styles.wrap}>
-      {searchOpen ? (
+      <PageHeader title="Dispensa">
+        <div className={styles.actions}>
+          <button type="button" className={styles.iconBtn} onClick={() => setSearchOpen(true)} aria-label="Cerca prodotti">
+            <Icon name="search" size={20} />
+          </button>
+          <div
+            className={`${styles.iconBtn} ${styles.sortWrap} ${sortMode !== 'priority' ? styles.sortActive : ''}`}
+            title={SORT_LABELS[sortMode]}
+          >
+            <Icon name="sort" size={20} />
+            <select
+              className={styles.sortOverlay}
+              value={sortMode}
+              onChange={e => setSortMode(e.target.value)}
+              aria-label="Ordina per"
+            >
+              {Object.entries(SORT_LABELS).map(([val, label]) => (
+                <option key={val} value={val}>{label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </PageHeader>
+
+      {searchOpen && (
         <div className={styles.searchBar}>
           <div className={styles.searchBarInner}>
-            <SearchIcon />
+            <Icon name="search" size={18} />
             <input
               ref={searchRef}
               className={styles.searchBarInput}
@@ -163,245 +168,102 @@ export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onRes
             />
             {search && (
               <button
+                type="button"
                 className={styles.searchBarClear}
                 onClick={() => { setSearch(''); searchRef.current?.focus() }}
                 aria-label="Cancella testo"
-              >✕</button>
+              ><Icon name="close" size={16} /></button>
             )}
           </div>
-          <button className={styles.searchCancel} onClick={closeSearch}>Annulla</button>
+          <button type="button" className={styles.searchCancel} onClick={closeSearch}>Annulla</button>
         </div>
-      ) : (
-        <div className={styles.toolbar}>
-          <div className={styles.sections}>
-            <button
-              className={`${styles.sectionBtn} ${section === 'all' ? styles.active : ''}`}
-              onClick={() => setSection('all')}
-            >
-              Tutto
-              <span className={styles.count}>{totalCount}</span>
-            </button>
-            {SECTIONS.map(s => (
-              <button
-                key={s}
-                className={`${styles.sectionBtn} ${section === s ? styles.active : ''}`}
-                data-s={s}
-                onClick={() => setSection(s)}
-              >
-                <SectionIcon section={s} /> {SECTION_LABELS[s]}
-                <span className={styles.count}>{inventory[s].length}</span>
-              </button>
-            ))}
-          </div>
+      )}
 
-          <div className={styles.actions}>
-            <button className={styles.searchIconBtn} onClick={openSearch} aria-label="Cerca">
-              <SearchIcon />
-            </button>
-            <div
-              className={`${styles.sortWrap} ${sortMode !== 'none' ? styles.sortActive : ''}`}
-              title={SORT_LABELS[sortMode]}
-            >
-              <SortIcon />
-              {sortMode !== 'none' && <span className={styles.sortDot} />}
-              <select
-                className={styles.sortOverlay}
-                value={sortMode}
-                onChange={e => setSortMode(e.target.value)}
-                aria-label="Ordina per"
-              >
-                {Object.entries(SORT_LABELS).map(([val, label]) => (
-                  <option key={val} value={val}>{label}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
+      {!searchOpen && !showColumns && (
+        <Segmented options={sectionOptions} value={section} onChange={setSection} ariaLabel="Sezione della dispensa" />
       )}
 
       {showColumns ? (
         <div className={styles.columns}>
           {SECTIONS.map(s => {
-            const colItems = sortPairs(inventory[s].map(i => ({ item: i, itemSection: s })))
+            const colItems = sortPairs(pairs(s), sortMode)
             return (
-              <section key={s} className={styles.column}>
-                <header className={styles.columnHead} data-s={s}>
-                  <span><SectionIcon section={s} /> {SECTION_LABELS[s]}</span>
+              <section key={s} className={styles.column} aria-label={SECTION_LABELS[s]}>
+                <header className={styles.columnHead}>
+                  <span className={styles.columnTitle}><SectionIcon section={s} size={18} /> {SECTION_LABELS[s]}</span>
                   <span className={styles.columnCount}>{colItems.length}</span>
                 </header>
                 <div className={styles.columnList}>
-                  {colItems.length === 0 ? (
-                    <p className={styles.columnEmpty}>Vuoto</p>
-                  ) : (
-                    colItems.map(({ item, itemSection }) => (
-                      <ItemRow
-                        key={item.id}
-                        item={item}
-                        section={itemSection}
-                        showSection={false}
-                        searchQuery=""
-                        onToggleUrgent={onToggleUrgent}
-                        onUpdate={onUpdate}
-                        onRemove={handleRemove}
-                        onMove={onMove}
-                      />
-                    ))
-                  )}
+                  {colItems.length === 0
+                    ? <p className={styles.columnEmpty}>Vuoto</p>
+                    : renderRows(colItems, { showSection: false, query: '' })}
                 </div>
               </section>
             )
           })}
         </div>
+      ) : displayItems.length === 0 ? (
+        searchActive ? (
+          <p className={styles.empty}>Nessun risultato per "{search.trim()}"</p>
+        ) : (
+          <EmptyState
+            icon="pantry"
+            title={EMPTY_TITLE[section]}
+            text="Aggiungi quello che hai: fotografa uno scontrino, detta la spesa o scrivi un prodotto."
+          >
+            <button
+              type="button"
+              className={styles.emptyPrimary}
+              onClick={() => onOpenAdd('receipt', section)}
+              disabled={!keyOk}
+            >
+              <Icon name="receipt" size={22} /> Fotografa uno scontrino
+            </button>
+            <div className={styles.emptyRow}>
+              <button
+                type="button"
+                className={styles.emptyYellow}
+                onClick={() => onOpenAdd('voice', section)}
+                disabled={!keyOk}
+              >
+                <Icon name="mic" size={20} /> Detta
+              </button>
+              <button type="button" className={styles.emptyLine} onClick={() => onOpenAdd('sheet', section)}>
+                <Icon name="pencil" size={20} /> Scrivi
+              </button>
+            </div>
+            {!keyOk && (
+              <button type="button" className={styles.keyHint} onClick={onGoApiKey}>
+                Scontrino e voce richiedono la chiave Gemini: impostala in Tu
+              </button>
+            )}
+          </EmptyState>
+        )
       ) : (
-        <div className={styles.list}>
-          {displayItems.length === 0 ? (
-            <p className={styles.empty}>
-              {searchActive
-                ? `Nessun risultato per "${search.trim()}"`
-                : 'Nessun prodotto in questa sezione'}
-            </p>
-          ) : (
-            displayItems.map(({ item, itemSection }) => (
-              <ItemRow
-                key={item.id}
-                item={item}
-                section={itemSection}
-                showSection={showSectionBadge}
-                searchQuery={searchActive ? searchQuery : ''}
-                onToggleUrgent={onToggleUrgent}
-                onUpdate={onUpdate}
-                onRemove={handleRemove}
-                onMove={onMove}
-              />
-            ))
+        <>
+          {!searchActive && (
+            <div className={styles.summary}>
+              <span>
+                {inventory[section].length === 1 ? '1 prodotto' : `${inventory[section].length} prodotti`}
+                {' '}in {SECTION_LABELS[section].toLowerCase()}
+              </span>
+              {useSoonCount > 0 && <span className={styles.summaryUrgent}>{useSoonCount} da usare presto</span>}
+            </div>
           )}
-        </div>
+          <div className={styles.list}>
+            {renderRows(displayItems, { showSection: searchActive, query: searchActive ? searchQuery : '' })}
+          </div>
+        </>
       )}
 
-      <div ref={addRowRef} className={styles.addRow}>
-        {section === 'all' && (
-          <select
-            className={styles.addSectionSelect}
-            value={addSection}
-            onChange={e => setAddSection(e.target.value)}
-            aria-label="Sezione di destinazione"
-          >
-            {SECTIONS.map(s => (
-              <option key={s} value={s}>{SECTION_LABELS[s]}</option>
-            ))}
-          </select>
-        )}
-        <input
-          ref={nameInputRef}
-          className={styles.addName}
-          value={newName}
-          onChange={e => setNewName(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && handleAdd()}
-          placeholder="Nome prodotto..."
-        />
-        <input
-          className={styles.addQty}
-          value={newQty}
-          onChange={e => setNewQty(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && handleAdd()}
-          placeholder="Quantità"
-        />
-        <input
-          type="date"
-          className={styles.addExpiry}
-          value={newExpiry}
-          onChange={e => setNewExpiry(e.target.value)}
-          title="Data di scadenza (opzionale)"
-        />
-        <button
-          type="button"
-          className={styles.aiBtn}
-          onClick={hasApiKey ? openVoice : undefined}
-          disabled={!hasApiKey}
-          title={hasApiKey ? 'Aggiungi con la voce' : 'Configura la chiave Gemini in Impostazioni'}
-          aria-label="Aggiungi con la voce"
-        >
-          <MicIcon />
-        </button>
-        <button
-          type="button"
-          className={styles.aiBtn}
-          onClick={hasApiKey ? openReceipt : undefined}
-          disabled={!hasApiKey}
-          title={hasApiKey ? 'Importa da scontrino' : 'Configura la chiave Gemini in Impostazioni'}
-          aria-label="Importa da scontrino"
-        >
-          <CameraIcon />
-        </button>
-        <button className={styles.addBtn} onClick={handleAdd}>+ Aggiungi</button>
-      </div>
-
       <button
-        className={`${styles.fab} ${showFab && !toast.visible ? styles.fabVisible : ''}`}
-        onClick={focusAddRow}
+        type="button"
+        className={`${styles.fab} ${toast.visible ? styles.fabHidden : ''}`}
+        onClick={() => onOpenAdd('sheet', section)}
         aria-label="Aggiungi prodotto"
       >
-        <PlusIcon />
+        <Icon name="plus" size={26} strokeWidth={2} />
       </button>
-
-      <VoiceBatchModal
-        open={voiceOpen}
-        onClose={() => setVoiceOpen(false)}
-        onConfirm={handleBatchConfirm}
-      />
-
-      <ReceiptScanModal
-        open={receiptOpen}
-        onClose={() => setReceiptOpen(false)}
-        onConfirm={handleBatchConfirm}
-      />
     </div>
-  )
-}
-
-function MicIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="9" y="2" width="6" height="12" rx="3" />
-      <path d="M5 10v2a7 7 0 0 0 14 0v-2" />
-      <line x1="12" y1="19" x2="12" y2="22" />
-    </svg>
-  )
-}
-
-function CameraIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 8h3l1.6-2.4A1 1 0 0 1 8.4 5h7.2a1 1 0 0 1 .8.6L18 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" />
-      <circle cx="12" cy="13" r="3.5" />
-    </svg>
-  )
-}
-
-function SortIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-      <line x1="2" y1="4" x2="12" y2="4"/>
-      <line x1="2" y1="7" x2="9" y2="7"/>
-      <line x1="2" y1="10" x2="6" y2="10"/>
-    </svg>
-  )
-}
-
-function SearchIcon() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-      <circle cx="6" cy="6" r="4"/>
-      <line x1="9.5" y1="9.5" x2="13" y2="13"/>
-    </svg>
-  )
-}
-
-function PlusIcon() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-      <line x1="12" y1="5" x2="12" y2="19"/>
-      <line x1="5" y1="12" x2="19" y2="12"/>
-    </svg>
   )
 }

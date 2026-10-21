@@ -216,5 +216,5 @@
     align-items: start;
   }
   .hero { padding: 28px; }
-  .fab { right: 32px; bottom: 32px; }
+  .fab { display: none; } /* sidebar has the add button */
 }

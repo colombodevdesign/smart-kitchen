@@ -53,6 +53,8 @@
   --warn-text: #6B4300;
   --info-light: #DCE7F3;
   --info-text: #1B4A78;
+  --info-strong: #1B4A78;        /* swipe action: aperto */
+  --on-strong: #FFFFFF;          /* text on --info-strong / --urgent */
 
   /* meal categories */
   --cat-colazione: #D99A12;
@@ -125,6 +127,7 @@
   --warn-text: #F5CF7A;
   --info-light: #172C44;
   --info-text: #A9CBF0;
+  --info-strong: #2C6CB0;
 
   --cat-colazione: #F0B93A;
   --cat-pranzo: #5FC79A;

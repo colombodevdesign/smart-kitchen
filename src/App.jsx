@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { useAuth } from './hooks/useAuth.js'
 import { useInventory } from './hooks/useInventory.js'
 import { useAI } from './hooks/useAI.js'
@@ -14,6 +14,7 @@ import { SpesaTab } from './components/SpesaTab.jsx'
 import { TuTab } from './components/TuTab.jsx'
 import { Sidebar } from './components/Sidebar.jsx'
 import { BottomNav } from './components/BottomNav.jsx'
+import { AddFlow } from './components/AddFlow.jsx'
 import { ToastProvider } from './components/ui/Toast.jsx'
 import { TABS } from './nav/tabs.js'
 import styles from './App.module.css'
@@ -44,12 +45,23 @@ export default function App() {
     savedShopping.clearChecked()
   }, [savedShopping.clearChecked, addBatch])
 
+  // Add flow (sheet / voice / receipt) shared by Oggi, Dispensa and the sidebar.
+  const [add, setAdd] = useState({ mode: 'closed', section: 'frigo' })
+  const openAdd = useCallback((mode = 'sheet', section = 'frigo') => setAdd({ mode, section }), [])
+  const closeAdd = useCallback(() => setAdd(a => ({ ...a, mode: 'closed' })), [])
+  const switchAdd = useCallback((mode) => setAdd(a => ({ ...a, mode })), [])
+
   const mainRef = useRef(null)
 
   const handleTabChange = useCallback((tabId) => {
     nav.go(tabId)
     if (mainRef.current) mainRef.current.scrollTop = 0
   }, [nav.go])
+
+  const handleGoApiKey = useCallback(() => {
+    closeAdd()
+    nav.go('tu')
+  }, [closeAdd, nav.go])
 
   // "Cosa cucino con questi?": open Cucina and generate straight away.
   const handleCook = useCallback(() => {
@@ -97,7 +109,7 @@ export default function App() {
         </header>
 
         {/* Desktop: fixed sidebar (hidden on ≤1023px via CSS) */}
-        <Sidebar activeTab={nav.tab} onTabChange={handleTabChange} />
+        <Sidebar activeTab={nav.tab} onTabChange={handleTabChange} onAdd={() => openAdd('sheet')} />
 
         <main ref={mainRef} className={styles.main}>
           {nav.tab === 'oggi' && (
@@ -108,6 +120,7 @@ export default function App() {
               onPlan={() => nav.go('cucina', 'pasti')}
               onSavedRecipes={() => nav.go('cucina', 'salvate')}
               onProfile={() => nav.go('tu')}
+              onAdd={() => openAdd('sheet')}
             />
           )}
 
@@ -118,9 +131,9 @@ export default function App() {
               onUpdate={updateItem}
               onRemove={removeItem}
               onRestore={restoreItem}
-              onAdd={addItem}
-              onAddBatch={addBatch}
               onMove={moveItem}
+              onOpenAdd={openAdd}
+              onGoApiKey={handleGoApiKey}
             />
           )}
 
@@ -155,6 +168,15 @@ export default function App() {
             />
           )}
         </main>
+
+        <AddFlow
+          state={add}
+          onClose={closeAdd}
+          onSwitch={switchAdd}
+          onAdd={addItem}
+          onAddBatch={addBatch}
+          onGoApiKey={handleGoApiKey}
+        />
 
         {/* Mobile: bottom nav (hidden on ≥601px via CSS, and in detail views) */}
         {!nav.detail && <BottomNav activeTab={nav.tab} onTabChange={handleTabChange} />}
