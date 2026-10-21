@@ -18,3 +18,5 @@
   color: var(--on-accent);
 }
 .on:hover { background: var(--accent-hover); }
+
+.chip:disabled { cursor: not-allowed; }

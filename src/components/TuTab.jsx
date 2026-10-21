@@ -6,7 +6,7 @@ export function TuTab({ user, online, detail, onOpenNotifications, onCloseDetail
   return (
     <div className={`${styles.wrap} ${styles.narrow}`}>
       {detail?.type === 'notifiche' ? (
-        <NotificationSettings user={user} onBack={onCloseDetail} />
+        <NotificationSettings user={user} online={online} onBack={onCloseDetail} />
       ) : (
         <ProfileTab
           user={user}

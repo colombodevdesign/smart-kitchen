@@ -4,7 +4,7 @@ import { Icon } from './ui/Icon.jsx'
 import { PageHeader } from './ui/PageHeader.jsx'
 import { Segmented } from './ui/Segmented.jsx'
 import { StatusBadge } from './ui/StatusBadge.jsx'
-import { usePushNotifications } from '../hooks/usePushNotifications.js'
+import { useNotifications } from '../hooks/useNotifications.js'
 import { getApiKey, GEMINI_API_KEY_STORAGE } from '../utils/apiKey.js'
 import { getPref, setPref } from '../utils/theme.js'
 import styles from './ProfileTab.module.css'
@@ -16,7 +16,9 @@ const THEME_OPTIONS = [
 ]
 
 export function ProfileTab({ user, online, onExport, onImport, onClearInventory, onSignOut, onOpenNotifications }) {
-  const push = usePushNotifications(user?.uid)
+  const push = useNotifications(user?.uid)
+  const alertsOn = push.prefs.enabled && push.thisDevice === 'active'
+  const pad = n => String(n).padStart(2, '0')
   const [theme, setTheme] = useState(getPref)
   const [dialog, setDialog] = useState(null) // 'api' | 'csv' | 'clear'
 
@@ -86,9 +88,9 @@ export function ProfileTab({ user, online, onExport, onImport, onClearInventory,
         <span className={styles.bell}><Icon name="bell" size={24} /></span>
         <span className={styles.linkText}>
           <strong>Avvisi di scadenza</strong>
-          <span>{push.enabled ? 'Attivi su questo dispositivo' : 'Disattivati'}</span>
+          <span>{alertsOn ? `Ogni giorno alle ${pad(push.prefs.hour)}:${pad(push.prefs.minute)}` : push.prefs.enabled ? 'Da completare su questo dispositivo' : 'Disattivati'}</span>
         </span>
-        <StatusBadge tone={push.enabled ? 'ok' : 'neutral'}>{push.enabled ? 'Attivi' : 'Disattivi'}</StatusBadge>
+        <StatusBadge tone={alertsOn ? 'ok' : push.prefs.enabled ? 'soon' : 'neutral'}>{alertsOn ? 'Attivi' : push.prefs.enabled ? 'Da attivare' : 'Disattivi'}</StatusBadge>
         <Icon name="chevR" size={20} className={styles.chev} />
       </button>
 

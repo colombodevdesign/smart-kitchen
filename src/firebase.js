@@ -18,3 +18,11 @@ export const db = getFirestore(app)
 
 // Messaging is only available in browsers that support service workers
 export const messagingPromise = isSupported().then(yes => yes ? getMessaging(app) : null)
+
+// Callable Cloud Functions. The functions SDK is loaded on first use: it is only
+// needed for the "notifica di prova" button.
+export async function callFunction(name, data) {
+  const { getFunctions, httpsCallable } = await import('firebase/functions')
+  const res = await httpsCallable(getFunctions(app), name)(data)
+  return res.data
+}

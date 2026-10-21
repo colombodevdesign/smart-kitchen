@@ -17,6 +17,7 @@ import { Sidebar } from './components/Sidebar.jsx'
 import { BottomNav } from './components/BottomNav.jsx'
 import { AddFlow } from './components/AddFlow.jsx'
 import { useToast } from './components/ui/Toast.jsx'
+import { useForegroundPush } from './hooks/useNotifications.js'
 import { OfflineBanner } from './components/ui/OfflineBanner.jsx'
 import { todayStr } from './utils/date.js'
 import { TABS } from './nav/tabs.js'
@@ -27,6 +28,7 @@ export default function App() {
   const nav = useNavigation('oggi')
   const toast = useToast()
   const online = useOnline()
+  useForegroundPush(!!user)
 
   // undefined = auth still resolving, null = logged out, string = uid
   const authUid = user === undefined ? undefined : (user?.uid ?? null)
