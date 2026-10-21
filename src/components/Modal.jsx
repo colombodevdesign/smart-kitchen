@@ -1,7 +1,17 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useId, useRef } from 'react'
+import { Icon } from './ui/Icon.jsx'
 import styles from './Modal.module.css'
 
+// Open modals, innermost last: only the top one reacts to Escape/Tab, and the
+// page scroll lock is released only when the last one closes.
+const stack = []
+let prevBodyOverflow = ''
+
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+
 export function Modal({ open, onClose, title, children, footer }) {
+  const id = useId()
+  const titleId = `${id}-title`
   const dialogRef = useRef(null)
   const previouslyFocusedRef = useRef(null)
   const onCloseRef = useRef(onClose)
@@ -10,10 +20,28 @@ export function Modal({ open, onClose, title, children, footer }) {
   useEffect(() => {
     if (!open) return
     previouslyFocusedRef.current = document.activeElement
-    const onKey = (e) => { if (e.key === 'Escape') onCloseRef.current() }
+    stack.push(id)
+    if (stack.length === 1) {
+      prevBodyOverflow = document.body.style.overflow
+      document.body.style.overflow = 'hidden'
+    }
+
+    const onKey = (e) => {
+      if (stack[stack.length - 1] !== id) return
+      if (e.key === 'Escape') {
+        onCloseRef.current()
+        return
+      }
+      if (e.key === 'Tab') {
+        const nodes = dialogRef.current?.querySelectorAll(FOCUSABLE)
+        if (!nodes || nodes.length === 0) return
+        const first = nodes[0]
+        const last = nodes[nodes.length - 1]
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus() }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
+      }
+    }
     document.addEventListener('keydown', onKey)
-    const prevOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
 
     // Skip auto-focus if an element inside the dialog (e.g. an autoFocus input) already has focus.
     if (!dialogRef.current?.contains(document.activeElement)) {
@@ -25,11 +53,13 @@ export function Modal({ open, onClose, title, children, footer }) {
 
     return () => {
       document.removeEventListener('keydown', onKey)
-      document.body.style.overflow = prevOverflow
+      const i = stack.lastIndexOf(id)
+      if (i !== -1) stack.splice(i, 1)
+      if (stack.length === 0) document.body.style.overflow = prevBodyOverflow
       const prev = previouslyFocusedRef.current
       if (prev && typeof prev.focus === 'function') prev.focus()
     }
-  }, [open])
+  }, [open, id])
 
   if (!open) return null
 
@@ -40,18 +70,18 @@ export function Modal({ open, onClose, title, children, footer }) {
         className={styles.dialog}
         role="dialog"
         aria-modal="true"
-        aria-labelledby={title ? 'modal-title' : undefined}
+        aria-labelledby={title ? titleId : undefined}
         onClick={e => e.stopPropagation()}
       >
         {title && (
           <header className={styles.header}>
-            <h3 id="modal-title" className={styles.title}>{title}</h3>
+            <h3 id={titleId} className={styles.title}>{title}</h3>
             <button
               type="button"
               className={styles.close}
               onClick={onClose}
               aria-label="Chiudi"
-            >×</button>
+            ><Icon name="close" size={18} /></button>
           </header>
         )}
         <div className={styles.body}>{children}</div>

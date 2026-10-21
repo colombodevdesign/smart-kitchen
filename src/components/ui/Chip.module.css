@@ -1,0 +1,20 @@
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--tap);
+  padding: 0 16px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+}
+.chip:hover { background: var(--surface-hover); }
+.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+.on:hover { background: var(--accent-hover); }

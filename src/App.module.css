@@ -29,10 +29,11 @@
 }
 
 .logo {
-  font-size: 16px;
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
   color: var(--accent);
-  letter-spacing: -0.3px;
+  letter-spacing: -0.02em;
   flex-shrink: 0;
 }
 
@@ -106,7 +107,8 @@
 @media (min-width: 1024px) {
   .header { display: none; }
   .main {
-    margin-left: 220px;
+    margin-left: 240px;
+    width: calc(100% - 240px);
     max-width: 1280px;
     padding: 2rem 2.5rem 3rem;
   }
@@ -119,61 +121,5 @@
   }
 }
 
-/* ── Segmented control (mobile groups: ricette / spesa) ── */
-.subNav {
-  display: flex;
-  gap: 3px;
-  padding: 3px;
-  background: var(--surface-hover);
-  border-radius: var(--radius-md);
-  margin-bottom: 14px;
-}
-
-.subNavBtn {
-  flex: 1;
-  padding: 7px 12px;
-  font-size: 13px;
-  font-weight: 500;
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  border-radius: calc(var(--radius-md) - 2px);
-  cursor: pointer;
-  transition: color 0.1s;
-}
-.subNavBtn:hover { color: var(--text); }
-
-.subNavActive {
-  flex: 1;
-  padding: 7px 12px;
-  font-size: 13px;
-  font-weight: 500;
-  background: var(--surface);
-  border: none;
-  color: var(--text);
-  border-radius: calc(var(--radius-md) - 2px);
-  cursor: pointer;
-  box-shadow: var(--shadow-sm);
-}
-
-/* ── Split pane (desktop: both AI + saved visible) ── */
-.splitWrap {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.hideMobile { display: none; }
-
-@media (min-width: 1024px) {
-  .splitWrap {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 24px;
-    align-items: start;
-  }
-  /* On desktop both columns are always visible */
-  .hideMobile { display: block; }
-  /* Segmented control not needed on desktop */
-  .subNav { display: none; }
-}
+/* Detail views hide the bottom nav, so floating elements drop to the safe area. */
+.app[data-detail='true'] { --bottom-nav-h: var(--safe-b); }

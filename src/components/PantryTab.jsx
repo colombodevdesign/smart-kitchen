@@ -4,6 +4,7 @@ import { VoiceBatchModal } from './VoiceBatchModal.jsx'
 import { ReceiptScanModal } from './ReceiptScanModal.jsx'
 import { SECTIONS, SECTION_LABELS } from '../data/initialInventory.js'
 import { useMediaQuery } from '../hooks/useMediaQuery.js'
+import { useToast } from './ui/Toast.jsx'
 import styles from './PantryTab.module.css'
 import { SectionIcon } from './ui/Icon.jsx'
 
@@ -18,8 +19,6 @@ const SORT_LABELS = {
   'expiry-desc': 'Scadenza ↓',
 }
 
-const UNDO_MS = 5000
-
 export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onRestore, onAdd, onAddBatch, onMove }) {
   const [section, setSection] = useState('all')
   const [addSection, setAddSection] = useState('credenza')
@@ -33,7 +32,7 @@ export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onRes
   const addRowRef    = useRef(null)
   const searchRef    = useRef(null)
   const [showFab, setShowFab] = useState(false)
-  const [undo, setUndo] = useState(null) // { section, item } of the last removed product
+  const toast = useToast()
   const [voiceOpen, setVoiceOpen] = useState(false)
   const [receiptOpen, setReceiptOpen] = useState(false)
   const [hasApiKey, setHasApiKey] = useState(() => !!localStorage.getItem(GEMINI_API_KEY_STORAGE))
@@ -42,20 +41,14 @@ export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onRes
   function handleRemove(itemSection, id) {
     const item = inventory[itemSection]?.find(i => i.id === id)
     onRemove(itemSection, id)
-    if (item) setUndo({ section: itemSection, item })
+    if (item) {
+      toast.show({
+        message: `${item.name} eliminato`,
+        actionLabel: 'Annulla',
+        onAction: () => onRestore?.(itemSection, item),
+      })
+    }
   }
-
-  function handleUndo() {
-    if (!undo) return
-    onRestore?.(undo.section, undo.item)
-    setUndo(null)
-  }
-
-  useEffect(() => {
-    if (!undo) return
-    const t = setTimeout(() => setUndo(null), UNDO_MS)
-    return () => clearTimeout(t)
-  }, [undo])
 
   // Re-check on every open in case the user just configured the key in Settings.
   function openVoice() {
@@ -344,19 +337,12 @@ export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onRes
       </div>
 
       <button
-        className={`${styles.fab} ${showFab && !undo ? styles.fabVisible : ''}`}
+        className={`${styles.fab} ${showFab && !toast.visible ? styles.fabVisible : ''}`}
         onClick={focusAddRow}
         aria-label="Aggiungi prodotto"
       >
         <PlusIcon />
       </button>
-
-      {undo && (
-        <div className={styles.toast} role="status">
-          <span>{undo.item.name} eliminato</span>
-          <button className={styles.toastBtn} onClick={handleUndo}>Annulla</button>
-        </div>
-      )}
 
       <VoiceBatchModal
         open={voiceOpen}
