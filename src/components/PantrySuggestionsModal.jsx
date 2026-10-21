@@ -1,8 +1,9 @@
 import { useMemo, useState, useEffect } from 'react'
 import { Modal } from './Modal.jsx'
-import { SECTION_LABELS, SECTION_ICONS } from '../data/initialInventory.js'
+import { SECTION_LABELS } from '../data/initialInventory.js'
 import { getPantryCandidates } from '../utils/pantry.js'
 import styles from './PantrySuggestionsModal.module.css'
+import { SectionIcon } from './ui/Icon.jsx'
 
 function badgeFor(c) {
   if (c.status === 'expired') return { label: 'scaduto', cls: styles.badgeExpired }
@@ -94,7 +95,7 @@ export function PantrySuggestionsModal({ open, onClose, inventory, existingItems
                     <div className={styles.metaRow}>
                       {badge && <span className={`${styles.badge} ${badge.cls}`}>{badge.label}</span>}
                       <span className={styles.section}>
-                        {SECTION_ICONS[c.section]} {SECTION_LABELS[c.section]}
+                        <SectionIcon section={c.section} /> {SECTION_LABELS[c.section]}
                       </span>
                     </div>
                   </div>

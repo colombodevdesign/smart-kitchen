@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { formatDate, formatExpiry, expiryStatus } from '../utils/date.js'
-import { SECTIONS, SECTION_LABELS, SECTION_ICONS } from '../data/initialInventory.js'
+import { SECTIONS, SECTION_LABELS } from '../data/initialInventory.js'
 import styles from './ItemRow.module.css'
+import { Icon, SectionIcon } from './ui/Icon.jsx'
 
 function highlight(text, query) {
   if (!query) return text
@@ -218,7 +219,7 @@ export function ItemRow({ item, section, showSection, searchQuery, onToggleUrgen
               )}
               {showSection && (
                 <span className={styles.sectionBadge} data-s={section}>
-                  {SECTION_ICONS[section]} {SECTION_LABELS[section]}
+                  <SectionIcon section={section} /> {SECTION_LABELS[section]}
                 </span>
               )}
             </div>
@@ -291,7 +292,7 @@ export function ItemRow({ item, section, showSection, searchQuery, onToggleUrgen
                   data-s={s}
                   onClick={() => { onMove(section, item.id, s); setExpanded(false) }}
                 >
-                  {SECTION_ICONS[s]} {SECTION_LABELS[s]}
+                  <SectionIcon section={s} /> {SECTION_LABELS[s]}
                 </button>
               ))}
             </div>
@@ -301,7 +302,7 @@ export function ItemRow({ item, section, showSection, searchQuery, onToggleUrgen
               aria-label={item.urgent ? 'Rimuovi flag aperto' : 'Segna come aperto'}
               title={item.urgent ? 'Rimuovi flag aperto' : 'Segna come aperto'}
             >
-              📂
+              <Icon name="flag" size={16} />
             </button>
             <button className={styles.deleteBtn} onClick={() => onRemove(section, item.id)}>
               Elimina

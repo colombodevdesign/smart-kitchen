@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import { ItemRow } from './ItemRow.jsx'
 import { VoiceBatchModal } from './VoiceBatchModal.jsx'
 import { ReceiptScanModal } from './ReceiptScanModal.jsx'
-import { SECTIONS, SECTION_LABELS, SECTION_ICONS } from '../data/initialInventory.js'
+import { SECTIONS, SECTION_LABELS } from '../data/initialInventory.js'
 import { useMediaQuery } from '../hooks/useMediaQuery.js'
 import styles from './PantryTab.module.css'
+import { SectionIcon } from './ui/Icon.jsx'
 
 const GEMINI_API_KEY_STORAGE = 'gemini-api-key'
 
@@ -194,7 +195,7 @@ export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onRes
                 data-s={s}
                 onClick={() => setSection(s)}
               >
-                {SECTION_ICONS[s]} {SECTION_LABELS[s]}
+                <SectionIcon section={s} /> {SECTION_LABELS[s]}
                 <span className={styles.count}>{inventory[s].length}</span>
               </button>
             ))}
@@ -232,7 +233,7 @@ export function PantryTab({ inventory, onToggleUrgent, onUpdate, onRemove, onRes
             return (
               <section key={s} className={styles.column}>
                 <header className={styles.columnHead} data-s={s}>
-                  <span>{SECTION_ICONS[s]} {SECTION_LABELS[s]}</span>
+                  <span><SectionIcon section={s} /> {SECTION_LABELS[s]}</span>
                   <span className={styles.columnCount}>{colItems.length}</span>
                 </header>
                 <div className={styles.columnList}>
