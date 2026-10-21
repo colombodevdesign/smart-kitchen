@@ -7,7 +7,7 @@ import { parseShoppingItems } from '../utils/parsers.js'
 import styles from './Containers.module.css'
 
 // Spesa = shopping list + AI ideas. Segmented on mobile, side by side on desktop.
-export function SpesaTab({ sub, onSubChange, spesa, savedShopping, inventory, onMoveToPantry }) {
+export function SpesaTab({ sub, onSubChange, spesa, savedShopping, inventory, onMoveToPantry, onGoApiKey }) {
   const isDesktop = useMediaQuery('(min-width: 1024px)')
 
   const options = [
@@ -38,12 +38,16 @@ export function SpesaTab({ sub, onSubChange, spesa, savedShopping, inventory, on
         </div>
         <div hidden={!isDesktop && sub !== 'idee'}>
           <AITab
-            buttonLabel="Genera lista della spesa per questa settimana"
+            variant="list"
+            buttonLabel="Genera la lista della spesa"
+            errorTitle="Non riesco a generare la lista"
+            onGoApiKey={onGoApiKey}
             onFetch={spesa.fetchSpesa}
             loading={spesa.loading}
             messages={spesa.messages}
             streaming={spesa.streaming}
             error={spesa.error}
+            errorCode={spesa.errorCode}
             cached={spesa.cached}
             onSend={spesa.sendFollowUp}
             parseForSave={parseShoppingItems}

@@ -1,13 +1,27 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Icon } from './ui/Icon.jsx'
+import { RecipeCard } from './ui/RecipeCard.jsx'
 import { md } from '../utils/markdown.js'
+import { parseRecipes } from '../utils/parsers.js'
 import styles from './AITab.module.css'
 
-export function AITab({ buttonLabel, onFetch, loading, messages, streaming, error, cached, onSend, parseForSave, onSaveItems }) {
+// variant 'cards': recipes shown as one card each (messages are split on "## ").
+// variant 'list':  plain chat bubbles, with a "save to library" panel.
+export function AITab({
+  variant = 'list', buttonLabel, hint, errorTitle, onFetch, loading, messages, streaming,
+  error, errorCode, cached, onSend, parseForSave, onSaveItems, onGoApiKey,
+}) {
   const [draft, setDraft] = useState('')
-  const bottomRef = useRef(null)
+  const [savedKeys, setSavedKeys] = useState(() => new Set())
+  const chatRef = useRef(null)
 
+  // The bubble list scrolls inside its own box: follow new text only while the
+  // reader is already at the bottom (never yank the view away).
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const el = chatRef.current
+    if (!el) return
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80
+    if (nearBottom) el.scrollTop = el.scrollHeight
   }, [messages, streaming])
 
   function handleSend() {
@@ -24,57 +38,88 @@ export function AITab({ buttonLabel, onFetch, loading, messages, streaming, erro
     }
   }
 
-  const md = (text) => text
-    .replace(/^## (.+)$/gm, '<h3>$1</h3>')
-    .replace(/^# (.+)$/gm, '<h3>$1</h3>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/^- (.+)$/gm, '<li>$1</li>')
-    .replace(/(<li>.*<\/li>\n?)+/gs, m => `<ul>${m}</ul>`)
-    .split('\n')
-    .filter(l => l.trim())
-    .map(l => l.startsWith('<') ? l : `<p>${l}</p>`)
-    .join('')
+  function saveRecipe(r) {
+    onSaveItems?.([r.data])
+    setSavedKeys(prev => new Set(prev).add(r.key))
+  }
 
   const hasContent = messages.length > 0 || streaming || loading
   const lastModelText = messages.filter(m => m.role === 'model').map(m => m.text).join('\n\n')
-  const showSavePanel = parseForSave && onSaveItems && lastModelText && !streaming && !loading
+  const showSavePanel = variant === 'list' && parseForSave && onSaveItems && lastModelText && !streaming && !loading
+  const cards = variant === 'cards'
+
+  const streamingRecipes = useMemo(() => (cards && streaming ? parseRecipes(streaming) : []), [cards, streaming])
 
   return (
     <div className={styles.wrap}>
+      {hint && (
+        <p className={styles.hint}><Icon name="sparkle" size={18} /> {hint}</p>
+      )}
+
       <button className={styles.btn} onClick={onFetch} disabled={loading}>
-        {loading && !hasContent ? <><Spinner /> elaborazione...</> : buttonLabel}
+        {loading && !hasContent ? <><Spinner /> elaborazione...</> : <><Icon name="sparkle" size={20} /> {buttonLabel}</>}
       </button>
 
-      {error && <div className={styles.error}>{error}</div>}
+      {error && (
+        <section className={styles.errorCard} role="alert">
+          <span className={styles.errorIcon}><Icon name={errorCode === 'offline' ? 'wifiOff' : 'alert'} size={26} /></span>
+          <h3 className={styles.errorTitle}>{errorTitle ?? 'Non riesco a generare la risposta'}</h3>
+          <p className={styles.errorText}>{error}</p>
+          <div className={styles.errorActions}>
+            {(errorCode === 'no-key' || errorCode === 'invalid-key') && onGoApiKey && (
+              <button type="button" className={styles.errorPrimary} onClick={onGoApiKey}>Imposta la chiave API</button>
+            )}
+            <button type="button" className={styles.errorSecondary} onClick={onFetch} disabled={loading}>Riprova</button>
+          </div>
+        </section>
+      )}
 
       {cached && messages.length > 0 && !streaming && (
         <div className={styles.cachedBadge}>dalla cache · nessun token usato</div>
       )}
 
       {hasContent && (
-        <div className={styles.chat}>
-          {messages.map((m, i) => (
-            <div key={i} className={m.role === 'user' ? styles.userBubble : styles.modelBubble}>
-              {m.role === 'model'
-                ? <div dangerouslySetInnerHTML={{ __html: md(m.text) }} />
-                : m.text
-              }
-            </div>
-          ))}
+        <div
+          ref={chatRef}
+          className={`${styles.chat} ${cards ? styles.chatCards : ''}`}
+          aria-live="polite"
+          aria-busy={loading || !!streaming}
+        >
+          {messages.map((m, i) => {
+            if (m.role === 'user') return <div key={i} className={styles.userBubble}>{m.text}</div>
+            const recipes = cards ? parseRecipes(m.text) : []
+            if (recipes.length > 0) {
+              return recipes.map(r => (
+                <RecipeCard
+                  key={`${i}-${r.key}`}
+                  recipe={r.data}
+                  saved={savedKeys.has(r.key)}
+                  onSave={onSaveItems ? () => saveRecipe(r) : undefined}
+                />
+              ))
+            }
+            return (
+              <div key={i} className={styles.modelBubble}>
+                <div dangerouslySetInnerHTML={{ __html: md(m.text) }} />
+              </div>
+            )
+          })}
 
-          {streaming && (
-            <div className={styles.modelBubble}>
-              <div dangerouslySetInnerHTML={{ __html: md(streaming) }} />
-            </div>
-          )}
+          {streaming && (cards && streamingRecipes.length > 0
+            ? streamingRecipes.map((r, i) => (
+                <RecipeCard key={r.key} recipe={r.data} streaming={i === streamingRecipes.length - 1} />
+              ))
+            : (
+              <div className={styles.modelBubble}>
+                <div dangerouslySetInnerHTML={{ __html: md(streaming) }} />
+              </div>
+            ))}
 
           {loading && !streaming && (
             <div className={styles.modelBubble}>
               <div className={styles.skeleton}><Spinner /> generazione in corso...</div>
             </div>
           )}
-
-          <div ref={bottomRef} />
         </div>
       )}
 
@@ -94,15 +139,17 @@ export function AITab({ buttonLabel, onFetch, loading, messages, streaming, erro
             value={draft}
             onChange={e => setDraft(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Chiedi qualcosa..."
+            placeholder={cards ? 'Chiedi una variante, es. senza forno' : 'Chiedi qualcosa...'}
+            aria-label="Scrivi un messaggio"
             disabled={loading}
           />
           <button
             className={styles.sendBtn}
             onClick={handleSend}
             disabled={loading || !draft.trim()}
+            aria-label="Invia"
           >
-            ↑
+            <Icon name="arrowRight" size={20} strokeWidth={2} />
           </button>
         </div>
       )}
@@ -135,15 +182,15 @@ function SavePanel({ text, parseItems, onSave }) {
   function doSave(toSave) {
     if (toSave.length === 0) return
     onSave(toSave)
-    setSavedMsg(`✓ ${toSave.length} element${toSave.length === 1 ? 'o salvato' : 'i salvati'}`)
+    setSavedMsg(`${toSave.length} element${toSave.length === 1 ? 'o salvato' : 'i salvati'}`)
     setTimeout(() => setSavedMsg(''), 2500)
   }
 
   return (
     <div className={styles.savePanel}>
-      <button className={styles.savePanelToggle} onClick={() => setOpen(o => !o)}>
+      <button className={styles.savePanelToggle} onClick={() => setOpen(o => !o)} aria-expanded={open}>
         <span>Salva in libreria</span>
-        <span>{open ? '▾' : '▸'}</span>
+        <Icon name={open ? 'chevD' : 'chevR'} size={18} />
       </button>
       {open && (
         <div className={styles.savePanelBody}>
@@ -164,7 +211,7 @@ function SavePanel({ text, parseItems, onSave }) {
           </ul>
           <div className={styles.saveActions}>
             {savedMsg ? (
-              <span className={styles.savedConfirm}>{savedMsg}</span>
+              <span className={styles.savedConfirm}><Icon name="check" size={16} strokeWidth={2.4} /> {savedMsg}</span>
             ) : (
               <>
                 <button className={styles.saveAllBtn} onClick={() => doSave(items.map(i => i.data))}>

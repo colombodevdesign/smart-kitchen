@@ -15,7 +15,7 @@ export function md(text) {
     .replace(/^# (.+)$/gm, '<h3>$1</h3>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/^- (.+)$/gm, '<li>$1</li>')
-    .replace(/(<li>.*<\/li>\n?)+/gs, m => `<ul>${m}</ul>`)
+    .replace(/(<li>[^\n]*<\/li>\n?)+/g, m => `<ul>${m}</ul>`)
     .split('\n')
     .filter(l => l.trim())
     .map(l => l.startsWith('<') ? l : `<p>${l}</p>`)

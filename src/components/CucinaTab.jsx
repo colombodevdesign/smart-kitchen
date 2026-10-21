@@ -9,7 +9,7 @@ import styles from './Containers.module.css'
 
 // Cucina = AI recipes + saved recipes + meal tracker. On mobile these are three
 // segments; on desktop AI and saved recipes sit side by side under "Ricette".
-export function CucinaTab({ sub, onSubChange, ricette, savedRecipes, mealTracker }) {
+export function CucinaTab({ sub, onSubChange, ricette, savedRecipes, mealTracker, onGoApiKey }) {
   const isDesktop = useMediaQuery('(min-width: 1024px)')
   const view = isDesktop && sub === 'salvate' ? 'ricette' : sub
 
@@ -35,12 +35,17 @@ export function CucinaTab({ sub, onSubChange, ricette, savedRecipes, mealTracker
       <div className={`${styles.split} ${isDesktop && view === 'ricette' ? styles.splitBoth : ''}`}>
         <div hidden={!showAI}>
           <AITab
-            buttonLabel="Cosa cucino stasera? Genera ricette con quello che ho"
+            variant="cards"
+            buttonLabel="Cosa cucino stasera?"
+            hint="Idee per stasera, partendo da ciò che scade"
+            errorTitle="Non riesco a generare le ricette"
+            onGoApiKey={onGoApiKey}
             onFetch={ricette.fetchRicette}
             loading={ricette.loading}
             messages={ricette.messages}
             streaming={ricette.streaming}
             error={ricette.error}
+            errorCode={ricette.errorCode}
             cached={ricette.cached}
             onSend={ricette.sendFollowUp}
             parseForSave={parseRecipes}

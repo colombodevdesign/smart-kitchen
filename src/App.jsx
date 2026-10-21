@@ -144,6 +144,7 @@ export default function App() {
               ricette={ricette}
               savedRecipes={savedRecipes}
               mealTracker={mealTracker}
+              onGoApiKey={handleGoApiKey}
             />
           )}
 
@@ -155,6 +156,7 @@ export default function App() {
               savedShopping={savedShopping}
               inventory={inventory}
               onMoveToPantry={handleMoveToPantry}
+              onGoApiKey={handleGoApiKey}
             />
           )}
 
