@@ -30,7 +30,7 @@
 /* Bar shown while products are ticked */
 .actionBar {
   position: sticky;
-  bottom: var(--float-bottom);
+  bottom: 0;   /* .main's own bottom padding (1rem) gives the gap; the scroll area already ends above the bottom nav */
   z-index: var(--z-fab);
   display: flex;
   gap: 8px;

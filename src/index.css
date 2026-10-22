@@ -89,7 +89,7 @@
   --safe-b: env(safe-area-inset-bottom, 0px);
   --nav-h: 64px;
   --bottom-nav-h: 0px;                       /* set below on mobile */
-  --float-bottom: calc(var(--bottom-nav-h) + 16px);   /* FABs, toasts */
+  --float-bottom: calc(var(--bottom-nav-h) + 16px);   /* fixed FABs; in-flow sticky bars use 16px: the nav is a flex sibling of the scroll area */
 
   /* z-index scale */
   --z-row: 1;

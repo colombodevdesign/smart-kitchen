@@ -26,7 +26,7 @@ Richiede `.env` con le variabili Firebase (vedi `.env.example`).
 index.html                  # script inline che applica il tema prima del primo paint
 public/
   fonts/                    # Bricolage Grotesque + DM Sans (variabili, latin, self-hosted) + licenze
-  manifest.json, icon-*.png # PWA (le icone sono segnaposto: sostituire con l'artwork vero)
+  manifest.json, icon-*.png # PWA: monogramma SK con forchetta/coltello, S crema + K giallo su verde #1E5A43
 src/
   main.jsx                  # entry: ToastProvider + watchSystemTheme
   firebase.js               # app, auth, db, messagingPromise, callFunction (import dinamico di firebase/functions)
@@ -83,6 +83,13 @@ Cinque destinazioni: Oggi, Dispensa, Cucina (Ricette AI / Salvate / Pasti), Spes
 `useNavigation` tiene `{tab, sub, detail}`; le viste di dettaglio (ricetta, notifiche) aggiungono una voce
 alla history, quindi il tasto indietro del telefono le chiude. A ≥1024px Cucina e Spesa mostrano lo split a
 due colonne. `BottomNav` e il FAB si nascondono quando `nav.detail` è attivo (`data-detail`).
+
+Layout mobile (≤600px): `.app` è una colonna flex con la bottom nav **in flusso** (non fixed), quindi l'area
+scrollabile `.main` finisce già sopra la nav. Conseguenze: le barre `position: sticky` dentro `.main` usano
+`bottom: 0` (il padding di `.main` dà il margine), mentre solo gli elementi `position: fixed` (FAB) usano
+`--float-bottom`. L'header è ridotto a una striscia alta quanto `env(safe-area-inset-top)` (su iOS standalone la
+pagina è disegnata sotto la status bar, `black-translucent`): il logo compare solo da tablet in su. I toast
+(`ui/Toast`) stanno in alto, sotto la safe area, così non si sovrappongono a FAB e nav.
 
 ## Firebase — configurazione
 
