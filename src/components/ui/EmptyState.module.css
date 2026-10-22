@@ -1,0 +1,36 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  padding: 36px 16px;
+}
+.icon {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--accent-light);
+  color: var(--accent);
+}
+.title {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.text {
+  max-width: 300px;
+  font-size: 15px;
+  color: var(--text-muted);
+}
+.actions {
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+  gap: 10px;
+  margin-top: 8px;
+}

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="it" data-theme="light">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -7,10 +7,27 @@
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="manifest" href="/manifest.json" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <meta name="theme-color" content="#BA7517" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#F3F5F0" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Smart Kitchen" />
+    <link rel="preload" href="/fonts/dm-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/bricolage-grotesque-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <!-- Resolve the theme before first paint (same logic as src/utils/theme.js). -->
+    <script>
+      (function () {
+        try {
+          var p = localStorage.getItem('theme');
+          var dark = p === 'dark' || (p !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          var t = dark ? 'dark' : 'light';
+          var r = document.documentElement;
+          r.setAttribute('data-theme', t);
+          r.style.colorScheme = t;
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', dark ? '#101A14' : '#F3F5F0');
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -5,80 +5,37 @@ import { useAI } from './hooks/useAI.js'
 import { useSavedRecipes } from './hooks/useSavedRecipes.js'
 import { useSavedShopping } from './hooks/useSavedShopping.js'
 import { useMealTracker } from './hooks/useMealTracker.js'
+import { useNavigation } from './hooks/useNavigation.js'
+import { useOnline } from './hooks/useOnline.js'
 import { LoginScreen } from './components/LoginScreen.jsx'
+import { TodayTab } from './components/TodayTab.jsx'
 import { PantryTab } from './components/PantryTab.jsx'
-import { AITab } from './components/AITab.jsx'
-import { SettingsTab } from './components/SettingsTab.jsx'
-import { SavedRecipesTab } from './components/SavedRecipesTab.jsx'
-import { SavedShoppingTab } from './components/SavedShoppingTab.jsx'
-import { MealTrackerTab } from './components/MealTrackerTab.jsx'
+import { CucinaTab } from './components/CucinaTab.jsx'
+import { SpesaTab } from './components/SpesaTab.jsx'
+import { TuTab } from './components/TuTab.jsx'
 import { Sidebar } from './components/Sidebar.jsx'
 import { BottomNav } from './components/BottomNav.jsx'
+import { AddFlow } from './components/AddFlow.jsx'
+import { useToast } from './components/ui/Toast.jsx'
+import { useForegroundPush } from './hooks/useNotifications.js'
+import { OfflineBanner } from './components/ui/OfflineBanner.jsx'
+import { todayStr } from './utils/date.js'
+import { TABS } from './nav/tabs.js'
 import styles from './App.module.css'
-
-const TABS = [
-  { id: 'dispensa',        label: 'Dispensa' },
-  { id: 'ricette',         label: 'Ricette AI' },
-  { id: 'ricette-salvate', label: 'Ricette Salvate' },
-  { id: 'lista-spesa',     label: 'Lista Spesa' },
-  { id: 'spesa',           label: 'Spesa Smart' },
-  { id: 'pasti',           label: 'Tracker Pasti' },
-  { id: 'settings',        label: '⚙' },
-]
-
-function parseRecipes(text) {
-  const parts = text.split(/(?=^## )/m).filter(s => s.trim())
-  if (parts.length === 0) return []
-  return parts.map((content, i) => {
-    const match = content.match(/^## (.+)$/m)
-    const title = match ? match[1].trim() : `Ricetta ${i + 1}`
-    return { key: `r-${i}-${title}`, label: title, data: { title, content: content.trim() } }
-  })
-}
-
-const QTY_UNITS = 'g|kg|gr|l|ml|cl|pz|pezzi|conf\\.?|bottiglie|lattine|scatole|mazzi|spicchi'
-const QTY_PREFIX = new RegExp(`^(\\d+(?:[.,]\\d+)?\\s*(?:${QTY_UNITS}))\\s+(.+)$`, 'i')
-const QTY_SUFFIX = new RegExp(`^(.+?)\\s+(\\d+(?:[.,]\\d+)?\\s*(?:${QTY_UNITS}))$`, 'i')
-
-function extractQty(raw) {
-  const pre = raw.match(QTY_PREFIX)
-  if (pre) return { name: pre[2].trim(), qty: pre[1].trim() }
-  const suf = raw.match(QTY_SUFFIX)
-  if (suf) return { name: suf[1].trim(), qty: suf[2].trim() }
-  return { name: raw, qty: '' }
-}
-
-function parseShoppingItems(text) {
-  const items = []
-  let category = 'Generale'
-  for (const line of text.split('\n')) {
-    const t = line.trim()
-    if (t.startsWith('## ')) { category = t.slice(3).trim(); continue }
-    if (t.startsWith('- ') || t.startsWith('* ')) {
-      const raw = t.slice(2).trim()
-      if (!raw) continue
-      const { name, qty } = extractQty(raw)
-      if (!name) continue
-      items.push({
-        key: `${category}:${name}`,
-        label: qty ? `${name} (${qty})` : name,
-        data: { name, category, qty },
-      })
-    }
-  }
-  return items
-}
 
 export default function App() {
   const { user, signInWithGoogle, signOut } = useAuth()
-  const [activeTab, setActiveTab] = useState('dispensa')
+  const nav = useNavigation('oggi')
+  const toast = useToast()
+  const online = useOnline()
+  useForegroundPush(!!user)
 
   // undefined = auth still resolving, null = logged out, string = uid
   const authUid = user === undefined ? undefined : (user?.uid ?? null)
 
   const {
     inventory,
-    addItem, addBatch, removeItem, updateItem, moveItem, toggleUrgent,
+    addItem, addBatch, removeItem, restoreItem, updateItem, moveItem, toggleUrgent,
     exportCSV, importCSV, clearInventory, getInventoryText,
   } = useInventory(authUid)
 
@@ -89,24 +46,60 @@ export default function App() {
   const savedShopping  = useSavedShopping(authUid)
   const mealTracker    = useMealTracker(authUid)
 
-  const parseRecipesCb  = useCallback(parseRecipes, [])
-  const parseShoppingCb = useCallback(parseShoppingItems, [])
-
   const handleMoveToPantry = useCallback((assignments) => {
     if (!assignments?.length) return
     addBatch(assignments)
     savedShopping.clearChecked()
   }, [savedShopping.clearChecked, addBatch])
 
+  // Add flow (sheet / voice / receipt) shared by Oggi, Dispensa and the sidebar.
+  const [add, setAdd] = useState({ mode: 'closed', section: 'frigo' })
+  const openAdd = useCallback((mode = 'sheet', section = 'frigo') => setAdd({ mode, section }), [])
+  const closeAdd = useCallback(() => setAdd(a => ({ ...a, mode: 'closed' })), [])
+  const switchAdd = useCallback((mode) => setAdd(a => ({ ...a, mode })), [])
+
   const mainRef = useRef(null)
 
   const handleTabChange = useCallback((tabId) => {
-    setActiveTab(tabId)
+    nav.go(tabId)
     if (mainRef.current) mainRef.current.scrollTop = 0
-  }, [])
+  }, [nav.go])
 
-  const inRicetteGroup = activeTab === 'ricette' || activeTab === 'ricette-salvate'
-  const inSpesaGroup   = activeTab === 'spesa'   || activeTab === 'lista-spesa'
+  const handleGoApiKey = useCallback(() => {
+    closeAdd()
+    nav.go('tu')
+  }, [closeAdd, nav.go])
+
+  // Saved recipes: put one on tonight's menu / push its missing ingredients to the shopping list.
+  const handleCookTonight = useCallback((recipe) => {
+    mealTracker.addMeal(todayStr(), {
+      text: recipe.title, category: 'cena', recipeId: recipe.id, recipeTitle: recipe.title,
+    })
+    toast.show({ message: 'Aggiunta ai pasti di stasera', ms: 3000 })
+    nav.go('oggi')
+  }, [mealTracker.addMeal, toast.show, nav.go])
+
+  const handleAddMissing = useCallback((ingredients) => {
+    const already = new Set(savedShopping.items.filter(i => !i.checked).map(i => i.name.trim().toLowerCase()))
+    const fresh = ingredients.filter(i => !already.has(i.name.trim().toLowerCase()))
+    if (fresh.length === 0) {
+      toast.show({ message: 'Sono già tutti nella lista della spesa', ms: 3000 })
+      return
+    }
+    savedShopping.addItems(fresh.map(i => ({ name: i.name, qty: i.qty, category: 'Generale', source: 'recipe' })))
+    toast.show({
+      message: fresh.length === 1 ? '1 ingrediente aggiunto alla spesa' : `${fresh.length} ingredienti aggiunti alla spesa`,
+      actionLabel: 'Vedi',
+      onAction: () => nav.go('spesa', 'lista'),
+    })
+  }, [savedShopping.items, savedShopping.addItems, toast.show, nav.go])
+
+  // "Cosa cucino con questi?": open Cucina and generate straight away.
+  const handleCook = useCallback(() => {
+    nav.go('cucina', 'ricette')
+    if (mainRef.current) mainRef.current.scrollTop = 0
+    ricette.fetchRicette()
+  }, [nav.go, ricette.fetchRicette])
 
   // user === undefined → Firebase still initializing
   if (user === undefined) {
@@ -124,154 +117,115 @@ export default function App() {
   }
 
   return (
-    <div className={styles.app}>
-      {/* Tablet: sticky top header with scrollable tabs */}
-      <header className={styles.header}>
-        <div className={styles.headerInner}>
-          <h1 className={styles.logo}>smart kitchen</h1>
-          <nav className={styles.tabs}>
-            {TABS.map(t => (
-              <button
-                key={t.id}
-                className={`${styles.tab} ${activeTab === t.id ? styles.tabActive : ''}`}
-                onClick={() => handleTabChange(t.id)}
-              >
-                {t.label}
-              </button>
-            ))}
-          </nav>
-        </div>
-      </header>
+    <>
+      <div className={styles.app} data-detail={nav.detail ? 'true' : undefined}>
+        {/* Tablet: sticky top header with scrollable tabs */}
+        <header className={styles.header}>
+          <div className={styles.headerInner}>
+            <h1 className={styles.logo}>smart kitchen</h1>
+            <nav className={styles.tabs} aria-label="Navigazione principale">
+              {TABS.map(t => (
+                <button
+                  key={t.id}
+                  type="button"
+                  className={`${styles.tab} ${nav.tab === t.id ? styles.tabActive : ''}`}
+                  aria-current={nav.tab === t.id ? 'page' : undefined}
+                  onClick={() => handleTabChange(t.id)}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </nav>
+          </div>
+        </header>
 
-      {/* Desktop: fixed sidebar (hidden on ≤1023px via CSS) */}
-      <Sidebar activeTab={activeTab} onTabChange={handleTabChange} />
+        {/* Desktop: fixed sidebar (hidden on ≤1023px via CSS) */}
+        <Sidebar activeTab={nav.tab} onTabChange={handleTabChange} onAdd={() => openAdd('sheet')} />
 
-      <main ref={mainRef} className={styles.main}>
-        {activeTab === 'dispensa' && (
-          <PantryTab
-            inventory={inventory}
-            onToggleUrgent={toggleUrgent}
-            onUpdate={updateItem}
-            onRemove={removeItem}
-            onAdd={addItem}
-            onAddBatch={addBatch}
-            onMove={moveItem}
-          />
-        )}
+        <main ref={mainRef} className={styles.main}>
+          {!online && <OfflineBanner />}
 
-        {inRicetteGroup && (
-          <>
-            <div className={styles.subNav}>
-              <button
-                className={`${styles.subNavBtn} ${activeTab === 'ricette' ? styles.subNavActive : ''}`}
-                onClick={() => handleTabChange('ricette')}
-              >
-                Genera AI
-              </button>
-              <button
-                className={`${styles.subNavBtn} ${activeTab === 'ricette-salvate' ? styles.subNavActive : ''}`}
-                onClick={() => handleTabChange('ricette-salvate')}
-              >
-                Salvate ({savedRecipes.recipes.length})
-              </button>
-            </div>
-            <div className={styles.splitWrap}>
-              <div className={activeTab !== 'ricette' ? styles.hideMobile : ''}>
-                <AITab
-                  buttonLabel="Cosa cucino stasera? Genera ricette con quello che ho"
-                  onFetch={ricette.fetchRicette}
-                  loading={ricette.loading}
-                  messages={ricette.messages}
-                  streaming={ricette.streaming}
-                  error={ricette.error}
-                  cached={ricette.cached}
-                  onSend={ricette.sendFollowUp}
-                  parseForSave={parseRecipesCb}
-                  onSaveItems={savedRecipes.addRecipes}
-                />
-              </div>
-              <div className={activeTab !== 'ricette-salvate' ? styles.hideMobile : ''}>
-                <SavedRecipesTab
-                  recipes={savedRecipes.recipes}
-                  onRemove={savedRecipes.removeRecipe}
-                />
-              </div>
-            </div>
-          </>
-        )}
+          {nav.tab === 'oggi' && (
+            <TodayTab
+              inventory={inventory}
+              meals={mealTracker.meals}
+              onCook={handleCook}
+              onPlan={() => nav.go('cucina', 'pasti')}
+              onSavedRecipes={() => nav.go('cucina', 'salvate')}
+              onProfile={() => nav.go('tu')}
+              onAdd={() => openAdd('sheet')}
+            />
+          )}
 
-        {inSpesaGroup && (
-          <>
-            <div className={styles.subNav}>
-              <button
-                className={`${styles.subNavBtn} ${activeTab === 'lista-spesa' ? styles.subNavActive : ''}`}
-                onClick={() => handleTabChange('lista-spesa')}
-              >
-                Lista ({savedShopping.items.length})
-              </button>
-              <button
-                className={`${styles.subNavBtn} ${activeTab === 'spesa' ? styles.subNavActive : ''}`}
-                onClick={() => handleTabChange('spesa')}
-              >
-                Genera AI
-              </button>
-            </div>
-            <div className={styles.splitWrap}>
-              <div className={activeTab !== 'spesa' ? styles.hideMobile : ''}>
-                <AITab
-                  buttonLabel="Genera lista della spesa per questa settimana"
-                  onFetch={spesa.fetchSpesa}
-                  loading={spesa.loading}
-                  messages={spesa.messages}
-                  streaming={spesa.streaming}
-                  error={spesa.error}
-                  cached={spesa.cached}
-                  onSend={spesa.sendFollowUp}
-                  parseForSave={parseShoppingCb}
-                  onSaveItems={savedShopping.addItems}
-                />
-              </div>
-              <div className={activeTab !== 'lista-spesa' ? styles.hideMobile : ''}>
-                <SavedShoppingTab
-                  items={savedShopping.items}
-                  onToggle={savedShopping.toggleChecked}
-                  onRemove={savedShopping.removeItem}
-                  onClearChecked={savedShopping.clearChecked}
-                  onMoveToPantry={handleMoveToPantry}
-                  onAddItem={savedShopping.addItem}
-                  onUpdateItem={savedShopping.updateItem}
-                  onAddFromPantry={savedShopping.addItems}
-                  inventory={inventory}
-                />
-              </div>
-            </div>
-          </>
-        )}
+          {nav.tab === 'dispensa' && (
+            <PantryTab
+              inventory={inventory}
+              onToggleUrgent={toggleUrgent}
+              onUpdate={updateItem}
+              onRemove={removeItem}
+              onRestore={restoreItem}
+              onMove={moveItem}
+              onOpenAdd={openAdd}
+              onGoApiKey={handleGoApiKey}
+            />
+          )}
 
-        {activeTab === 'pasti' && (
-          <MealTrackerTab
-            meals={mealTracker.meals}
-            onAdd={mealTracker.addMeal}
-            onRemove={mealTracker.removeMeal}
-            savedRecipes={savedRecipes.recipes}
-            onOpenSavedRecipes={() => handleTabChange('ricette-salvate')}
-          />
-        )}
-        {activeTab === 'settings' && (
-          <div className={styles.narrowTab}>
-            <SettingsTab
+          {nav.tab === 'cucina' && (
+            <CucinaTab
+              sub={nav.sub.cucina}
+              onSubChange={v => nav.setSubView('cucina', v)}
+              ricette={ricette}
+              savedRecipes={savedRecipes}
+              mealTracker={mealTracker}
+              inventory={inventory}
+              onGoApiKey={handleGoApiKey}
+              detailId={nav.detail?.type === 'recipe' ? nav.detail.id : null}
+              onOpenRecipe={(id) => nav.openDetail({ type: 'recipe', id })}
+              onCloseDetail={nav.closeDetail}
+              onCookTonight={handleCookTonight}
+              onAddMissing={handleAddMissing}
+            />
+          )}
+
+          {nav.tab === 'spesa' && (
+            <SpesaTab
+              sub={nav.sub.spesa}
+              onSubChange={v => nav.setSubView('spesa', v)}
+              spesa={spesa}
+              savedShopping={savedShopping}
+              inventory={inventory}
+              onMoveToPantry={handleMoveToPantry}
+              onGoApiKey={handleGoApiKey}
+            />
+          )}
+
+          {nav.tab === 'tu' && (
+            <TuTab
               user={user}
+              online={online}
+              detail={nav.detail}
+              onOpenNotifications={() => nav.openDetail({ type: 'notifiche' })}
+              onCloseDetail={nav.closeDetail}
               onExport={exportCSV}
               onImport={importCSV}
               onClearInventory={clearInventory}
               onSignOut={signOut}
             />
-          </div>
-        )}
-      </main>
+          )}
+        </main>
 
-      {/* Mobile: fixed bottom nav (hidden on ≥601px via CSS) */}
-      <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
-    </div>
+        <AddFlow
+          state={add}
+          onClose={closeAdd}
+          onSwitch={switchAdd}
+          onAdd={addItem}
+          onAddBatch={addBatch}
+          onGoApiKey={handleGoApiKey}
+        />
+
+        {/* Mobile: bottom nav (hidden on ≥601px via CSS, and in detail views) */}
+        {!nav.detail && <BottomNav activeTab={nav.tab} onTabChange={handleTabChange} />}
+      </div>
+    </>
   )
 }

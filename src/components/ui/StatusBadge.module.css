@@ -1,0 +1,16 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+}
+.expired { background: var(--urgent-light); color: var(--urgent-text); }
+.soon    { background: var(--warn-light);   color: var(--warn-text); }
+.open    { background: var(--info-light);   color: var(--info-text); }
+.ok      { background: var(--success-light); color: var(--success-text); }
+.neutral { background: var(--surface-hover); color: var(--text); }

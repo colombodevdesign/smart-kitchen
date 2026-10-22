@@ -5,9 +5,3 @@ export const SECTION_LABELS = {
   frigo: 'Frigo',
   freezer: 'Freezer',
 }
-
-export const SECTION_ICONS = {
-  credenza: '🫙',
-  frigo: '🌡️',
-  freezer: '❄️',
-}

@@ -1,15 +1,9 @@
 import { useMemo, useState, useEffect } from 'react'
 import { Modal } from './Modal.jsx'
-import { SECTIONS, SECTION_LABELS, SECTION_ICONS } from '../data/initialInventory.js'
-import { expiryStatus } from '../utils/date.js'
+import { SECTION_LABELS } from '../data/initialInventory.js'
+import { getPantryCandidates } from '../utils/pantry.js'
 import styles from './PantrySuggestionsModal.module.css'
-
-function statusRank(c) {
-  if (c.status === 'expired') return 0
-  if (c.urgent && c.status !== 'soon') return 1
-  if (c.status === 'soon') return 2
-  return 3
-}
+import { SectionIcon } from './ui/Icon.jsx'
 
 function badgeFor(c) {
   if (c.status === 'expired') return { label: 'scaduto', cls: styles.badgeExpired }
@@ -26,25 +20,7 @@ export function PantrySuggestionsModal({ open, onClose, inventory, existingItems
         .filter(i => !i.checked)
         .map(i => i.name.trim().toLowerCase())
     )
-    const list = []
-    for (const section of SECTIONS) {
-      for (const item of (inventory[section] ?? [])) {
-        const status = expiryStatus(item.expiresAt)
-        const include = status === 'expired' || status === 'soon' || item.urgent
-        if (!include) continue
-        const key = item.name.trim().toLowerCase()
-        if (existingNames.has(key)) continue
-        list.push({
-          id: item.id,
-          name: item.name,
-          qty: item.qty || '',
-          urgent: !!item.urgent,
-          status,
-          section,
-        })
-      }
-    }
-    return list.sort((a, b) => statusRank(a) - statusRank(b))
+    return getPantryCandidates(inventory, existingNames)
   }, [inventory, existingItems, open])
 
   const [selected, setSelected] = useState(() => new Set())
@@ -119,7 +95,7 @@ export function PantrySuggestionsModal({ open, onClose, inventory, existingItems
                     <div className={styles.metaRow}>
                       {badge && <span className={`${styles.badge} ${badge.cls}`}>{badge.label}</span>}
                       <span className={styles.section}>
-                        {SECTION_ICONS[c.section]} {SECTION_LABELS[c.section]}
+                        <SectionIcon section={c.section} /> {SECTION_LABELS[c.section]}
                       </span>
                     </div>
                   </div>

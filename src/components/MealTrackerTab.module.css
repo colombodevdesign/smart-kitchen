@@ -1,345 +1,164 @@
-.wrap { display: flex; flex-direction: column; gap: 16px; }
+.wrap { display: flex; flex-direction: column; gap: 14px; }
 
-/* ── Navigation row ── */
 .navRow {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 4px;
 }
 
 .navBtn {
-  background: var(--surface);
-  border: 0.5px solid var(--border);
-  border-radius: var(--radius-sm);
-  width: 32px;
-  height: 32px;
-  font-size: 18px;
-  color: var(--text-muted);
+  width: var(--tap);
+  height: var(--tap);
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-  transition: background 0.12s, color 0.12s;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  border-radius: 50%;
 }
-.navBtn:hover { background: var(--surface-hover); color: var(--text); }
+.navBtn:hover { background: var(--surface-hover); }
 
 .periodLabel {
-  font-size: 15px;
+  min-height: var(--tap);
+  padding: 0 6px;
+  font-family: var(--font-display);
+  font-size: 20px;
   font-weight: 600;
   color: var(--text);
-  min-width: 200px;
-  text-align: center;
   background: none;
   border: none;
-  cursor: pointer;
-  border-radius: var(--radius-sm);
-  padding: 4px 8px;
-  transition: background 0.1s;
 }
-.periodLabel:hover { background: var(--surface-hover); }
 
-.viewToggle {
-  padding: 5px 12px;
-  font-size: 12px;
-  font-weight: 500;
-  background: var(--surface);
-  border: 0.5px solid var(--border);
-  border-radius: 99px;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: all 0.12s;
-  white-space: nowrap;
-}
-.viewToggle:hover { border-color: var(--border-strong); color: var(--text); }
-.viewToggleActive { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+.viewSeg { margin-left: auto; flex: none; min-width: 190px; }
 
-/* ── Calendar grid ── */
+.layout { display: flex; flex-direction: column; gap: 18px; }
+
+.letters,
 .grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 1px;
-  background: var(--border);
-  border: 0.5px solid var(--border);
-  border-radius: var(--radius-md);
-  overflow: hidden;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
 }
-
-.dayHeader {
-  background: var(--surface-hover);
+.letters {
   text-align: center;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-hint);
-  padding: 8px 4px;
-}
-
-.emptyCell {
-  background: var(--bg);
-  min-height: 90px;
-}
-
-.cell {
-  background: var(--surface);
-  min-height: 90px;
-  padding: 6px;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  border: none;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-  color: var(--text);
-  transition: background 0.12s;
-}
-.cell:hover { background: var(--surface-hover); }
-.cell:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: -2px;
-}
-
-/* Week view: taller cells */
-.weekCell {
-  min-height: 150px;
-  padding: 8px;
-}
-
-.today { background: var(--accent-light); }
-.today:hover { background: var(--accent-light); }
-.today .dayNum { color: var(--accent); font-weight: 700; }
-
-.dayNum {
   font-size: 12px;
   font-weight: 500;
   color: var(--text-muted);
-  line-height: 1;
+  padding-bottom: 4px;
 }
+.grid { row-gap: 2px; }
 
-.weekDayNum {
-  font-size: 14px;
-}
-
-/* ── Meal items ── */
-.mealList {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+.cell {
+  min-height: 52px;
+  padding: 4px 0 2px;
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 2px;
-  flex: 1;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
 }
+.cell:hover { background: var(--surface-hover); }
+.selected { background: var(--accent-light); }
+.selected:hover { background: var(--accent-light); }
 
-.mealItem {
-  display: flex;
-}
-
-.mealBtn {
+.num {
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
-  gap: 4px;
-  width: 100%;
-  background: var(--surface-hover);
-  border: none;
-  border-radius: 4px;
-  padding: 3px 5px;
-  cursor: pointer;
-  text-align: left;
-  font: inherit;
-  color: var(--text);
-  transition: background 0.1s;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+  border-radius: 50%;
 }
-.mealBtn:hover { background: var(--border); }
+.numToday { color: var(--on-accent); background: var(--accent); }
 
-.categoryDot {
+.dots { height: 8px; display: flex; align-items: center; gap: 3px; }
+.dot {
   display: inline-block;
   width: 6px;
   height: 6px;
   border-radius: 50%;
+  background: var(--cat, var(--text-muted));
   flex-shrink: 0;
 }
 
-.mealText {
-  flex: 1;
-  font-size: 10px;
-  line-height: 1.3;
+/* Selected day */
+.day { display: flex; flex-direction: column; gap: 10px; }
+
+.dayTitle {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.meals { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+
+.meal {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 12px 14px;
+  text-align: left;
   color: var(--text);
-  word-break: break-word;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
 }
+.meal:hover { border-color: var(--border-strong); }
 
-.weekMealText {
-  font-size: 11px;
-  line-height: 1.4;
-  -webkit-line-clamp: 3;
+.mealCat {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
 }
+.mealCat .dot { width: 10px; height: 10px; }
+.mealText { font-size: 16px; font-weight: 500; }
+.mealRecipe { font-size: 13px; color: var(--accent); }
 
-/* ── Floating Action Button (matches PantryTab style) ── */
-.fab {
+.addRow { display: flex; flex-direction: column; gap: 8px; }
+
+.add {
+  min-height: var(--tap-lg);
   display: flex;
   align-items: center;
   justify-content: center;
-  position: fixed;
-  right: 24px;
-  bottom: 24px;
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
-  z-index: 50;
-  cursor: pointer;
-  transition: background 0.15s, box-shadow 0.15s, transform 0.12s;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--accent);
+  background: transparent;
+  border: 1.5px dashed var(--border-strong);
+  border-radius: var(--radius-md);
 }
-.fab:hover { background: var(--accent-hover); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28); }
-.fab:active { transform: scale(0.94); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18); }
+.add:hover { background: var(--accent-light); border-color: var(--accent); }
 
-@media (max-width: 600px) {
-  .fab { bottom: calc(56px + env(safe-area-inset-bottom) + 16px); right: 20px; }
-}
-
-/* ── Period meal list ── */
-.listSection {
+.legend {
+  list-style: none;
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 4px;
-}
-
-.listTitle {
-  margin: 0;
+  flex-wrap: wrap;
+  gap: 4px 16px;
   font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
   color: var(--text-muted);
 }
+.legend li { display: inline-flex; align-items: center; gap: 6px; }
 
-.listEmpty {
-  margin: 0;
-  padding: 14px 16px;
-  font-size: 13px;
-  color: var(--text-hint);
-  background: var(--surface);
-  border: 0.5px dashed var(--border-strong);
-  border-radius: var(--radius-md);
-  text-align: center;
-}
-
-.listGroups {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.listGroup {
-  background: var(--surface);
-  border: 0.5px solid var(--border);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-}
-
-.listDate {
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-muted);
-  padding: 8px 12px;
-  background: var(--surface-hover);
-  border-bottom: 0.5px solid var(--border);
-}
-
-.listDateToday {
-  color: var(--accent);
-  background: var(--accent-light);
-}
-
-.listMeals {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.listMeals > li + li { border-top: 0.5px solid var(--border); }
-
-.listMealBtn {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 10px 12px;
-  background: none;
-  border: none;
-  font: inherit;
-  text-align: left;
-  color: var(--text);
-  cursor: pointer;
-  transition: background 0.12s;
-}
-.listMealBtn:hover { background: var(--surface-hover); }
-
-.listDot {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.listMealMain {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex: 1;
-  min-width: 0;
-}
-
-.listMealText {
-  font-size: 14px;
-  line-height: 1.35;
-  color: var(--text);
-  word-break: break-word;
-}
-
-.listMealCat {
-  font-size: 11px;
-  color: var(--text-hint);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.listMealRecipe {
-  flex-shrink: 0;
-  font-size: 11px;
-  color: var(--accent);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 40%;
-}
-
-/* ── Mobile overrides ── */
-@media (max-width: 600px) {
-  .cell { min-height: 72px; padding: 4px; }
-  .weekCell { min-height: 130px; padding: 6px; }
-  .mealText { font-size: 9px; }
-  .weekMealText { font-size: 10px; }
-  .dayNum { font-size: 11px; }
-  .weekDayNum { font-size: 13px; }
-  .periodLabel { font-size: 13px; min-width: 160px; }
-  .mealBtn { padding: 2px 4px; }
+@media (min-width: 1024px) {
+  .layout {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 32px;
+  }
+  .layout > div:first-child { flex: 1.3; min-width: 0; }
+  .day { flex: 1; min-width: 0; }
+  .cell { min-height: 64px; }
 }

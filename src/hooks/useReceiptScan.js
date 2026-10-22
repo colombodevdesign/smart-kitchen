@@ -1,8 +1,8 @@
 import { useCallback, useRef, useState } from 'react'
 import { GoogleGenAI } from '@google/genai'
+import { MODEL_NAME } from '../ai/model.js'
 
 const GEMINI_API_KEY_STORAGE = 'gemini-api-key'
-const MODEL_NAME = 'gemini-3-flash-preview'
 
 // Receipts are photographed at full sensor resolution; the model doesn't need
 // more than this and the inline payload stays small.
@@ -97,7 +97,7 @@ function parseApiError(err) {
   if (msg.includes('429') || msg.toLowerCase().includes('quota'))
     return 'Quota Gemini esaurita. Riprova tra qualche minuto.'
   if (msg.includes('API_KEY_INVALID') || msg.includes('API key'))
-    return 'API key non valida. Controlla le Impostazioni.'
+    return 'API key non valida. Controllala in Tu.'
   if (msg.toLowerCase().includes('unsupported') || msg.includes('400'))
     return 'Il modello non ha accettato l\'immagine. Prova con una foto più nitida.'
   return msg || 'Errore di connessione con Gemini.'
@@ -140,7 +140,7 @@ export function useReceiptScan() {
     }
     const apiKey = localStorage.getItem(GEMINI_API_KEY_STORAGE)
     if (!apiKey) {
-      setError({ message: 'API key non configurata. Vai in Impostazioni per inserirla.' })
+      setError({ message: 'API key non configurata. Impostala in Tu.' })
       setStatus('error')
       return
     }

@@ -1,5 +1,6 @@
-import { SECTIONS, SECTION_LABELS, SECTION_ICONS } from '../data/initialInventory.js'
+import { SECTIONS, SECTION_LABELS } from '../data/initialInventory.js'
 import styles from './BatchReview.module.css'
+import { Icon, SectionIcon } from './ui/Icon.jsx'
 
 // Shared by VoiceBatchModal and ReceiptScanModal so the two review screens
 // (and their footer buttons) stay visually identical.
@@ -53,7 +54,7 @@ export function BatchReviewList({ candidates, emptyMessage, onToggle, onUpdate, 
                   onClick={() => onUpdate(c.id, { section: s })}
                   title={SECTION_LABELS[s]}
                 >
-                  <span aria-hidden="true">{SECTION_ICONS[s]}</span>
+                  <SectionIcon section={s} size={16} />
                 </button>
               ))}
             </div>
@@ -63,7 +64,7 @@ export function BatchReviewList({ candidates, emptyMessage, onToggle, onUpdate, 
             className={styles.removeBtn}
             onClick={() => onRemove(c.id)}
             aria-label={`Rimuovi ${c.name}`}
-          >×</button>
+          ><Icon name="close" size={18} strokeWidth={2.2} /></button>
         </li>
       ))}
     </ul>

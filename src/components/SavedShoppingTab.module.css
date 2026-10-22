@@ -1,72 +1,70 @@
 .wrap { display: flex; flex-direction: column; gap: 16px; }
 
-.pageHeader {
+.summary { font-size: 14px; color: var(--text-muted); }
+
+/* "Stanno per scadere" suggestion */
+.suggest {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 12px 12px 16px;
+  color: var(--warn-text);
+  background: var(--warn-light);
+  border-radius: var(--radius-md);
+}
+.suggestText { display: flex; flex-direction: column; min-width: 0; font-size: 13px; }
+.suggestText strong { font-size: 15px; }
+.suggestActions { display: flex; gap: 6px; flex: none; }
+.suggestAdd,
+.suggestPick {
+  min-height: var(--tap);
+  padding: 0 14px;
+  font-size: 15px;
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+}
+.suggestAdd { color: var(--surface); background: var(--warn-text); border: none; }
+.suggestPick { color: var(--warn-text); background: transparent; border: 1px solid var(--warn-text); }
+
+/* Bar shown while products are ticked */
+.actionBar {
+  position: sticky;
+  bottom: var(--float-bottom);
+  z-index: var(--z-fab);
+  display: flex;
   gap: 8px;
 }
-
-.title {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.headerRight {
+.moveBtn {
+  flex: 1;
+  min-height: var(--tap-lg);
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--on-accent);
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
 }
-
-.count {
-  font-size: 12px;
-  font-weight: 600;
-  padding: 2px 8px;
-  background: var(--accent-light);
-  color: var(--accent);
-  border-radius: 999px;
-}
-
-.pantryBtn {
-  font-size: 12px;
-  font-weight: 600;
-  padding: 4px 10px;
-  background: transparent;
-  color: var(--accent);
-  border: 0.5px solid var(--accent);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: background 0.12s;
-}
-.pantryBtn:hover { background: var(--accent-light); }
-
-.moveBtn {
-  font-size: 12px;
-  font-weight: 600;
-  padding: 4px 10px;
-  background: var(--accent-light);
-  color: var(--accent);
-  border: 0.5px solid var(--accent);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: background 0.12s, color 0.12s;
-}
-.moveBtn:hover { background: var(--accent); color: white; }
-
+.moveBtn:hover { background: var(--accent-hover); }
 .clearBtn {
-  font-size: 12px;
-  padding: 4px 10px;
-  background: var(--urgent-light);
+  flex: none;
+  width: var(--tap-lg);
+  min-height: var(--tap-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: var(--urgent-text);
-  border: 0.5px solid var(--urgent);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: opacity 0.12s;
+  background: var(--surface);
+  border: 1px solid var(--urgent);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
 }
-.clearBtn:hover { opacity: 0.8; }
+.clearBtn:hover { background: var(--urgent-light); }
 
 .assignmentList {
   display: flex;
@@ -77,14 +75,14 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 9px 0;
-  border-bottom: 0.5px solid var(--border);
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
 }
 .assignmentRow:last-child { border-bottom: none; }
 
 .assignmentName {
   flex: 1;
-  font-size: 13px;
+  font-size: 15px;
   color: var(--text);
   min-width: 0;
   overflow: hidden;
@@ -104,10 +102,11 @@
 }
 
 .sectionOption {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
-  padding: 3px 7px;
-  border: 0.5px solid var(--border);
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-muted);
@@ -120,63 +119,57 @@
 
 .sectionOptionActive {
   background: var(--accent);
-  color: white !important;
+  color: var(--on-accent) !important;
   border-color: var(--accent);
 }
 
 .confirmBtn {
   width: 100%;
-  padding: 10px 16px;
-  font-size: 14px;
-  font-weight: 600;
+  min-height: 52px;
+  padding: 0 16px;
+  font-size: 16px;
+  font-weight: 700;
   background: var(--accent);
-  color: white;
+  color: var(--on-accent);
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   cursor: pointer;
   font-family: inherit;
   transition: opacity 0.12s;
 }
 .confirmBtn:hover { opacity: 0.9; }
 
-.empty {
-  padding: 2rem;
-  text-align: center;
-  color: var(--text-muted);
-  font-size: 14px;
-  line-height: 1.8;
-}
-
-.hint { margin-top: 6px; font-size: 13px; color: var(--text-hint); }
-.hint strong { color: var(--text-muted); }
-
-.categories { display: flex; flex-direction: column; gap: 16px; }
+.categories { display: flex; flex-direction: column; gap: 14px; }
 
 .category {
-  background: var(--surface);
-  border: 0.5px solid var(--border);
-  border-radius: var(--radius-md);
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .catTitle {
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-hint);
-  padding: 10px 14px 8px;
-  border-bottom: 0.5px solid var(--border);
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
 }
 
-.itemList { list-style: none; }
+.itemList {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
 
 .item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 9px 14px;
-  border-bottom: 0.5px solid var(--border);
+  gap: 12px;
+  min-height: 52px;
+  padding: 4px 8px 4px 16px;
+  border-bottom: 1px solid var(--border);
   transition: background 0.1s;
 }
 .item:last-child { border-bottom: none; }
@@ -190,8 +183,8 @@
 }
 
 .checkbox {
-  width: 16px;
-  height: 16px;
+  width: 24px;
+  height: 24px;
   accent-color: var(--accent);
   flex-shrink: 0;
   cursor: pointer;
@@ -205,49 +198,55 @@
 }
 
 .itemName {
-  font-size: 14px;
+  padding: 0;
+  font-size: 16px;
+  font-weight: 500;
+  text-align: left;
   color: var(--text);
-  transition: color 0.15s;
-  cursor: text;
+  background: none;
+  border: none;
   overflow-wrap: anywhere;
 }
+.itemName:disabled { cursor: default; }
 
 .nameInput {
   flex: 1;
   font-size: 14px;
   color: var(--text);
   background: var(--surface);
-  border: 0.5px solid var(--accent);
+  border: 1.5px solid var(--accent);
   border-radius: var(--radius-sm);
-  padding: 4px 8px;
+  padding: 6px 8px;
   outline: none;
   font-family: inherit;
   width: 100%;
 }
 
 .qty {
-  font-size: 12px;
+  font-size: 14px;
   font-variant-numeric: tabular-nums;
   color: var(--text-muted);
-  padding: 2px 8px;
-  background: var(--surface-hover);
-  border-radius: var(--radius-sm);
-  cursor: text;
+  padding: 0;
+  background: none;
+  border: none;
   flex-shrink: 0;
 }
+.qty:disabled { cursor: default; }
 
 .qtyEmpty {
-  font-size: 11px;
-  color: var(--text-hint);
-  padding: 2px 6px;
-  border: 0.5px dashed var(--border);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 2px 10px;
+  background: transparent;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-pill);
   opacity: 0;
   transition: opacity 0.12s, color 0.12s;
   flex-shrink: 0;
 }
-.item:hover .qtyEmpty { opacity: 1; }
+.item:hover .qtyEmpty,
+.qtyEmpty:focus-visible { opacity: 1; }
+.qtyEmpty:disabled { display: none; }
 .qtyEmpty:hover { color: var(--accent); border-color: var(--accent); }
 
 .qtyInput {
@@ -264,15 +263,17 @@
 }
 
 .deleteBtn {
+  width: var(--tap);
+  height: var(--tap);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: none;
   border: none;
-  color: var(--text-hint);
-  font-size: 13px;
-  padding: 2px 4px;
-  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  border-radius: 50%;
   transition: color 0.12s, background 0.12s;
   flex-shrink: 0;
-  cursor: pointer;
 }
 .deleteBtn:hover { color: var(--urgent); background: var(--urgent-light); }
 
@@ -284,9 +285,9 @@
   display: grid;
   grid-template-columns: 1fr 90px 140px auto;
   gap: 8px;
-  padding: 10px 12px;
+  padding: 12px;
   background: var(--surface);
-  border: 0.5px solid var(--border);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md);
   align-items: center;
 }
@@ -294,12 +295,13 @@
 .addName,
 .addQty,
 .addCategory {
-  font-size: 13px;
+  font-size: 15px;
   color: var(--text);
-  background: var(--bg, var(--surface));
-  border: 0.5px solid var(--border);
+  background: var(--bg);
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 6px 8px;
+  min-height: var(--tap);
+  padding: 0 10px;
   outline: none;
   font-family: inherit;
   min-width: 0;
@@ -309,18 +311,17 @@
 .addCategory:focus { border-color: var(--accent); }
 
 .addBtn {
-  font-size: 12px;
-  font-weight: 600;
-  padding: 6px 12px;
+  font-size: 15px;
+  font-weight: 700;
+  min-height: var(--tap);
+  padding: 0 16px;
   background: var(--accent);
-  color: white;
+  color: var(--on-accent);
   border: none;
   border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: opacity 0.12s;
   white-space: nowrap;
 }
-.addBtn:hover { opacity: 0.9; }
+.addBtn:hover { background: var(--accent-hover); }
 
 /* Reflow based on the column's own width (container), not the viewport:
    on desktop the list lives in a ~388px split column, where the 4-column

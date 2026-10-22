@@ -1,0 +1,27 @@
+/* Shared by the destination containers (Cucina, Spesa, Tu). */
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.split {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+@media (min-width: 1024px) {
+  .splitBoth {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+}
+
+.narrow {
+  width: 100%;
+  max-width: 880px;
+  margin: 0 auto;
+}

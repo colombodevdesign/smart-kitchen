@@ -1,0 +1,15 @@
+.banner {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--warn-text);
+  background: var(--warn-light);
+  border-radius: var(--radius-sm);
+}

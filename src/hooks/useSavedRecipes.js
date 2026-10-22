@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { doc, onSnapshot, setDoc } from 'firebase/firestore'
 import { db } from '../firebase.js'
+import { extractIngredients } from '../ai/extractIngredients.js'
+import { getApiKey } from '../utils/apiKey.js'
 
 const STORAGE_KEY = 'cucina-ricette-salvate-v1'
 
@@ -45,17 +47,43 @@ export function useSavedRecipes(uid) {
     if (uidRef.current) setDoc(firestoreRef(uidRef.current), { items: next }).catch(console.error)
   }
 
-  const addRecipes = useCallback((items) => {
-    const ts = Date.now()
+  const updateRecipe = useCallback((id, patch) => {
     setRecipes(prev => {
-      const next = [
-        ...prev,
-        ...items.map((r, i) => ({ id: `${ts}-${i}`, ...r, savedAt: ts })),
-      ]
+      const next = prev.map(r => r.id === id ? { ...r, ...patch } : r)
       persist(next)
       return next
     })
   }, [])
+
+  // Reads ingredients with Gemini (one batched call) and stores them on the
+  // recipes. Optional: without an API key, offline or on any error the recipes
+  // simply stay without an ingredient list ("Analizza ingredienti" retries).
+  const analyzeIngredients = useCallback(async (list) => {
+    const apiKey = getApiKey()
+    if (!apiKey || (typeof navigator !== 'undefined' && navigator.onLine === false)) return false
+    try {
+      const byId = await extractIngredients(apiKey, list.map(r => ({ id: r.id, content: r.content })))
+      let any = false
+      for (const [id, ingredients] of Object.entries(byId)) {
+        if (ingredients.length > 0) { updateRecipe(id, { ingredients }); any = true }
+      }
+      return any
+    } catch (e) {
+      console.warn('Estrazione ingredienti non riuscita', e)
+      return false
+    }
+  }, [updateRecipe])
+
+  const addRecipes = useCallback((items) => {
+    const ts = Date.now()
+    const created = items.map((r, i) => ({ id: `${ts}-${i}`, ...r, savedAt: ts }))
+    setRecipes(prev => {
+      const next = [...prev, ...created]
+      persist(next)
+      return next
+    })
+    analyzeIngredients(created)
+  }, [analyzeIngredients])
 
   const removeRecipe = useCallback((id) => {
     setRecipes(prev => {
@@ -65,5 +93,5 @@ export function useSavedRecipes(uid) {
     })
   }, [])
 
-  return { recipes, addRecipes, removeRecipe }
+  return { recipes, addRecipes, removeRecipe, updateRecipe, analyzeIngredients }
 }

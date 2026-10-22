@@ -1,10 +1,12 @@
 import { useState, useCallback, useRef } from 'react'
 import { GoogleGenAI } from '@google/genai'
 import { getSeasonal, getMonthName } from '../data/seasonal'
+import { MODEL_NAME } from '../ai/model.js'
+import { PROMPT_VERSION, ricettePrompts, spesaPrompts } from '../ai/prompts.js'
+import { AIError, classifyError } from '../ai/errors.js'
+import { getApiKey as readApiKey } from '../utils/apiKey.js'
 
 const CACHE_KEY = 'cucina-ai-cache-v1'
-const GEMINI_API_KEY_STORAGE = 'gemini-api-key'
-const MODEL_NAME = 'gemini-3-flash-preview'
 
 function hashString(str) {
   let h = 0
@@ -39,18 +41,9 @@ function clearSession(name) {
 }
 
 function getApiKey() {
-  const key = localStorage.getItem(GEMINI_API_KEY_STORAGE)
-  if (!key) throw new Error('API key non configurata. Vai in Impostazioni per inserirla.')
+  const key = readApiKey()
+  if (!key) throw new AIError('no-key', 'API key non configurata. Impostala in Tu.')
   return key
-}
-
-function parseError(e) {
-  const msg = e.message || ''
-  if (msg.includes('429') || msg.toLowerCase().includes('quota'))
-    return 'Quota Gemini esaurita. Riprova tra qualche minuto o verifica il piano di fatturazione.'
-  if (msg.includes('API_KEY_INVALID') || msg.includes('API key'))
-    return 'API key non valida. Controlla le Impostazioni.'
-  return msg || 'Errore di connessione.'
 }
 
 export function useAI(getInventoryText, name) {
@@ -60,6 +53,7 @@ export function useAI(getInventoryText, name) {
   const [streaming, setStreaming] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [errorCode, setErrorCode] = useState('')
   const [cached, setCached] = useState(false)
 
   const apiHistoryRef = useRef(saved?.apiHistory ?? [])
@@ -95,8 +89,10 @@ export function useAI(getInventoryText, name) {
     setLoading(true)
     setStreaming('')
     setError('')
+    setErrorCode('')
 
     try {
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) throw new AIError('offline', 'Sei offline. Riprova quando torni online.')
       const apiKey = getApiKey()
       const contents = [{ role: 'user', parts: [{ text: userPrompt }] }]
       const fullOutput = await runStream(apiKey, contents, text =>
@@ -111,7 +107,9 @@ export function useAI(getInventoryText, name) {
         saveSession(name, [{ role: 'model', text: fullOutput }], newHistory, systemPrompt)
       }
     } catch (e) {
-      setError(parseError(e))
+      const { code, message } = classifyError(e)
+      setError(message)
+      setErrorCode(code)
     } finally {
       setLoading(false)
     }
@@ -123,8 +121,10 @@ export function useAI(getInventoryText, name) {
     setLoading(true)
     setStreaming('')
     setError('')
+    setErrorCode('')
 
     try {
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) throw new AIError('offline', 'Sei offline. Riprova quando torni online.')
       const apiKey = getApiKey()
       const contents = [...apiHistoryRef.current, { role: 'user', parts: [{ text: userText }] }]
       const fullOutput = await runStream(apiKey, contents, text =>
@@ -139,7 +139,9 @@ export function useAI(getInventoryText, name) {
       })
       setStreaming('')
     } catch (e) {
-      setError(parseError(e))
+      const { code, message } = classifyError(e)
+      setError(message)
+      setErrorCode(code)
     } finally {
       setLoading(false)
     }
@@ -147,30 +149,28 @@ export function useAI(getInventoryText, name) {
 
   const fetchRicette = useCallback(() => {
     const inventoryText = getInventoryText()
-    const seasonal = getSeasonal().join(', ')
-    const month = getMonthName()
-    const cacheHash = hashString('ricette' + new Date().getMonth() + inventoryText)
-    call(
-      'Sei un cuoco italiano pratico. Rispondi in italiano. Usa ## per titoli ricette e - per liste.',
-      `Dispensa:\n${inventoryText}\n\nSuggerisci 3 ricette fattibili con questi ingredienti (${month}, Lombardia). Gli ingredienti marcati [APERTO] sono stati aperti e vanno consumati al più presto: dai loro priorità nelle ricette. Stagionale del mese: ${seasonal}.\n\nPer ogni ricetta: ## nome, ingredienti usati, 3-4 passi, tempo stimato.`,
-      'ricette', cacheHash
-    )
+    const prompts = ricettePrompts({
+      inventoryText,
+      seasonal: getSeasonal().join(', '),
+      month: getMonthName(),
+    })
+    const cacheHash = hashString(PROMPT_VERSION + 'ricette' + new Date().getMonth() + inventoryText)
+    call(prompts.system, prompts.user, 'ricette', cacheHash)
   }, [call, getInventoryText])
 
   const fetchSpesa = useCallback(() => {
     const inventoryText = getInventoryText()
-    const seasonal = getSeasonal().join(', ')
-    const month = getMonthName()
-    const cacheHash = hashString('spesa' + new Date().getMonth() + inventoryText)
-    call(
-      'Sei un esperto di spesa italiana stagionale. Rispondi in italiano. Usa ## per categorie e - per liste.',
-      `Dispensa:\n${inventoryText}\n\nCrea lista della spesa per 7 giorni (${month}, Lombardia). Non duplicare ciò che ho già. Stagionale del mese: ${seasonal}.\n\nOrganizza per categoria.`,
-      'spesa', cacheHash
-    )
+    const prompts = spesaPrompts({
+      inventoryText,
+      seasonal: getSeasonal().join(', '),
+      month: getMonthName(),
+    })
+    const cacheHash = hashString(PROMPT_VERSION + 'spesa' + new Date().getMonth() + inventoryText)
+    call(prompts.system, prompts.user, 'spesa', cacheHash)
   }, [call, getInventoryText])
 
   return {
-    loading, messages, streaming, error, cached,
+    loading, messages, streaming, error, errorCode, cached,
     fetchRicette, fetchSpesa, sendFollowUp,
     clearOutput: () => {
       setMessages([])

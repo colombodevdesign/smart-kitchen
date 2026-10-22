@@ -1,0 +1,44 @@
+.seg {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--surface-hover);
+  border-radius: var(--radius-md);
+}
+
+.btn {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--tap);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 10px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  transition: color 0.12s, background 0.12s;
+}
+.btn:hover { color: var(--text); }
+
+.on {
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 700;
+  box-shadow: var(--shadow-sm);
+}
+
+.count {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-hover);
+  color: var(--text-muted);
+}
+.on .count { background: var(--accent-light); color: var(--accent); }

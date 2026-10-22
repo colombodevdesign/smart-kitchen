@@ -1,0 +1,165 @@
+.wrap { display: flex; flex-direction: column; gap: 14px; }
+
+.account {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.avatar,
+.avatarFallback {
+  flex: none;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+}
+.avatar { object-fit: cover; }
+.avatarFallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-light);
+}
+.accountInfo { display: flex; flex-direction: column; min-width: 0; }
+.accountName { font-size: 17px; font-weight: 700; }
+.accountEmail { font-size: 14px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; }
+.sync { font-size: 13px; font-weight: 700; color: var(--success-text); }
+.syncOff { color: var(--warn-text); }
+
+.linkCard {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  width: 100%;
+  text-align: left;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.linkCard:hover { border-color: var(--border-strong); }
+.bell {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--highlight-ink);
+  background: var(--highlight);
+  border-radius: var(--radius-sm);
+}
+.linkText { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.linkText strong { font-size: 16px; }
+.linkText span { font-size: 14px; color: var(--text-muted); }
+.chev { color: var(--text-muted); }
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.cardTitle { font-size: 16px; font-weight: 700; }
+
+.list {
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.list li + li { border-top: 1px solid var(--border); }
+.row {
+  width: 100%;
+  min-height: var(--tap-lg);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  font-size: 16px;
+  font-weight: 500;
+  text-align: left;
+  color: var(--text);
+  background: none;
+  border: none;
+}
+.row:hover { background: var(--surface-hover); }
+.rowLabel { flex: 1; }
+.danger { color: var(--urgent-text); }
+
+.signOut {
+  min-height: 48px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+}
+.signOut:hover { color: var(--text); }
+
+/* dialogs */
+.dialogBody { display: flex; flex-direction: column; gap: 14px; }
+.desc { font-size: 15px; color: var(--text-muted); }
+
+.keyRow { display: flex; gap: 8px; }
+.keyInput {
+  flex: 1;
+  min-width: 0;
+  min-height: 52px;
+  padding: 0 14px;
+  font-size: 16px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  outline: none;
+}
+.keyInput:focus { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.visBtn {
+  flex: none;
+  width: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.link { font-size: 15px; color: var(--accent); text-decoration: underline; }
+
+.primary,
+.secondary,
+.dangerBtn {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+.primary { color: var(--on-accent); background: var(--accent); border: none; }
+.primary:hover { background: var(--accent-hover); }
+.secondary { flex: 1; color: var(--text); background: var(--surface); border: 1px solid var(--border-strong); }
+.secondary:hover { background: var(--surface-hover); }
+.dangerBtn { color: var(--on-strong); background: var(--urgent); border: none; }
+
+.dataRow { display: flex; gap: 10px; }
+.hiddenInput { display: none; }
+.ok { font-size: 14px; font-weight: 700; color: var(--success-text); }
+.err { font-size: 14px; font-weight: 700; color: var(--urgent-text); }

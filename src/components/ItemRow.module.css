@@ -1,39 +1,41 @@
-/* Swipe wrapper: clips the sliding card and hosts action backgrounds */
+/* Swipe wrapper: clips the sliding card and hosts the revealed actions */
 .swipeWrapper {
   position: relative;
   overflow: hidden;
   border-radius: var(--radius-md);
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 
-/* Action backgrounds revealed during swipe */
-.bgDelete,
-.bgOpen {
+/* Actions revealed by swiping the card to the left (two 72px buttons).
+   Hidden at rest; ItemRow.jsx shows them while dragging or open. */
+.swipeActions {
   position: absolute;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 144px;
   display: flex;
+  visibility: hidden;
+}
+.swipeBtn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
-  opacity: 0;
-  pointer-events: none;
+  justify-content: center;
+  gap: 4px;
+  padding: 0;
+  border: none;
+  color: var(--on-strong);
+  font-size: 12px;
+  font-weight: 700;
 }
-.bgDelete {
-  background: var(--urgent);
-  padding-left: 22px;
-  color: #fff;
-}
-.bgOpen {
-  background: var(--accent);
-  justify-content: flex-end;
-  padding-right: 22px;
-  color: #fff;
-}
-.bgIcon  { font-size: 20px; display: inline-block; transform: scale(0.7); }
-.bgLabel { font-size: 13px; font-weight: 600; letter-spacing: 0.01em; }
+.swipeOpen   { background: var(--info-strong); }
+.swipeDelete { background: var(--urgent); }
 
-/* Card wrapper: border + background + rounded corners */
+/* Card: border + background + rounded corners */
 .card {
-  border: 0.5px solid var(--border);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--surface);
   transition: border-color 0.12s;
@@ -41,19 +43,19 @@
   min-width: 0;
   touch-action: pan-y;
   position: relative;
-  z-index: 1;
+  z-index: var(--z-row);
 }
 .card:hover { border-color: var(--border-strong); }
 .editing   { border-color: var(--accent) !important; }
 .cardExpanded { border-color: var(--border-strong); }
-.opened    { border-left: 2px solid var(--accent) !important; }
 
 /* Main flex row */
 .row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 7px 12px;
+  gap: 10px;
+  min-height: 62px;
+  padding: 8px 12px 8px 16px;
   min-width: 0;
 }
 
@@ -68,204 +70,142 @@
 .nameRow {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
   min-width: 0;
 }
 
 .name {
-  font-size: 14px;
+  max-width: 100%;
+  padding: 0;
+  font-size: 16px;
+  font-weight: 500;
+  text-align: left;
   color: var(--text);
-  cursor: pointer;
-  border-radius: 4px;
-  padding: 1px 3px;
-  margin-left: -3px;
-  transition: background 0.1s;
+  background: none;
+  border: none;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  display: block;
 }
-.name:hover { background: var(--accent-light); }
+.name:hover { color: var(--accent); }
 
 .nameInput {
-  font-size: 14px;
-  padding: 2px 6px;
-  border: 0.5px solid var(--accent);
-  border-radius: 4px;
+  width: 100%;
+  font-size: 16px;
+  padding: 4px 8px;
+  border: 1.5px solid var(--accent);
+  border-radius: var(--radius-xs);
   background: var(--surface);
   color: var(--text);
   outline: none;
-  width: 100%;
 }
 
 .sectionBadge {
-  font-size: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--text-muted);
   background: var(--surface-hover);
-  border: 0.5px solid var(--border);
-  border-radius: 8px;
-  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  padding: 2px 8px;
   white-space: nowrap;
   flex-shrink: 0;
 }
-.sectionBadge[data-s="credenza"] { background: rgba(186,117,23,0.10); color: #a0620d; border-color: rgba(186,117,23,0.30); }
-.sectionBadge[data-s="frigo"]    { background: rgba(59,130,246,0.10); color: #2563eb; border-color: rgba(59,130,246,0.30); }
-.sectionBadge[data-s="freezer"]  { background: rgba(6,182,212,0.10);  color: #0891b2; border-color: rgba(6,182,212,0.30); }
 
-.meta {
-  display: flex;
-  align-items: center;
-  gap: 5px;
+.meta { display: flex; align-items: center; }
+
+/* Quantity: muted text, click to edit */
+.qty {
+  padding: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  white-space: nowrap;
+}
+.qty:hover { color: var(--text); text-decoration: underline; }
+
+.qtyInput {
+  font-size: 14px;
+  padding: 4px 8px;
+  border: 1.5px solid var(--accent);
+  border-radius: var(--radius-xs);
+  background: var(--surface);
+  color: var(--text);
+  outline: none;
+  width: 110px;
+  min-width: 0;
 }
 
-.date {
-  font-size: 11px;
-  color: var(--text-hint);
-  opacity: 0.7;
-  padding-left: 3px;
-}
-
-.expiry      { font-size: 11px; color: var(--text-hint); cursor: pointer; border-radius: 3px; padding: 0 2px; }
-.expiry:hover { background: var(--surface-hover); }
-
-.expirySoon  { font-size: 11px; color: var(--accent); font-weight: 500; cursor: pointer; border-radius: 3px; padding: 0 2px; }
-.expirySoon:hover { background: var(--accent-light); }
-
-.expiryExpired { font-size: 11px; color: var(--urgent); font-weight: 500; cursor: pointer; border-radius: 3px; padding: 0 2px; }
-.expiryExpired:hover { background: var(--urgent-light); }
-
-/* Pill chip for adding expiry — matches qty pill height */
+.qtyEmpty,
 .expiryAdd {
   display: inline-flex;
   align-items: center;
-  font-size: 11px;
-  color: var(--text-hint);
-  cursor: pointer;
-  padding: 2px 8px;
-  border-radius: 10px;
-  border: 0.5px dashed var(--border-strong);
-  transition: all 0.12s;
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 3px 10px;
+  min-height: 26px;
+  border-radius: var(--radius-pill);
+  border: 1px dashed var(--border-strong);
+  background: transparent;
   white-space: nowrap;
-  min-height: 24px;
+  flex-shrink: 0;
 }
+.qtyEmpty { padding: 2px 8px; }
+.qtyEmpty:hover,
 .expiryAdd:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
 
-.expiryInput {
-  font-size: 11px;
-  border: 0.5px solid var(--accent);
-  border-radius: 4px;
-  background: var(--surface);
-  color: var(--text);
-  outline: none;
-  padding: 1px 4px;
-}
-
-.badgeOpened {
-  font-size: 11px;
-  background: var(--accent-light);
-  color: var(--accent);
-  padding: 1px 5px;
-  border-radius: 8px;
-  margin-left: 4px;
-  vertical-align: middle;
-  flex-shrink: 0;
-}
-
-.qty {
-  font-size: 12px;
-  color: var(--text-muted);
-  background: var(--surface-hover);
-  padding: 4px 10px;
-  border-radius: 10px;
-  cursor: pointer;
-  white-space: nowrap;
-  flex-shrink: 0;
-  border: 0.5px solid transparent;
-  transition: all 0.12s;
-  min-height: 28px;
+.badgeBtn {
   display: flex;
-  align-items: center;
+  flex-shrink: 0;
+  padding: 0;
+  background: none;
+  border: none;
 }
-.qty:hover { background: var(--accent-light); border-color: var(--accent); color: var(--text); }
 
-.qtyInput {
-  font-size: 12px;
-  padding: 4px 10px;
-  border: 0.5px solid var(--accent);
-  border-radius: 10px;
+.expiryInput {
+  font-size: 14px;
+  border: 1.5px solid var(--accent);
+  border-radius: var(--radius-xs);
   background: var(--surface);
   color: var(--text);
   outline: none;
-  width: 90px;
-  max-width: 110px;
-  min-width: 0;
-  flex-shrink: 1;
+  padding: 4px 6px;
+  max-width: 150px;
 }
-
-/* Empty qty — dashed pill, same style as expiryAdd */
-.qtyEmpty {
-  display: inline-flex;
-  align-items: center;
-  font-size: 11px;
-  color: var(--text-hint);
-  cursor: pointer;
-  padding: 2px 8px;
-  border-radius: 10px;
-  border: 0.5px dashed var(--border-strong);
-  transition: all 0.12s;
-  white-space: nowrap;
-  min-height: 24px;
-  flex-shrink: 0;
-}
-.qtyEmpty:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
 
 /* Confirm button shown while editing */
-.iconBtn {
-  width: 30px;
-  height: 30px;
+.iconBtn,
+.moreBtn {
+  width: var(--tap);
+  height: var(--tap);
+  margin: -6px 0;
   border-radius: 50%;
-  border: 0.5px solid var(--border);
+  border: 1px solid transparent;
   background: transparent;
   color: var(--text-muted);
-  font-size: 13px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: all 0.1s;
   padding: 0;
-  line-height: 1;
+  transition: background 0.12s, color 0.12s;
 }
-.confirm { color: var(--success); border-color: var(--success); }
-.confirm:hover { background: var(--success-light); color: var(--success-text); border-color: var(--success); }
+.confirm { color: var(--success-text); border-color: var(--success); }
+.confirm:hover { background: var(--success-light); }
+.moreBtn:hover,
+.moreBtnActive { color: var(--text); background: var(--surface-hover); }
 
-/* ⋯ more button */
-.moreBtn {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  border: 0.5px solid transparent;
-  background: transparent;
-  color: var(--text-hint);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  cursor: pointer;
-  transition: all 0.12s;
-  padding: 0;
-}
-.moreBtn:hover   { border-color: var(--border-strong); color: var(--text); background: var(--surface-hover); }
-.moreBtnActive   { border-color: var(--border-strong); color: var(--text); background: var(--surface-hover); }
-
-/* ── Action strip (move + delete) ── */
+/* ── Action strip (move + flag + delete) ── */
 .actionStrip {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 7px 12px;
-  border-top: 0.5px solid var(--border);
+  padding: 8px 12px 8px 16px;
+  border-top: 1px solid var(--border);
   background: var(--surface-hover);
   flex-wrap: wrap;
 }
@@ -280,60 +220,52 @@
 }
 
 .stripLabel {
-  font-size: 11px;
-  color: var(--text-hint);
+  font-size: 12px;
+  color: var(--text-muted);
   white-space: nowrap;
 }
 
 .moveOption {
-  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  font-size: 13px;
   font-weight: 500;
-  padding: 4px 10px;
-  border: 0.5px solid var(--border);
-  border-radius: 12px;
+  padding: 0 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
   background: transparent;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: all 0.12s;
+  color: var(--text);
   white-space: nowrap;
 }
 .moveOption:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
 
 .openedBtn {
-  width: 30px;
-  height: 30px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  border: 0.5px solid var(--border);
+  border: 1px solid var(--border-strong);
   background: transparent;
-  cursor: pointer;
-  transition: all 0.12s;
+  color: var(--text-muted);
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
   padding: 0;
 }
-.openedBtn:hover { border-color: var(--accent); background: var(--accent-light); }
-.openedBtnOn { border-color: var(--accent) !important; background: var(--accent-light); }
-
-.moveOption[data-s="credenza"] { border-color: rgba(186,117,23,0.40); color: #a0620d; }
-.moveOption[data-s="credenza"]:hover { border-color: #a0620d; background: rgba(186,117,23,0.10); }
-.moveOption[data-s="frigo"]    { border-color: rgba(59,130,246,0.40); color: #2563eb; }
-.moveOption[data-s="frigo"]:hover    { border-color: #2563eb; background: rgba(59,130,246,0.10); }
-.moveOption[data-s="freezer"]  { border-color: rgba(6,182,212,0.40);  color: #0891b2; }
-.moveOption[data-s="freezer"]:hover  { border-color: #0891b2; background: rgba(6,182,212,0.10); }
+.openedBtn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+.openedBtnOn { border-color: var(--info-strong) !important; color: var(--info-text); background: var(--info-light); }
 
 .deleteBtn {
-  font-size: 12px;
-  font-weight: 500;
-  padding: 4px 12px;
-  border: 0.5px solid var(--urgent);
-  border-radius: 12px;
+  min-height: 36px;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 0 14px;
+  border: 1px solid var(--urgent);
+  border-radius: var(--radius-pill);
   background: transparent;
-  color: var(--urgent);
-  cursor: pointer;
-  transition: all 0.12s;
+  color: var(--urgent-text);
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -341,23 +273,9 @@
 
 /* Search highlight */
 :global(mark) {
-  background: var(--accent-light);
-  color: var(--text);
+  background: var(--highlight);
+  color: var(--highlight-ink);
   border-radius: 2px;
   padding: 0 1px;
   font-style: inherit;
-}
-
-@media (max-width: 600px) {
-  .date { display: none; }
-
-  .expiryAdd { min-height: 28px; padding: 3px 9px; font-size: 12px; }
-
-  .moreBtn { width: 36px; height: 36px; }
-  .iconBtn { width: 36px; height: 36px; font-size: 14px; }
-
-  .qty { min-height: 32px; padding: 5px 10px; }
-
-  .moveOption, .deleteBtn { min-height: 32px; padding: 5px 12px; font-size: 12px; }
-  .openedBtn { width: 36px; height: 36px; font-size: 15px; }
 }

@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Modal } from './Modal.jsx'
 import { MEAL_CATEGORIES } from '../data/mealCategories.js'
 import styles from './MealFormModal.module.css'
+import { Icon } from './ui/Icon.jsx'
 
 const DAYS = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato']
 const MONTHS_SHORT = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic']
@@ -12,10 +13,13 @@ function formatDateLabel(dateStr) {
   return `${DAYS[date.getDay()]} ${d} ${MONTHS_SHORT[m - 1]}`
 }
 
-export function MealFormModal({ open, onClose, dateStr, savedRecipes = [], onSubmit }) {
+export function MealFormModal({ open, onClose, dateStr, defaultCategory = null, savedRecipes = [], onSubmit }) {
   const [text, setText]         = useState('')
-  const [category, setCategory] = useState(null)
+  const [category, setCategory] = useState(defaultCategory)
   const [recipeId, setRecipeId] = useState('')
+
+  // Opening from "Aggiungi la cena" pre-selects the category.
+  useEffect(() => { if (open) setCategory(defaultCategory) }, [open, defaultCategory])
 
   const reset = () => { setText(''); setCategory(null); setRecipeId('') }
 
@@ -79,9 +83,10 @@ export function MealFormModal({ open, onClose, dateStr, savedRecipes = [], onSub
                   key={cat.id}
                   className={`${styles.chip} ${selected ? styles.chipSelected : ''}`}
                   onClick={() => setCategory(cat.id)}
-                  style={selected ? { borderColor: cat.color, background: cat.color } : undefined}
+                  data-cat={cat.id}
+                  aria-pressed={selected}
                 >
-                  <span className={styles.chipEmoji}>{cat.emoji}</span>
+                  <Icon name={cat.icon} size={18} />
                   <span>{cat.label}</span>
                 </button>
               )
