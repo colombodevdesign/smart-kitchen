@@ -26,7 +26,7 @@ Richiede `.env` con le variabili Firebase (vedi `.env.example`).
 index.html                  # script inline che applica il tema prima del primo paint
 public/
   fonts/                    # Bricolage Grotesque + DM Sans (variabili, latin, self-hosted) + licenze
-  manifest.json, icon-*.png # PWA (le icone sono segnaposto: sostituire con l'artwork vero)
+  manifest.json, icon-*.png # PWA: monogramma SK con forchetta/coltello, S crema + K giallo su verde #1E5A43
 src/
   main.jsx                  # entry: ToastProvider + watchSystemTheme
   firebase.js               # app, auth, db, messagingPromise, callFunction (import dinamico di firebase/functions)
