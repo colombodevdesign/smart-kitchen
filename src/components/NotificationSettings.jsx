@@ -33,11 +33,20 @@ function formatDay(ms) {
   return new Date(ms).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })
 }
 
+function deviceDetail(d, mine) {
+  const sent = d.lastOkAt ? `ultimo avviso ${formatDay(d.lastOkAt)}` : null
+  if (mine) return ['Questo dispositivo', sent].filter(Boolean).join(' · ')
+  const seen = d.lastSeenAt ? `aperta il ${formatDay(d.lastSeenAt)}` : 'mai aperta da questa versione'
+  const text = [sent, seen].filter(Boolean).join(' · ')
+  return text.charAt(0).toUpperCase() + text.slice(1)
+}
+
 export function NotificationSettings({ user, online = true, onBack }) {
   const n = useNotifications(user?.uid)
   const { prefs } = n
   const [customOpen, setCustomOpen] = useState(false)
   const [tipFor, setTipFor] = useState(null)
+  const [confirmFor, setConfirmFor] = useState(null)
   const [testing, setTesting] = useState(false)
   const [testResults, setTestResults] = useState(null)
 
@@ -189,9 +198,7 @@ export function NotificationSettings({ user, online = true, onBack }) {
                   </span>
                   <span className={styles.deviceText}>
                     <strong>{d.label}</strong>
-                    <span>
-                      {mine ? 'Questo dispositivo' : d.lastOkAt ? `Ultimo avviso ${formatDay(d.lastOkAt)}` : 'Registrato'}
-                    </span>
+                    <span>{deviceDetail(d, mine)}</span>
                     <StatusBadge tone={active ? 'ok' : 'soon'} className={styles.deviceBadge}>
                       {active ? 'Attivo' : 'Non raggiungibile'}
                     </StatusBadge>
@@ -208,9 +215,41 @@ export function NotificationSettings({ user, online = true, onBack }) {
                       <Icon name="info" size={20} />
                     </button>
                   )}
+                  <button
+                    type="button"
+                    className={styles.info}
+                    aria-label={`Rimuovi ${d.label}`}
+                    aria-expanded={confirmFor === d.id}
+                    onClick={() => setConfirmFor(confirmFor === d.id ? null : d.id)}
+                    disabled={n.busy}
+                  >
+                    <Icon name="trash" size={20} />
+                  </button>
                   {tipFor === d.id && (
                     <span id={`tip-${d.id}`} role="tooltip" className={styles.tip}>
-                      Apri l’app su quel dispositivo per riattivarlo.
+                      Apri l’app su quel dispositivo per riattivarlo, oppure rimuovilo.
+                    </span>
+                  )}
+                  {confirmFor === d.id && (
+                    <span className={styles.confirm} role="group" aria-label={`Rimuovere ${d.label}?`}>
+                      <span>
+                        {mine
+                          ? 'Questo dispositivo non riceverà più gli avvisi finché non li riattivi qui.'
+                          : 'Non riceverà più gli avvisi. Se lo usi ancora, riattivali aprendo l’app lì.'}
+                      </span>
+                      <span className={styles.confirmActions}>
+                        <button
+                          type="button"
+                          className={styles.confirmRemove}
+                          onClick={async () => { await n.removeDevice(d.id); setConfirmFor(null) }}
+                          disabled={n.busy}
+                        >
+                          Rimuovi
+                        </button>
+                        <button type="button" className={styles.confirmCancel} onClick={() => setConfirmFor(null)}>
+                          Annulla
+                        </button>
+                      </span>
                     </span>
                   )}
                 </li>

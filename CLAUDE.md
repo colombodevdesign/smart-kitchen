@@ -33,9 +33,9 @@ src/
   App.jsx                   # auth guard + orchestrazione stato + 5 destinazioni + AddFlow
   nav/tabs.js               # TABS (oggi, dispensa, cucina, spesa, tu) e sotto-sezioni
   ai/
-    model.js                # MODEL_NAME (unico punto dove cambiare modello)
-    prompts.js              # prompt ricette/spesa, PROMPT_VERSION (entra nell'hash della cache)
-    errors.js               # classifyError → no-key | quota | invalid-key | offline | unknown
+    model.js                # MODEL_NAME (Lite) + MODEL_PRO e PRO_CONFIG (unico punto dove cambiare modelli)
+    prompts.js              # prompt ricette/spesa/stagione, PROMPT_VERSION (entra nell'hash della cache)
+    errors.js               # classifyError → no-key | quota | billing | invalid-key | offline | unknown
     extractIngredients.js   # estrazione batch degli ingredienti delle ricette (generateContent + responseSchema)
   hooks/
     useAuth.js              # Firebase Auth (Google), onAuthStateChanged
@@ -53,7 +53,7 @@ src/
     useMediaQuery.js
   components/
     ui/                     # Icon, Segmented, StatusBadge, Chip, EmptyState, Toast(+useToast), PageHeader, OfflineBanner, RecipeCard
-    TodayTab, PantryTab, ItemRow, CucinaTab, AITab, SavedRecipesTab, RecipeDetail, MealTrackerTab,
+    TodayTab, ExpiringList, SeasonalRecipesModal, PantryTab, ItemRow, CucinaTab, AITab, SavedRecipesTab, RecipeDetail, MealTrackerTab,
     SpesaTab, SavedShoppingTab, PantrySuggestionsModal, TuTab, ProfileTab, NotificationSettings,
     AddFlow, AddSheet, VoiceBatchModal, ReceiptScanModal, BatchReview,
     MealFormModal, MealDetailSheet, Modal, BottomNav, Sidebar, LoginScreen
@@ -80,7 +80,7 @@ docs/
 ## Navigazione
 
 Cinque destinazioni: Oggi, Dispensa, Cucina (Ricette AI / Salvate / Pasti), Spesa (Lista / Idee AI), Tu.
-`useNavigation` tiene `{tab, sub, detail}`; le viste di dettaglio (ricetta, notifiche) aggiungono una voce
+`useNavigation` tiene `{tab, sub, detail}`; le viste di dettaglio (ricetta, notifiche, "In scadenza" su Oggi) aggiungono una voce
 alla history, quindi il tasto indietro del telefono le chiude. A ≥1024px Cucina e Spesa mostrano lo split a
 due colonne. `BottomNav` e il FAB si nascondono quando `nav.detail` è attivo (`data-detail`).
 
@@ -116,8 +116,7 @@ L'unico provider è Google (Firebase Console → Authentication → Sign-in meth
 /users/{uid}/savedRecipes/data         →  { items: SavedRecipe[] }
 /users/{uid}/savedShopping/data        →  { items: ShoppingItem[] }
 /users/{uid}/notificationPrefs/data    →  { enabled, hour, minute, tz, daysBefore: number[], lastRunDay, updatedAt }
-/users/{uid}/pushTokens/{deviceId}     →  { token, label, platform, status: 'active'|'stale', lastOkAt, staleSince, updatedAt }
-/users/{uid}/pushToken/data            →  LEGACY (dispositivo singolo): { token, enabled, updatedAt }
+/users/{uid}/pushTokens/{deviceId}     →  { token, label, platform, status: 'active'|'stale', lastOkAt, lastSeenAt, staleSince, updatedAt }
 ```
 
 Wrapping `{ items: [...] }` per ricette/spesa: Firestore non accetta array root in
@@ -126,9 +125,8 @@ Wrapping `{ items: [...] }` per ricette/spesa: Firestore non accetta array root 
 Al primo login, i dati vengono migrati automaticamente da localStorage a Firestore
 (per ogni doc mancante: `setDoc(ref, localData)`).
 
-`pushToken/data` è scritto ancora in doppia copia da `useNotifications` finché la Function precedente
-non è stata ridistribuita; i punti sono marcati `TODO(remove next release)` (client, `functions/lib/notify.js`
-fallback e regole).
+Il vecchio doc `users/{uid}/pushToken/data` (dispositivo singolo) non è più letto né scritto; se esiste ancora
+si può cancellare dalla Console.
 
 ## LocalStorage — chiavi
 
@@ -137,7 +135,7 @@ fallback e regole).
 | `gemini-api-key` | API key Gemini (rimane locale per sicurezza) |
 | `theme` | preferenza tema: `system` \| `light` \| `dark` |
 | `sk-device-id` | id di questo dispositivo per `pushTokens/{deviceId}` |
-| `sk-notif-migrated-{uid}` | flag: migrazione da `pushToken/data` già tentata |
+| `sk-notif-off-here` | `'1'` se l'utente ha rimosso questo dispositivo: l'auto-riparazione non lo ri-registra |
 | `cucina-ai-cache-v1` | cache risposte AI (l'hash include `PROMPT_VERSION`) |
 | `cucina-session-ricette-v1` | sessione chat ricette |
 | `cucina-session-spesa-v1` | sessione chat spesa |
@@ -221,16 +219,30 @@ Due flussi paralleli, stessa struttura e stessa schermata di verifica:
 
 ## Integrazione AI
 
-- SDK: `@google/genai`. Modello: `MODEL_NAME` in `src/ai/model.js` (usato da `useAI`, `useVoiceBatch`,
-  `useReceiptScan` e `extractIngredients`: per cambiarlo si modifica solo quel file).
+- SDK: `@google/genai`. Modelli in `src/ai/model.js` (per cambiarli si modifica solo quel file):
+  `MODEL_PRO` (`gemini-3.8-flash`, con `PRO_CONFIG` = ragionamento `LOW`, perché i token di ragionamento si
+  pagano come output) dove la qualità si vede: ricette e relativi follow-up e ricette di stagione (`useAI` con `name` `ricette` o `stagione`) e
+  scontrino (`useReceiptScan`). `MODEL_NAME` (`gemini-3.5-flash-lite`) per spesa, voce ed `extractIngredients`.
+  Il nome del modello entra nell'hash della cache di `useAI`: cambiando modello le risposte vengono rigenerate.
 - Prompt in `src/ai/prompts.js`. **Formato ricetta**: `## Titolo`, una riga meta (tempo/porzioni), poi
   `### Ingredienti` e `### Procedimento`. Le sezioni interne usano `###` perché `parseRecipes` spezza le
   ricette su `## `; il testo prima del primo `##` viene scartato. Se cambi il formato, alza `PROMPT_VERSION`.
 - Marcatori nell'inventario inviato: `[scad]`/`[oggi]`/`[Ngg]` (scade presto) e `[APERTO]`; priorità: scade
   presto > aperto; i già scaduti vanno controllati prima di usarli.
 - Streaming: `generateContentStream`, `chunk.text` (stringa). Multi-turn con `apiHistoryRef`.
-- Funzioni esposte da `useAI`: `fetchRicette()`, `fetchSpesa()`, `sendFollowUp(text)`; stato `{ loading, messages,
-  streaming, error, errorCode, cached, ... }`. `errorCode`: `no-key | quota | invalid-key | offline | unknown`.
+- "Di stagione" su Oggi: i chip sono bottoni (il "+N" mostra tutti gli ingredienti del mese). Il tocco apre
+  `SeasonalRecipesModal`, che con `useAI(…, 'stagione', { session: false })` genera 3 ricette con quell'ingrediente
+  e la dispensa (`stagionePrompts`, modello forte). Cache per ingrediente (`stagione:<nome>`, riaprire è gratis); "Altre idee"
+  passa i titoli già visti in `exclude` (entra nell'hash) e usa lo slot `stagione:<nome>:altre`. Le ricette si salvano con `savedRecipes.addRecipes`.
+- Ogni richiesta di `useAI` ha un numero (`runRef`): uno stream superato (nuova richiesta o `clearOutput`) non
+  aggiorna più lo stato, ma il risultato finisce comunque in cache.
+- Funzioni esposte da `useAI`: `fetchRicette()`, `fetchSpesa()`, `fetchStagione(ingrediente, exclude)`,
+  `sendFollowUp(text)`, `clearOutput()`; stato `{ loading, messages,
+  streaming, error, errorCode, cached, ... }`. `errorCode`: `no-key | quota | billing | invalid-key | offline | unknown`.
+- Errori API: l'SDK mette nel `message` il JSON della risposta (a volte annidato due volte); `apiErrorInfo` lo
+  scompatta, così l'utente non vede mai JSON grezzo. `billing` = HTTP 402 / credito prepagato esaurito: tutte
+  le chiavi dei progetti collegati a quel conto falliscono finché non si ricarica su AI Studio (l'errore mostra
+  il link). Voce e scontrino passano da `classifyError` e aggiungono solo il messaggio per audio/immagine rifiutati.
 - "Hai X ingredienti su Y" (`useSavedRecipes` + `ai/extractIngredients.js` + `utils/ingredientMatch.js`):
   dopo il salvataggio una chiamata batch estrae `{ ingredients: [{ name, qty, qb }] }` per ricetta (mai
   bloccante; "Analizza ingredienti" fa il backfill). Il matching è per radici: un ingrediente è "in dispensa" se
@@ -269,18 +281,27 @@ accetta solo token `active` dal client (`stale` lo imposta la Function).
   `pushTokens/{deviceId}` + `notificationPrefs/data` (`enabled:true`, `tz` del dispositivo).
   `disable()` scrive solo `enabled:false` e non tocca i token.
 - All'apertura dell'app, se gli avvisi sono attivi e il permesso concesso, il token viene verificato e
-  riscritto in silenzio (auto-riparazione). Un dispositivo "non raggiungibile" si riattiva aprendo l'app lì:
-  non esiste un pulsante "Riattiva" (il motivo sta in un tooltip).
-- `useForegroundPush` (in `App`) mostra le push ricevute con l'app aperta come toast.
+  riscritto in silenzio (auto-riparazione), e `lastSeenAt` aggiornato al massimo ogni 12 ore (serve a
+  distinguere i dispositivi con la stessa etichetta). Un dispositivo "non raggiungibile" si riattiva aprendo
+  l'app lì: non esiste un pulsante "Riattiva" (il motivo sta in un tooltip).
+- Un documento per token: `writeDevice` cancella gli altri doc con lo stesso token e la lista li mostra una volta.
+- `removeDevice(id)` (cestino con conferma nella lista): cancella il doc. Se è questo dispositivo fa anche
+  `deleteToken` e imposta `sk-notif-off-here`, così l'auto-riparazione non lo ri-registra finché non si
+  riattiva qui.
+- `useForegroundPush` (in `App`) mostra le push ricevute con l'app aperta come toast (con "Vedi" se la push
+  ha `data.open`). `useNotificationOpen` apre la vista indicata da `?apri=scadenze` (app chiusa) o dal
+  messaggio `sk-open` del service worker (app già aperta).
 - `sendTest()` chiama la callable `sendTestNotification` e mostra l'esito per dispositivo.
 
 **Functions** (`functions/`, Node 22, CommonJS):
 - `sendExpiryNotifications`: schedule `*/15 * * * *`. Per ogni utente con `notificationPrefs.enabled`
   controlla se l'ora locale (`tz`) è nella finestra `[hour:minute, +30 min)` (minuti arrotondati al quarto
   d'ora) e se `lastRunDay` non è oggi; raccoglie i prodotti che scadono nei giorni di `daysBefore`
-  (giorni di calendario locali, DST-safe), invia un messaggio raggruppato per giorno a tutti i token attivi
-  con `sendEach`. I token rifiutati da FCM diventano `status:'stale'` (eliminati dopo 30 giorni).
-  Gli utenti senza prefs ma con il vecchio `pushToken/data` abilitato ricevono ancora l'avviso alle 09:00.
+  (giorni di calendario locali, DST-safe), invia **un solo** messaggio di riepilogo ("3 prodotti scadono
+  domani" + nomi) a tutti i token attivi (deduplicati per valore) con `sendEach`. Il messaggio ha
+  `webpush.notification.tag = 'sk-scadenze'` (due push sullo stesso dispositivo si fondono) e
+  `data.open = 'scadenze'` (il tocco apre la lista "In scadenza"). I token rifiutati da FCM diventano
+  `status:'stale'` (eliminati dopo 30 giorni).
   La lista utenti arriva da `listDocuments()` + `getAll` delle prefs a blocchi di 100: nessun indice
   necessario, ma costa una lettura per utente a ogni tick (valutare un `collectionGroup` se gli utenti crescono).
 - `sendTestNotification` (callable, richiede auth): invia a tutti i dispositivi (anche stale) e restituisce
@@ -288,17 +309,19 @@ accetta solo token `active` dal client (`stale` lo imposta la Function).
 - `lib/schedule.js` e `lib/notify.js` sono pure (db/messaging iniettati), provabili con `node`.
 
 `src/firebase-messaging-sw.template.js` è elaborato dal plugin Vite (`%%VITE_*%%` → `.env`) e servito alla
-root come `firebase-messaging-sw.js`.
+root come `firebase-messaging-sw.js`. I messaggi hanno il payload `notification`, quindi la notifica la mostra
+già l'SDK: il SW **non** deve chiamare `showNotification` in `onBackgroundMessage`, altrimenti arriva doppia.
+Il suo `notificationclick` è registrato prima di `firebase.messaging()` per precedere quello dell'SDK: mette a
+fuoco l'app e le manda `sk-open`, oppure la apre su `/?apri=<vista>`.
 
 ### Setup one-time richiesto
 1. Firebase Console → Cloud Messaging → **Web Push certificates** → copiare la chiave in `.env` come
    `VITE_FIREBASE_VAPID_KEY`.
 2. Piano **Blaze** (Cloud Functions schedulate). 96 esecuzioni al giorno: ricontrollare il free tier.
-3. Pubblicare le regole di `docs/firestore-rules.md`.
-4. `cd functions && npm install && cd .. && firebase deploy --only functions` (aggiorna il job esistente
-   `sendExpiryNotifications` e crea `sendTestNotification`).
-5. Poi deploy del client. Ordine: **regole → Functions → client**.
-6. iOS: le push web funzionano solo con la PWA aggiunta alla Home (iOS 16.4+).
+3. `cd functions && npm install && cd .. && firebase deploy --only functions` (aggiorna il job esistente
+   `sendExpiryNotifications` e la callable `sendTestNotification`).
+4. Poi deploy del client, poi le regole di `docs/firestore-rules.md`. Ordine: **Functions → client → regole**.
+5. iOS: le push web funzionano solo con la PWA aggiunta alla Home (iOS 16.4+).
 
 ## Branch di sviluppo
 

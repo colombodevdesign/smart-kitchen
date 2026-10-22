@@ -4,6 +4,32 @@
 importScripts('https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js')
 importScripts('https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js')
 
+// Views the app can open from a notification (`data.open` in the message).
+const OPEN_TARGETS = ['scadenze']
+
+// Registered before firebase.messaging(), so it runs ahead of the SDK's own click
+// handler (which would open a new window) and stops it. A tap focuses the app if it
+// is open and tells it which view to show; otherwise it opens the app on that view.
+self.addEventListener('notificationclick', (event) => {
+  event.stopImmediatePropagation()
+  event.notification.close()
+  const data = event.notification.data ?? {}
+  const open = data.FCM_MSG?.data?.open ?? data.open
+  const target = OPEN_TARGETS.includes(open) ? open : null
+  const url = new URL(target ? `./?apri=${target}` : './', self.registration.scope).href
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+      for (const client of list) {
+        if (client.url.startsWith(self.registration.scope) && 'focus' in client) {
+          if (target) client.postMessage({ type: 'sk-open', open: target })
+          return client.focus()
+        }
+      }
+      return clients.openWindow(url)
+    })
+  )
+})
+
 firebase.initializeApp({
   apiKey:            '%%VITE_FIREBASE_API_KEY%%',
   authDomain:        '%%VITE_FIREBASE_AUTH_DOMAIN%%',
@@ -13,29 +39,7 @@ firebase.initializeApp({
   appId:             '%%VITE_FIREBASE_APP_ID%%',
 })
 
-const messaging = firebase.messaging()
-
-// Customize background notification display
-messaging.onBackgroundMessage((payload) => {
-  const { title, body } = payload.notification ?? {}
-  self.registration.showNotification(title ?? 'Smart Kitchen', {
-    body:  body ?? '',
-    icon:  '/icon-192.png',
-    badge: '/icon-192.png',
-    data:  { url: payload.fcmOptions?.link ?? '/' },
-  })
-})
-
-// Open or focus the app when a notification is clicked
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close()
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
-      for (const client of list) {
-        if (client.url.startsWith(self.registration.scope) && 'focus' in client)
-          return client.focus()
-      }
-      return clients.openWindow(event.notification.data?.url ?? '/')
-    })
-  )
-})
+// Messages carry a `notification` payload, which the SDK displays by itself in the
+// background (with the tag set by the Function). Showing it again here was the
+// cause of duplicate notifications, so there is no onBackgroundMessage handler.
+firebase.messaging()

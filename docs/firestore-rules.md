@@ -4,8 +4,9 @@ Le regole si applicano a mano da Firebase Console → Firestore Database → Rul
 `firestore.rules`). **Vanno pubblicate prima di deployare le Functions e il client**: senza le regole per
 `notificationPrefs` e `pushTokens` le notifiche mostrano "Regole Firestore non aggiornate".
 
-Ordine di deploy consigliato: **regole → Functions → client**. Rollback: revert del client; le regole nuove
-non rompono quello vecchio.
+Ordine di deploy consigliato: **Functions → client → regole**. Il vecchio doc `pushToken/data` (dispositivo
+singolo) non è più usato: la sua regola va tolta solo dopo il deploy del client, perché quello precedente lo
+scrive ancora. Il doc rimasto su Firestore si può cancellare a mano dalla Console.
 
 ```
 rules_version = '2';
@@ -59,12 +60,6 @@ service cloud.firestore {
       allow read: if isOwner(userId);
       allow create, update: if isOwner(userId) && isValidDevice(request.resource.data);
       allow delete: if isOwner(userId);
-    }
-
-    // TODO(remove next release): doc del vecchio client a dispositivo singolo,
-    // ancora scritto in doppia copia finché la Function non è stata ridistribuita.
-    match /users/{userId}/pushToken/data {
-      allow read, write: if isOwner(userId);
     }
   }
 
