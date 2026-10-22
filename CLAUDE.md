@@ -33,7 +33,7 @@ src/
   App.jsx                   # auth guard + orchestrazione stato + 5 destinazioni + AddFlow
   nav/tabs.js               # TABS (oggi, dispensa, cucina, spesa, tu) e sotto-sezioni
   ai/
-    model.js                # MODEL_NAME (unico punto dove cambiare modello)
+    model.js                # MODEL_NAME (Lite) + MODEL_PRO e PRO_CONFIG (unico punto dove cambiare modelli)
     prompts.js              # prompt ricette/spesa, PROMPT_VERSION (entra nell'hash della cache)
     errors.js               # classifyError → no-key | quota | billing | invalid-key | offline | unknown
     extractIngredients.js   # estrazione batch degli ingredienti delle ricette (generateContent + responseSchema)
@@ -220,8 +220,11 @@ Due flussi paralleli, stessa struttura e stessa schermata di verifica:
 
 ## Integrazione AI
 
-- SDK: `@google/genai`. Modello: `MODEL_NAME` in `src/ai/model.js` (usato da `useAI`, `useVoiceBatch`,
-  `useReceiptScan` e `extractIngredients`: per cambiarlo si modifica solo quel file).
+- SDK: `@google/genai`. Modelli in `src/ai/model.js` (per cambiarli si modifica solo quel file):
+  `MODEL_PRO` (`gemini-3.8-flash`, con `PRO_CONFIG` = ragionamento `LOW`, perché i token di ragionamento si
+  pagano come output) dove la qualità si vede: ricette e relativi follow-up (`useAI` con `name === 'ricette'`) e
+  scontrino (`useReceiptScan`). `MODEL_NAME` (`gemini-3.5-flash-lite`) per spesa, voce ed `extractIngredients`.
+  Il nome del modello entra nell'hash della cache di `useAI`: cambiando modello le risposte vengono rigenerate.
 - Prompt in `src/ai/prompts.js`. **Formato ricetta**: `## Titolo`, una riga meta (tempo/porzioni), poi
   `### Ingredienti` e `### Procedimento`. Le sezioni interne usano `###` perché `parseRecipes` spezza le
   ricette su `## `; il testo prima del primo `##` viene scartato. Se cambi il formato, alza `PROMPT_VERSION`.

@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react'
 import { GoogleGenAI } from '@google/genai'
 import { getSeasonal, getMonthName } from '../data/seasonal'
-import { MODEL_NAME } from '../ai/model.js'
+import { MODEL_NAME, MODEL_PRO, PRO_CONFIG } from '../ai/model.js'
 import { PROMPT_VERSION, ricettePrompts, spesaPrompts } from '../ai/prompts.js'
 import { AIError, classifyError } from '../ai/errors.js'
 import { getApiKey as readApiKey } from '../utils/apiKey.js'
@@ -48,6 +48,9 @@ function getApiKey() {
 
 export function useAI(getInventoryText, name) {
   const saved = loadSession(name)
+  // Recipes (and their follow-ups) get the stronger model; the shopping list stays on Lite.
+  const strong = name === 'ricette'
+  const model = strong ? MODEL_PRO : MODEL_NAME
 
   const [messages, setMessages] = useState(saved?.messages ?? [])
   const [streaming, setStreaming] = useState('')
@@ -62,9 +65,9 @@ export function useAI(getInventoryText, name) {
   const runStream = useCallback(async (apiKey, contents, onChunk) => {
     const ai = new GoogleGenAI({ apiKey })
     const stream = await ai.models.generateContentStream({
-      model: MODEL_NAME,
+      model,
       contents,
-      config: { systemInstruction: systemPromptRef.current },
+      config: { ...(strong ? PRO_CONFIG : {}), systemInstruction: systemPromptRef.current },
     })
     let full = ''
     for await (const chunk of stream) {
@@ -72,7 +75,7 @@ export function useAI(getInventoryText, name) {
       if (text) { full += text; onChunk(text) }
     }
     return full
-  }, [])
+  }, [model, strong])
 
   const call = useCallback(async (systemPrompt, userPrompt, cacheType, cacheHash) => {
     const cache = loadCache()
@@ -154,9 +157,9 @@ export function useAI(getInventoryText, name) {
       seasonal: getSeasonal().join(', '),
       month: getMonthName(),
     })
-    const cacheHash = hashString(PROMPT_VERSION + 'ricette' + new Date().getMonth() + inventoryText)
+    const cacheHash = hashString(PROMPT_VERSION + model + 'ricette' + new Date().getMonth() + inventoryText)
     call(prompts.system, prompts.user, 'ricette', cacheHash)
-  }, [call, getInventoryText])
+  }, [call, getInventoryText, model])
 
   const fetchSpesa = useCallback(() => {
     const inventoryText = getInventoryText()
@@ -165,9 +168,9 @@ export function useAI(getInventoryText, name) {
       seasonal: getSeasonal().join(', '),
       month: getMonthName(),
     })
-    const cacheHash = hashString(PROMPT_VERSION + 'spesa' + new Date().getMonth() + inventoryText)
+    const cacheHash = hashString(PROMPT_VERSION + model + 'spesa' + new Date().getMonth() + inventoryText)
     call(prompts.system, prompts.user, 'spesa', cacheHash)
-  }, [call, getInventoryText])
+  }, [call, getInventoryText, model])
 
   return {
     loading, messages, streaming, error, errorCode, cached,

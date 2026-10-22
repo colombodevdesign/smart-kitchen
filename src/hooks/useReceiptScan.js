@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import { GoogleGenAI } from '@google/genai'
-import { MODEL_NAME } from '../ai/model.js'
+import { MODEL_PRO, PRO_CONFIG } from '../ai/model.js'
 import { classifyError } from '../ai/errors.js'
 
 const GEMINI_API_KEY_STORAGE = 'gemini-api-key'
@@ -152,12 +152,13 @@ export function useReceiptScan() {
 
       const ai = new GoogleGenAI({ apiKey })
       const res = await ai.models.generateContent({
-        model: MODEL_NAME,
+        model: MODEL_PRO,
         contents: [{ role: 'user', parts: [
           { text: PROMPT },
           { inlineData: { mimeType, data } },
         ]}],
         config: {
+          ...PRO_CONFIG,
           responseMimeType: 'application/json',
           responseSchema: RESPONSE_SCHEMA,
         },
