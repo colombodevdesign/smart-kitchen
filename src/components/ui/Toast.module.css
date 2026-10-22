@@ -1,8 +1,9 @@
 .toast {
   position: fixed;
   left: 50%;
-  bottom: var(--float-bottom);
+  top: calc(env(safe-area-inset-top, 0px) + 12px);
   transform: translateX(-50%);
+  animation: toastIn 0.18s ease-out;
   z-index: var(--z-toast);
   display: flex;
   align-items: center;
@@ -30,11 +31,21 @@
   text-decoration: underline;
 }
 
+@keyframes toastIn {
+  from { opacity: 0; transform: translate(-50%, -8px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+
 @media (max-width: 600px) {
   .toast {
-    left: 20px;
-    right: 20px;
+    left: 16px;
+    right: 16px;
     transform: none;
     max-width: none;
+    animation-name: toastInMobile;
+  }
+  @keyframes toastInMobile {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: none; }
   }
 }
