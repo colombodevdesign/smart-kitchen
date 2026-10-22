@@ -3,6 +3,7 @@ import { Icon } from './ui/Icon.jsx'
 import { RecipeCard } from './ui/RecipeCard.jsx'
 import { md } from '../utils/markdown.js'
 import { parseRecipes } from '../utils/parsers.js'
+import { AI_STUDIO_URL } from '../ai/errors.js'
 import styles from './AITab.module.css'
 
 // variant 'cards': recipes shown as one card each (messages are split on "## ").
@@ -68,6 +69,9 @@ export function AITab({
           <div className={styles.errorActions}>
             {(errorCode === 'no-key' || errorCode === 'invalid-key') && onGoApiKey && (
               <button type="button" className={styles.errorPrimary} onClick={onGoApiKey}>Imposta la chiave API</button>
+            )}
+            {errorCode === 'billing' && (
+              <a className={styles.errorPrimary} href={AI_STUDIO_URL} target="_blank" rel="noopener noreferrer">Apri AI Studio</a>
             )}
             <button type="button" className={styles.errorSecondary} onClick={onFetch} disabled={loading}>Riprova</button>
           </div>

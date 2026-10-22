@@ -17,7 +17,7 @@ import { Sidebar } from './components/Sidebar.jsx'
 import { BottomNav } from './components/BottomNav.jsx'
 import { AddFlow } from './components/AddFlow.jsx'
 import { useToast } from './components/ui/Toast.jsx'
-import { useForegroundPush } from './hooks/useNotifications.js'
+import { useForegroundPush, useNotificationOpen } from './hooks/useNotifications.js'
 import { OfflineBanner } from './components/ui/OfflineBanner.jsx'
 import { todayStr } from './utils/date.js'
 import { TABS } from './nav/tabs.js'
@@ -28,7 +28,22 @@ export default function App() {
   const nav = useNavigation('oggi')
   const toast = useToast()
   const online = useOnline()
-  useForegroundPush(!!user)
+  const mainRef = useRef(null)
+
+  // "In scadenza": from Oggi, the daily notification and its foreground toast.
+  const showingExpiring = nav.tab === 'oggi' && nav.detail?.type === 'scadenze'
+  const openExpiring = useCallback(() => {
+    if (!showingExpiring) {
+      nav.go('oggi')
+      nav.openDetail({ type: 'scadenze' })
+    }
+    if (mainRef.current) mainRef.current.scrollTop = 0
+  }, [showingExpiring, nav.go, nav.openDetail])
+  const openFromNotification = useCallback((target) => {
+    if (target === 'scadenze') openExpiring()
+  }, [openExpiring])
+  useForegroundPush(!!user, openFromNotification)
+  useNotificationOpen(!!user, openFromNotification)
 
   // undefined = auth still resolving, null = logged out, string = uid
   const authUid = user === undefined ? undefined : (user?.uid ?? null)
@@ -57,8 +72,6 @@ export default function App() {
   const openAdd = useCallback((mode = 'sheet', section = 'frigo') => setAdd({ mode, section }), [])
   const closeAdd = useCallback(() => setAdd(a => ({ ...a, mode: 'closed' })), [])
   const switchAdd = useCallback((mode) => setAdd(a => ({ ...a, mode })), [])
-
-  const mainRef = useRef(null)
 
   const handleTabChange = useCallback((tabId) => {
     nav.go(tabId)
@@ -149,6 +162,9 @@ export default function App() {
             <TodayTab
               inventory={inventory}
               meals={mealTracker.meals}
+              detail={nav.detail}
+              onOpenExpiring={openExpiring}
+              onCloseDetail={nav.closeDetail}
               onCook={handleCook}
               onPlan={() => nav.go('cucina', 'pasti')}
               onSavedRecipes={() => nav.go('cucina', 'salvate')}

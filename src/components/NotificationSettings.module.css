@@ -135,6 +135,31 @@
   border-radius: 50%;
 }
 .info:hover { color: var(--text); background: var(--surface-hover); }
+.info:disabled { opacity: 0.5; cursor: not-allowed; }
+.confirm {
+  flex-basis: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--surface-hover);
+  border-radius: var(--radius-sm);
+}
+.confirmActions { display: flex; flex-wrap: wrap; gap: 8px; }
+.confirmRemove,
+.confirmCancel {
+  min-height: var(--tap);
+  padding: 0 16px;
+  font-size: 15px;
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+}
+.confirmRemove { color: var(--on-strong); background: var(--urgent); border: none; }
+.confirmRemove:disabled { opacity: 0.5; cursor: not-allowed; }
+.confirmCancel { color: var(--text); background: transparent; border: 1px solid var(--border-strong); }
+.confirmCancel:hover { background: var(--surface); }
 .tip {
   flex-basis: 100%;
   padding: 10px 12px;

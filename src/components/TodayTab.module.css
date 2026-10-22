@@ -109,7 +109,22 @@
 }
 
 .heroEmpty { font-size: 15px; color: var(--on-hero-muted); }
-.heroMore { font-size: 13px; color: var(--on-hero-muted); }
+.heroMore {
+  align-self: flex-start;
+  min-height: var(--tap);
+  margin: -6px 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: inherit;
+  background: none;
+  border: none;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
 
 .cta {
   display: flex;

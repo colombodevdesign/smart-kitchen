@@ -3,6 +3,7 @@ import { Icon } from './ui/Icon.jsx'
 import { getUseSoonItems, itemBadge } from '../utils/pantry.js'
 import { todayStr } from '../utils/date.js'
 import { getSeasonal, getMonthName } from '../data/seasonal.js'
+import { ExpiringList } from './ExpiringList.jsx'
 import styles from './TodayTab.module.css'
 
 function greeting(hour) {
@@ -18,7 +19,14 @@ function capitalize(s) {
 const MAX_ITEMS = 3
 const MAX_SEASONAL = 4
 
-export function TodayTab({ inventory, meals, onCook, onPlan, onSavedRecipes, onProfile, onAdd }) {
+export function TodayTab({ inventory, meals, detail, onOpenExpiring, onCloseDetail, onCook, onPlan, onSavedRecipes, onProfile, onAdd }) {
+  if (detail?.type === 'scadenze') {
+    return <ExpiringList inventory={inventory} onBack={onCloseDetail} onCook={onCook} />
+  }
+  return <Today inventory={inventory} meals={meals} onOpenExpiring={onOpenExpiring} onCook={onCook} onPlan={onPlan} onSavedRecipes={onSavedRecipes} onProfile={onProfile} onAdd={onAdd} />
+}
+
+function Today({ inventory, meals, onOpenExpiring, onCook, onPlan, onSavedRecipes, onProfile, onAdd }) {
   const now = new Date()
   const dateLabel = capitalize(now.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' }))
 
@@ -70,7 +78,9 @@ export function TodayTab({ inventory, meals, onCook, onPlan, onSavedRecipes, onP
             </ul>
           )}
           {useSoon.length > MAX_ITEMS && (
-            <p className={styles.heroMore}>e altri {useSoon.length - MAX_ITEMS}</p>
+            <button type="button" className={styles.heroMore} onClick={onOpenExpiring}>
+              Vedi tutti ({useSoon.length}) <Icon name="chevR" size={16} strokeWidth={2.2} />
+            </button>
           )}
 
           <button type="button" className={styles.cta} onClick={onCook}>

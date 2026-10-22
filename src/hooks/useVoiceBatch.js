@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { GoogleGenAI } from '@google/genai'
 import { MODEL_NAME } from '../ai/model.js'
+import { classifyError } from '../ai/errors.js'
 
 const GEMINI_API_KEY_STORAGE = 'gemini-api-key'
 const MAX_DURATION_MS = 60_000
@@ -77,14 +78,12 @@ function permissionError(err) {
 }
 
 function parseApiError(err) {
+  const { code, message } = classifyError(err)
+  if (code !== 'unknown') return message
   const msg = err?.message || ''
-  if (msg.includes('429') || msg.toLowerCase().includes('quota'))
-    return 'Quota Gemini esaurita. Riprova tra qualche minuto.'
-  if (msg.includes('API_KEY_INVALID') || msg.includes('API key'))
-    return 'API key non valida. Controllala in Tu.'
   if (msg.toLowerCase().includes('unsupported') || msg.includes('400'))
     return 'Il modello non ha accettato l\'audio. Riprova o segnala il problema.'
-  return msg || 'Errore di connessione con Gemini.'
+  return message || 'Errore di connessione con Gemini.'
 }
 
 /**
