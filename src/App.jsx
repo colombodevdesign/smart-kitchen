@@ -16,6 +16,7 @@ import { TuTab } from './components/TuTab.jsx'
 import { Sidebar } from './components/Sidebar.jsx'
 import { BottomNav } from './components/BottomNav.jsx'
 import { AddFlow } from './components/AddFlow.jsx'
+import { SeasonalRecipesModal } from './components/SeasonalRecipesModal.jsx'
 import { useToast } from './components/ui/Toast.jsx'
 import { useForegroundPush, useNotificationOpen } from './hooks/useNotifications.js'
 import { OfflineBanner } from './components/ui/OfflineBanner.jsx'
@@ -56,6 +57,8 @@ export default function App() {
 
   const ricette = useAI(getInventoryText, 'ricette')
   const spesa   = useAI(getInventoryText, 'spesa')
+  const stagione = useAI(getInventoryText, 'stagione', { session: false })
+  const [seasonalIngredient, setSeasonalIngredient] = useState(null)
 
   const savedRecipes   = useSavedRecipes(authUid)
   const savedShopping  = useSavedShopping(authUid)
@@ -166,6 +169,7 @@ export default function App() {
               onOpenExpiring={openExpiring}
               onCloseDetail={nav.closeDetail}
               onCook={handleCook}
+              onSeasonal={setSeasonalIngredient}
               onPlan={() => nav.go('cucina', 'pasti')}
               onSavedRecipes={() => nav.go('cucina', 'salvate')}
               onProfile={() => nav.go('tu')}
@@ -229,6 +233,14 @@ export default function App() {
             />
           )}
         </main>
+
+        <SeasonalRecipesModal
+          ingredient={seasonalIngredient}
+          ai={stagione}
+          onClose={() => setSeasonalIngredient(null)}
+          onSave={savedRecipes.addRecipes}
+          onGoApiKey={handleGoApiKey}
+        />
 
         <AddFlow
           state={add}

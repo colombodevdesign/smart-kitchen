@@ -195,14 +195,19 @@
 .chip {
   display: flex;
   align-items: center;
-  min-height: 36px;
-  padding: 0 14px;
+  gap: 6px;
+  min-height: var(--tap);
+  padding: 0 16px;
   font-size: 15px;
+  color: var(--text);
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-pill);
+  cursor: pointer;
 }
+.chip:hover { background: var(--surface-hover); border-color: var(--border-strong); }
 .chipMore { color: var(--text-muted); background: var(--surface-hover); border-color: transparent; }
+.chipMore:hover { color: var(--text); }
 
 .fab {
   position: fixed;

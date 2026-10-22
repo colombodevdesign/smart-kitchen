@@ -34,7 +34,7 @@ src/
   nav/tabs.js               # TABS (oggi, dispensa, cucina, spesa, tu) e sotto-sezioni
   ai/
     model.js                # MODEL_NAME (Lite) + MODEL_PRO e PRO_CONFIG (unico punto dove cambiare modelli)
-    prompts.js              # prompt ricette/spesa, PROMPT_VERSION (entra nell'hash della cache)
+    prompts.js              # prompt ricette/spesa/stagione, PROMPT_VERSION (entra nell'hash della cache)
     errors.js               # classifyError → no-key | quota | billing | invalid-key | offline | unknown
     extractIngredients.js   # estrazione batch degli ingredienti delle ricette (generateContent + responseSchema)
   hooks/
@@ -53,7 +53,7 @@ src/
     useMediaQuery.js
   components/
     ui/                     # Icon, Segmented, StatusBadge, Chip, EmptyState, Toast(+useToast), PageHeader, OfflineBanner, RecipeCard
-    TodayTab, ExpiringList, PantryTab, ItemRow, CucinaTab, AITab, SavedRecipesTab, RecipeDetail, MealTrackerTab,
+    TodayTab, ExpiringList, SeasonalRecipesModal, PantryTab, ItemRow, CucinaTab, AITab, SavedRecipesTab, RecipeDetail, MealTrackerTab,
     SpesaTab, SavedShoppingTab, PantrySuggestionsModal, TuTab, ProfileTab, NotificationSettings,
     AddFlow, AddSheet, VoiceBatchModal, ReceiptScanModal, BatchReview,
     MealFormModal, MealDetailSheet, Modal, BottomNav, Sidebar, LoginScreen
@@ -222,7 +222,7 @@ Due flussi paralleli, stessa struttura e stessa schermata di verifica:
 
 - SDK: `@google/genai`. Modelli in `src/ai/model.js` (per cambiarli si modifica solo quel file):
   `MODEL_PRO` (`gemini-3.8-flash`, con `PRO_CONFIG` = ragionamento `LOW`, perché i token di ragionamento si
-  pagano come output) dove la qualità si vede: ricette e relativi follow-up (`useAI` con `name === 'ricette'`) e
+  pagano come output) dove la qualità si vede: ricette e relativi follow-up e ricette di stagione (`useAI` con `name` `ricette` o `stagione`) e
   scontrino (`useReceiptScan`). `MODEL_NAME` (`gemini-3.5-flash-lite`) per spesa, voce ed `extractIngredients`.
   Il nome del modello entra nell'hash della cache di `useAI`: cambiando modello le risposte vengono rigenerate.
 - Prompt in `src/ai/prompts.js`. **Formato ricetta**: `## Titolo`, una riga meta (tempo/porzioni), poi
@@ -231,7 +231,14 @@ Due flussi paralleli, stessa struttura e stessa schermata di verifica:
 - Marcatori nell'inventario inviato: `[scad]`/`[oggi]`/`[Ngg]` (scade presto) e `[APERTO]`; priorità: scade
   presto > aperto; i già scaduti vanno controllati prima di usarli.
 - Streaming: `generateContentStream`, `chunk.text` (stringa). Multi-turn con `apiHistoryRef`.
-- Funzioni esposte da `useAI`: `fetchRicette()`, `fetchSpesa()`, `sendFollowUp(text)`; stato `{ loading, messages,
+- "Di stagione" su Oggi: i chip sono bottoni (il "+N" mostra tutti gli ingredienti del mese). Il tocco apre
+  `SeasonalRecipesModal`, che con `useAI(…, 'stagione', { session: false })` genera 3 ricette con quell'ingrediente
+  e la dispensa (`stagionePrompts`, modello forte). Cache per ingrediente (`stagione:<nome>`, riaprire è gratis); "Altre idee"
+  passa i titoli già visti in `exclude` (entra nell'hash) e usa lo slot `stagione:<nome>:altre`. Le ricette si salvano con `savedRecipes.addRecipes`.
+- Ogni richiesta di `useAI` ha un numero (`runRef`): uno stream superato (nuova richiesta o `clearOutput`) non
+  aggiorna più lo stato, ma il risultato finisce comunque in cache.
+- Funzioni esposte da `useAI`: `fetchRicette()`, `fetchSpesa()`, `fetchStagione(ingrediente, exclude)`,
+  `sendFollowUp(text)`, `clearOutput()`; stato `{ loading, messages,
   streaming, error, errorCode, cached, ... }`. `errorCode`: `no-key | quota | billing | invalid-key | offline | unknown`.
 - Errori API: l'SDK mette nel `message` il JSON della risposta (a volte annidato due volte); `apiErrorInfo` lo
   scompatta, così l'utente non vede mai JSON grezzo. `billing` = HTTP 402 / credito prepagato esaurito: tutte
