@@ -88,11 +88,6 @@
   /* layout */
   --safe-b: env(safe-area-inset-bottom, 0px);
   --nav-h: 64px;
-  /* iOS 26 draws a system "scroll edge" blur ~40pt below the top of an installed web app
-     (black-translucent + viewport-fit=cover). It cannot be turned off, so in that case content
-     starts lower: --edge-ramp is added to the safe area. Set from index.html (data-ios-standalone). */
-  --edge-ramp: 0px;
-  --top-inset: calc(env(safe-area-inset-top, 0px) + var(--edge-ramp));
   --bottom-nav-h: 0px;                       /* set below on mobile */
   --float-bottom: calc(var(--bottom-nav-h) + 16px);   /* fixed FABs; in-flow sticky bars use 16px: the nav is a flex sibling of the scroll area */
 
@@ -107,12 +102,6 @@
 
 @media (max-width: 600px) {
   :root { --bottom-nav-h: calc(var(--nav-h) + var(--safe-b)); }
-}
-
-/* 28px + the 16px of padding below the strip ≈ the 40pt blur band. Landscape phones have no status bar. */
-:root[data-ios-standalone] { --edge-ramp: 28px; }
-@media (orientation: landscape) and (max-height: 500px) {
-  :root[data-ios-standalone] { --edge-ramp: 0px; }
 }
 
 :root[data-theme='dark'] {
