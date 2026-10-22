@@ -36,6 +36,7 @@ src/
     model.js                # MODEL_NAME (Lite) + MODEL_PRO e PRO_CONFIG (unico punto dove cambiare modelli)
     prompts.js              # prompt ricette/spesa/stagione, PROMPT_VERSION (entra nell'hash della cache)
     errors.js               # classifyError → no-key | quota | billing | invalid-key | offline | unknown
+    validateKey.js          # validateApiKey: verifica la chiave Gemini (models.list, gratuito) prima di salvarla
     extractIngredients.js   # estrazione batch degli ingredienti delle ricette (generateContent + responseSchema)
   hooks/
     useAuth.js              # Firebase Auth (Google), onAuthStateChanged
@@ -248,6 +249,11 @@ Due flussi paralleli, stessa struttura e stessa schermata di verifica:
   bloccante; "Analizza ingredienti" fa il backfill). Il matching è per radici: un ingrediente è "in dispensa" se
   le sue radici sono un sottoinsieme di quelle del prodotto con la stessa radice principale ("pasta" ≈ "pasta
   penne", ≠ "pasta sfoglia"). Non confronta le quantità.
+
+## Chiave API (Tu)
+
+`ProfileTab` valida la chiave con `ai/validateKey.js` prima di salvarla: se è valida salva in localStorage, chiude la
+modale e mostra un toast; se fallisce la modale resta aperta con il messaggio sotto il campo (`role="alert"`). Campo vuoto = rimuove la chiave.
 
 ## Componente AITab
 

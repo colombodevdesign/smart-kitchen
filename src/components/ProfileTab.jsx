@@ -5,6 +5,8 @@ import { PageHeader } from './ui/PageHeader.jsx'
 import { Segmented } from './ui/Segmented.jsx'
 import { StatusBadge } from './ui/StatusBadge.jsx'
 import { useNotifications } from '../hooks/useNotifications.js'
+import { useToast } from './ui/Toast.jsx'
+import { validateApiKey } from '../ai/validateKey.js'
 import { getApiKey, GEMINI_API_KEY_STORAGE } from '../utils/apiKey.js'
 import { getPref, setPref } from '../utils/theme.js'
 import styles from './ProfileTab.module.css'
@@ -25,17 +27,43 @@ export function ProfileTab({ user, online, onExport, onImport, onClearInventory,
   // API key
   const [apiKey, setApiKey] = useState(getApiKey)
   const [showKey, setShowKey] = useState(false)
-  const [keySaved, setKeySaved] = useState(false)
-  const hasKey = !!getApiKey()
+  const [keyChecking, setKeyChecking] = useState(false)
+  const [keyError, setKeyError] = useState('')
+  const [hasKey, setHasKey] = useState(() => !!getApiKey())
+  const toast = useToast()
 
-  function saveKey() {
+  function openKeyDialog() {
+    setApiKey(getApiKey())
+    setKeyError('')
+    setDialog('api')
+  }
+
+  function closeKeyDialog() {
+    if (keyChecking) return
+    setDialog(null)
+  }
+
+  async function saveKey() {
     const trimmed = apiKey.trim()
-    try {
-      if (trimmed) localStorage.setItem(GEMINI_API_KEY_STORAGE, trimmed)
-      else localStorage.removeItem(GEMINI_API_KEY_STORAGE)
-    } catch {}
-    setKeySaved(true)
-    setTimeout(() => setKeySaved(false), 2000)
+    if (!trimmed) {
+      try { localStorage.removeItem(GEMINI_API_KEY_STORAGE) } catch {}
+      setHasKey(false)
+      setDialog(null)
+      toast.show({ message: 'Chiave API rimossa' })
+      return
+    }
+    setKeyChecking(true)
+    setKeyError('')
+    const result = await validateApiKey(trimmed)
+    setKeyChecking(false)
+    if (!result.ok) {
+      setKeyError(result.message)
+      return
+    }
+    try { localStorage.setItem(GEMINI_API_KEY_STORAGE, trimmed) } catch {}
+    setHasKey(true)
+    setDialog(null)
+    toast.show({ message: 'Chiave API verificata e salvata' })
   }
 
   // CSV
@@ -101,7 +129,7 @@ export function ProfileTab({ user, online, onExport, onImport, onClearInventory,
 
       <ul className={styles.list}>
         <li>
-          <button type="button" className={styles.row} onClick={() => setDialog('api')}>
+          <button type="button" className={styles.row} onClick={openKeyDialog}>
             <span className={styles.rowLabel}>Chiave API Gemini</span>
             <StatusBadge tone={hasKey ? 'ok' : 'soon'}>{hasKey ? 'Impostata' : 'Mancante'}</StatusBadge>
             <Icon name="chevR" size={20} className={styles.chev} />
@@ -122,30 +150,42 @@ export function ProfileTab({ user, online, onExport, onImport, onClearInventory,
 
       <button type="button" className={styles.signOut} onClick={onSignOut}>Esci</button>
 
-      <Modal open={dialog === 'api'} onClose={() => setDialog(null)} title="Chiave API Gemini">
-        <div className={styles.dialogBody}>
+      <Modal open={dialog === 'api'} onClose={closeKeyDialog} title="Chiave API Gemini">
+        <form
+          className={styles.dialogBody}
+          onSubmit={e => { e.preventDefault(); if (!keyChecking) saveKey() }}
+        >
           <p className={styles.desc}>
-            La chiave viene salvata solo nel tuo browser e non viene mai inviata a server esterni.
+            La chiave viene salvata solo nel tuo browser. Prima di salvarla la verifichiamo con Google.
           </p>
-          <div className={styles.keyRow}>
-            <input
-              className={styles.keyInput}
-              type={showKey ? 'text' : 'password'}
-              placeholder="Incolla la tua API key…"
-              value={apiKey}
-              onChange={e => setApiKey(e.target.value)}
-              spellCheck={false}
-              aria-label="Chiave API Gemini"
-            />
-            <button type="button" className={styles.visBtn} onClick={() => setShowKey(v => !v)} aria-label={showKey ? 'Nascondi chiave' : 'Mostra chiave'}>
-              <Icon name={showKey ? 'eyeOff' : 'eye'} size={20} />
-            </button>
+          <div className={styles.keyField}>
+            <div className={styles.keyRow}>
+              <input
+                className={`${styles.keyInput} ${keyError ? styles.keyInputErr : ''}`}
+                type={showKey ? 'text' : 'password'}
+                placeholder="Incolla la tua API key…"
+                value={apiKey}
+                onChange={e => { setApiKey(e.target.value); if (keyError) setKeyError('') }}
+                spellCheck={false}
+                autoComplete="off"
+                readOnly={keyChecking}
+                aria-label="Chiave API Gemini"
+                aria-invalid={keyError ? 'true' : undefined}
+                aria-describedby={keyError ? 'api-key-error' : undefined}
+              />
+              <button type="button" className={styles.visBtn} onClick={() => setShowKey(v => !v)} aria-label={showKey ? 'Nascondi chiave' : 'Mostra chiave'}>
+                <Icon name={showKey ? 'eyeOff' : 'eye'} size={20} />
+              </button>
+            </div>
+            {keyError && <p id="api-key-error" role="alert" className={styles.err}>{keyError}</p>}
           </div>
           <a className={styles.link} href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer">
             Ottieni una API key gratuita
           </a>
-          <button type="button" className={styles.primary} onClick={saveKey}>{keySaved ? 'Salvata' : 'Salva'}</button>
-        </div>
+          <button type="submit" className={styles.primary} disabled={keyChecking} aria-busy={keyChecking}>
+            {keyChecking ? 'Verifico…' : 'Salva'}
+          </button>
+        </form>
       </Modal>
 
       <Modal open={dialog === 'csv'} onClose={() => setDialog(null)} title="Backup e trasferimento">
