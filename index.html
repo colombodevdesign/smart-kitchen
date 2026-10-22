@@ -25,8 +25,6 @@
           r.setAttribute('data-theme', t);
           r.style.colorScheme = t;
           document.querySelector('meta[name="theme-color"]').setAttribute('content', dark ? '#101A14' : '#F3F5F0');
-          // Installed iOS web app (navigator.standalone exists only on iOS): see --edge-ramp in index.css.
-          if (navigator.standalone === true) r.setAttribute('data-ios-standalone', '');
         } catch (e) {}
       })();
     </script>

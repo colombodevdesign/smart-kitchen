@@ -15,7 +15,7 @@
   position: sticky;
   top: 0;
   z-index: var(--z-sticky);
-  padding-top: var(--top-inset);
+  padding-top: env(safe-area-inset-top);
 }
 
 .headerInner {
@@ -100,13 +100,19 @@
    it), so content scrolls below the clock instead of behind it. ── */
 @media (max-width: 600px) {
   .header {
-    height: var(--top-inset);
+    height: env(safe-area-inset-top, 0px);
     padding-top: 0;
     background: var(--bg);
     border-bottom: none;
   }
   .headerInner { display: none; }
   .main { padding: 1rem 1rem 1rem; }
+}
+
+/* Installed app only: iOS 26 blurs ~40pt below the top edge of an installed web app (it can't be
+   turned off), so the first row starts a bit lower. In a browser tab there is no such band. */
+@media (max-width: 600px) and (display-mode: standalone) {
+  .main { padding-top: calc(1rem + 16px); }
 }
 
 /* ── Desktop (≥1024px): sidebar replaces header ── */
