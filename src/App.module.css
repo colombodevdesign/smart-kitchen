@@ -15,7 +15,7 @@
   position: sticky;
   top: 0;
   z-index: var(--z-sticky);
-  padding-top: env(safe-area-inset-top);
+  padding-top: var(--top-inset);
 }
 
 .headerInner {
@@ -100,7 +100,7 @@
    it), so content scrolls below the clock instead of behind it. ── */
 @media (max-width: 600px) {
   .header {
-    height: env(safe-area-inset-top, 0px);
+    height: var(--top-inset);
     padding-top: 0;
     background: var(--bg);
     border-bottom: none;
