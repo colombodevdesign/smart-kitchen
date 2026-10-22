@@ -106,7 +106,7 @@
     border-bottom: none;
   }
   .headerInner { display: none; }
-  .main { padding: 1rem 1rem 1rem; }
+  .main { padding: calc(1rem + 8px) 1rem 1rem; }   /* +8px: a bit further from iOS 26's edge blur */
 }
 
 /* ── Desktop (≥1024px): sidebar replaces header ── */
