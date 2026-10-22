@@ -89,7 +89,8 @@ scrollabile `.main` finisce già sopra la nav. Conseguenze: le barre `position: 
 `bottom: 0` (il padding di `.main` dà il margine), mentre solo gli elementi `position: fixed` (FAB) usano
 `--float-bottom`. L'header è ridotto a una striscia alta quanto `env(safe-area-inset-top)` (su iOS standalone la
 pagina è disegnata sotto la status bar, `black-translucent`): il logo compare solo da tablet in su. Da iOS 26 il sistema sfoca ~40pt sotto il bordo alto delle web app installate (non
-disattivabile): `.main` ha 8px di padding in più in alto per stare un po' più lontano dalla fascia. I toast
+disattivabile): solo con `display-mode: standalone` `.main` ha 16px di padding in più in alto per stare fuori
+dalla fascia (in una scheda del browser non serve). I toast
 (`ui/Toast`) stanno in alto, sotto la safe area, così non si sovrappongono a FAB e nav.
 
 ## Firebase — configurazione
