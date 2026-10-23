@@ -4,8 +4,9 @@ Le regole si applicano a mano da Firebase Console → Firestore Database → Rul
 `firestore.rules`). **Vanno pubblicate prima di deployare le Functions e il client**: senza le regole per
 `notificationPrefs` e `pushTokens` le notifiche mostrano "Regole Firestore non aggiornate".
 
-Ordine di deploy consigliato: **regole → Functions → client**. Rollback: revert del client; le regole nuove
-non rompono quello vecchio.
+Ordine di deploy consigliato: **Functions → client → regole**. Il vecchio doc `pushToken/data` (dispositivo
+singolo) non è più usato: la sua regola va tolta solo dopo il deploy del client, perché quello precedente lo
+scrive ancora. Il doc rimasto su Firestore si può cancellare a mano dalla Console.
 
 ```
 rules_version = '2';
@@ -44,6 +45,13 @@ service cloud.firestore {
                    && request.resource.data.items is list;
     }
 
+    // Chiave API Gemini dell'utente. La rimozione è `apiKey: ''` (il doc resta),
+    // così "doc assente" significa ancora "primo accesso: carica la chiave locale".
+    match /users/{userId}/settings/gemini {
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId) && isValidGeminiKey(request.resource.data);
+    }
+
     // Preferenze di notifica. Lettura e scrittura sono regole separate:
     // in lettura request.resource non esiste.
     // `lastRunDay` lo scrive la Function (Admin SDK), ma il client salva con
@@ -60,12 +68,6 @@ service cloud.firestore {
       allow create, update: if isOwner(userId) && isValidDevice(request.resource.data);
       allow delete: if isOwner(userId);
     }
-
-    // TODO(remove next release): doc del vecchio client a dispositivo singolo,
-    // ancora scritto in doppia copia finché la Function non è stata ridistribuita.
-    match /users/{userId}/pushToken/data {
-      allow read, write: if isOwner(userId);
-    }
   }
 
   function isValidInventory(data) {
@@ -73,6 +75,12 @@ service cloud.firestore {
         && data.credenza is list
         && data.frigo    is list
         && data.freezer  is list;
+  }
+
+  function isValidGeminiKey(data) {
+    return data.keys().hasOnly(['apiKey', 'updatedAt'])
+        && data.get('apiKey', '') is string
+        && data.get('apiKey', '').size() <= 200;
   }
 
   function isValidPrefs(data) {
@@ -97,4 +105,6 @@ service cloud.firestore {
 
 Ogni utente legge e scrive solo i propri documenti `/users/{uid}/...`. Le regole non si possono provare
 senza l'emulatore: dopo averle pubblicate, apri **Tu → Avvisi di scadenza** e attiva/disattiva gli avvisi
-(deve funzionare senza errori), poi usa "Invia notifica di prova".
+(deve funzionare senza errori), poi usa "Invia notifica di prova". Per la chiave Gemini: salva una chiave in
+**Tu → Chiave API Gemini** (il toast deve dire "nel tuo account"; se dice "solo su questo dispositivo" le regole
+non sono ancora pubblicate).

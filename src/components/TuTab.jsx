@@ -2,7 +2,7 @@ import { ProfileTab } from './ProfileTab.jsx'
 import { NotificationSettings } from './NotificationSettings.jsx'
 import styles from './Containers.module.css'
 
-export function TuTab({ user, online, detail, onOpenNotifications, onCloseDetail, onExport, onImport, onClearInventory, onSignOut }) {
+export function TuTab({ user, online, detail, onOpenNotifications, onCloseDetail, onExport, onImport, onClearInventory, onSignOut, onSaveApiKey }) {
   return (
     <div className={`${styles.wrap} ${styles.narrow}`}>
       {detail?.type === 'notifiche' ? (
@@ -15,6 +15,7 @@ export function TuTab({ user, online, detail, onOpenNotifications, onCloseDetail
           onImport={onImport}
           onClearInventory={onClearInventory}
           onSignOut={onSignOut}
+          onSaveApiKey={onSaveApiKey}
           onOpenNotifications={onOpenNotifications}
         />
       )}

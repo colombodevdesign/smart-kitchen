@@ -1,8 +1,9 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Icon } from './ui/Icon.jsx'
 import { getUseSoonItems, itemBadge } from '../utils/pantry.js'
 import { todayStr } from '../utils/date.js'
 import { getSeasonal, getMonthName } from '../data/seasonal.js'
+import { ExpiringList } from './ExpiringList.jsx'
 import styles from './TodayTab.module.css'
 
 function greeting(hour) {
@@ -18,8 +19,16 @@ function capitalize(s) {
 const MAX_ITEMS = 3
 const MAX_SEASONAL = 4
 
-export function TodayTab({ inventory, meals, onCook, onPlan, onSavedRecipes, onProfile, onAdd }) {
+export function TodayTab({ inventory, meals, detail, onOpenExpiring, onCloseDetail, onCook, onSeasonal, onPlan, onSavedRecipes, onProfile, onAdd }) {
+  if (detail?.type === 'scadenze') {
+    return <ExpiringList inventory={inventory} onBack={onCloseDetail} onCook={onCook} />
+  }
+  return <Today inventory={inventory} meals={meals} onOpenExpiring={onOpenExpiring} onCook={onCook} onSeasonal={onSeasonal} onPlan={onPlan} onSavedRecipes={onSavedRecipes} onProfile={onProfile} onAdd={onAdd} />
+}
+
+function Today({ inventory, meals, onOpenExpiring, onCook, onSeasonal, onPlan, onSavedRecipes, onProfile, onAdd }) {
   const now = new Date()
+  const [allSeasonal, setAllSeasonal] = useState(false)
   const dateLabel = capitalize(now.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' }))
 
   const useSoon = useMemo(() => getUseSoonItems(inventory), [inventory])
@@ -70,7 +79,9 @@ export function TodayTab({ inventory, meals, onCook, onPlan, onSavedRecipes, onP
             </ul>
           )}
           {useSoon.length > MAX_ITEMS && (
-            <p className={styles.heroMore}>e altri {useSoon.length - MAX_ITEMS}</p>
+            <button type="button" className={styles.heroMore} onClick={onOpenExpiring}>
+              Vedi tutti ({useSoon.length}) <Icon name="chevR" size={16} strokeWidth={2.2} />
+            </button>
           )}
 
           <button type="button" className={styles.cta} onClick={onCook}>
@@ -96,13 +107,30 @@ export function TodayTab({ inventory, meals, onCook, onPlan, onSavedRecipes, onP
           </section>
 
           <section className={styles.season} aria-labelledby="today-season">
-            <h2 id="today-season" className={styles.cardTitle}>Di stagione, a {getMonthName().toLowerCase()}</h2>
+            <div>
+              <h2 id="today-season" className={styles.cardTitle}>Di stagione, a {getMonthName().toLowerCase()}</h2>
+              <p className={styles.muted}>Tocca un ingrediente per qualche idea di ricetta.</p>
+            </div>
             <ul className={styles.chips}>
-              {seasonal.slice(0, MAX_SEASONAL).map(name => (
-                <li key={name} className={styles.chip}>{capitalize(name)}</li>
+              {(allSeasonal ? seasonal : seasonal.slice(0, MAX_SEASONAL)).map(name => (
+                <li key={name}>
+                  <button type="button" className={styles.chip} onClick={() => onSeasonal?.(name)}>
+                    {capitalize(name)}
+                  </button>
+                </li>
               ))}
               {seasonal.length > MAX_SEASONAL && (
-                <li className={`${styles.chip} ${styles.chipMore}`}>+{seasonal.length - MAX_SEASONAL}</li>
+                <li>
+                  <button
+                    type="button"
+                    className={`${styles.chip} ${styles.chipMore}`}
+                    onClick={() => setAllSeasonal(v => !v)}
+                    aria-expanded={allSeasonal}
+                    aria-label={allSeasonal ? 'Mostra meno ingredienti di stagione' : `Mostra altri ${seasonal.length - MAX_SEASONAL} ingredienti di stagione`}
+                  >
+                    {allSeasonal ? 'Meno' : `+${seasonal.length - MAX_SEASONAL}`}
+                  </button>
+                </li>
               )}
             </ul>
           </section>

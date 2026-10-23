@@ -10,7 +10,9 @@ const STALE_CODES = [
 const STALE_PURGE_MS = 30 * 24 * 3600 * 1000
 const MAX_NAMES = 3
 
-const DEFAULT_PREFS = { enabled: true, hour: 9, minute: 0, daysBefore: [1], tz: DEFAULT_TZ }
+// Same tag on every expiry push: if a device still gets two, the system shows one.
+const EXPIRY_TAG = 'sk-scadenze'
+const TEST_TAG = 'sk-test'
 
 function dayLabel(offset) {
   if (offset === 0) return 'Oggi'
@@ -40,14 +42,20 @@ function nameList(names) {
   return names.length > MAX_NAMES ? `${shown} +${names.length - MAX_NAMES} altri` : shown
 }
 
+function whenText(offset) {
+  return offset === 0 ? 'oggi' : offset === 1 ? 'domani' : `tra ${offset} giorni`
+}
+
+// One recap per user and day, whatever the number of products.
 function buildMessage(groups) {
   if (groups.length === 1) {
     const { offset, names } = groups[0]
-    const title = offset === 0 ? '⏰ Scade oggi' : offset === 1 ? '⏰ Scade domani' : `⏰ Scade tra ${offset} giorni`
-    return { title, body: nameList(names) }
+    if (names.length === 1) return { title: `⏰ ${names[0]} scade ${whenText(offset)}`, body: 'Tocca per vedere cosa scade.' }
+    return { title: `⏰ ${names.length} prodotti scadono ${whenText(offset)}`, body: nameList(names) }
   }
+  const total = groups.reduce((n, g) => n + g.names.length, 0)
   return {
-    title: '⏰ Prodotti in scadenza',
+    title: `⏰ ${total} prodotti in scadenza`,
     body: groups.map(g => `${dayLabel(g.offset)}: ${nameList(g.names)}`).join(' · '),
   }
 }
@@ -75,8 +83,8 @@ async function applyResults(entries, responses, nowMs) {
   return results
 }
 
-// Token entries for a user: pushTokens docs (deduped by token value), plus the
-// legacy pushToken/data token while nothing newer exists.
+// Token entries for a user: pushTokens docs, deduped by token value so a device
+// listed twice is sent one message.
 async function loadTokens(db, uid, { includeStale = false, nowMs = Date.now() } = {}) {
   const snap = await db.collection(`users/${uid}/pushTokens`).get()
   const seen = new Set()
@@ -94,21 +102,16 @@ async function loadTokens(db, uid, { includeStale = false, nowMs = Date.now() } 
     seen.add(data.token)
     entries.push({ ref: d.ref, id: d.id, label: data.label ?? 'Dispositivo', token: data.token, staleSince: data.staleSince })
   }
-  if (entries.length === 0) {
-    const legacy = await db.doc(`users/${uid}/pushToken/data`).get()
-    const ld = legacy.exists ? legacy.data() : null
-    if (ld?.token && (includeStale || ld.enabled) && !seen.has(ld.token)) {
-      entries.push({ ref: null, id: 'legacy', label: 'Dispositivo precedente', token: ld.token })
-    }
-  }
   return entries
 }
 
-function toMessage(token, { title, body }) {
+// The service worker reads `data.open` on click to open that view of the app.
+function toMessage(token, { title, body }, { tag, open } = {}) {
   return {
     token,
     notification: { title, body },
-    webpush: { notification: { icon: '/icon-192.png', badge: '/icon-192.png' } },
+    ...(open ? { data: { open } } : {}),
+    webpush: { notification: { icon: '/icon-192.png', badge: '/icon-192.png', ...(tag ? { tag } : {}) } },
   }
 }
 
@@ -129,7 +132,7 @@ async function processUser({ db, messaging, uid, prefs, nowMs }) {
   if (entries.length === 0) { await markRan(); return { sent: 0, skipped: 'no-tokens' } }
 
   const message = buildMessage(groups)
-  const res = await messaging.sendEach(entries.map(e => toMessage(e.token, message)))
+  const res = await messaging.sendEach(entries.map(e => toMessage(e.token, message, { tag: EXPIRY_TAG, open: 'scadenze' })))
   const results = await applyResults(entries, res.responses, nowMs)
   await markRan()
   return { sent: results.filter(r => r.status === 'ok').length, results, message }
@@ -145,14 +148,8 @@ async function runTick({ db, messaging, nowMs = Date.now() }) {
     const prefSnaps = await db.getAll(...chunk.map(r => db.doc(`users/${r.id}/notificationPrefs/data`)))
     for (let j = 0; j < chunk.length; j++) {
       const uid = chunk[j].id
-      let prefs = prefSnaps[j].exists ? prefSnaps[j].data() : null
-      if (!prefs) {
-        // Transition: a user with only the old pushToken/data keeps the old 09:00 behaviour.
-        const legacy = await db.doc(`users/${uid}/pushToken/data`).get()
-        if (!(legacy.exists && legacy.data()?.enabled && legacy.data()?.token)) continue
-        prefs = { ...DEFAULT_PREFS }
-      }
-      if (!prefs.enabled || !shouldSendNow(prefs, nowMs)) continue
+      const prefs = prefSnaps[j].exists ? prefSnaps[j].data() : null
+      if (!prefs || !prefs.enabled || !shouldSendNow(prefs, nowMs)) continue
       summary.due++
       try {
         const r = await processUser({ db, messaging, uid, prefs, nowMs })
@@ -173,10 +170,10 @@ async function sendTest({ db, messaging, uid, nowMs = Date.now() }) {
   const res = await messaging.sendEach(entries.map(e => toMessage(e.token, {
     title: 'Notifica di prova',
     body: 'Gli avvisi di scadenza funzionano su questo dispositivo.',
-  })))
+  }, { tag: TEST_TAG })))
   return { results: await applyResults(entries, res.responses, nowMs) }
 }
 
 module.exports = {
-  collectExpiring, buildMessage, nameList, loadTokens, processUser, runTick, sendTest, DEFAULT_PREFS,
+  collectExpiring, buildMessage, nameList, loadTokens, toMessage, processUser, runTick, sendTest,
 }

@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { getToken, onMessage } from 'firebase/messaging'
-import { collection, deleteDoc, doc, getDoc, onSnapshot, setDoc } from 'firebase/firestore'
+import { deleteToken, getToken, onMessage } from 'firebase/messaging'
+import { collection, deleteDoc, doc, onSnapshot, setDoc } from 'firebase/firestore'
 import { messagingPromise, db, callFunction } from '../firebase.js'
 import { useToast } from '../components/ui/Toast.jsx'
 
 const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY
 const DEVICE_ID_KEY = 'sk-device-id'
-const MIGRATED_KEY = 'sk-notif-migrated-'
+const OFF_HERE_KEY = 'sk-notif-off-here'
+const SEEN_EVERY_MS = 12 * 3600 * 1000
+const OPEN_PARAM = 'apri'
+const OPEN_TARGETS = ['scadenze']
 
 export const DEFAULT_PREFS = { enabled: false, hour: 9, minute: 0, daysBefore: [1] }
 
@@ -33,6 +36,14 @@ function describeDevice() {
   return { platform: os, label: [os, standalone ? 'app installata' : browser].filter(Boolean).join(' · ') }
 }
 
+function offHere() {
+  try { return localStorage.getItem(OFF_HERE_KEY) === '1' } catch { return false }
+}
+
+function setOffHere(on) {
+  try { on ? localStorage.setItem(OFF_HERE_KEY, '1') : localStorage.removeItem(OFF_HERE_KEY) } catch {}
+}
+
 function deviceTz() {
   try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Rome' } catch { return 'Europe/Rome' }
 }
@@ -41,6 +52,7 @@ async function ensureSwRegistered() {
   if (!('serviceWorker' in navigator)) throw new Error('Service Worker non supportato')
   const existing = await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js')
   if (!existing) await navigator.serviceWorker.register('/firebase-messaging-sw.js', { scope: '/' })
+  else existing.update().catch(() => {})
   return navigator.serviceWorker.ready
 }
 
@@ -94,9 +106,9 @@ export function useNotifications(uid) {
   const loading = prefsDoc === undefined || devices === undefined
   const prefs = { ...DEFAULT_PREFS, ...(prefsDoc ?? {}) }
 
-  // The old doc and the new one can list the same token: show it once.
+  // Two docs with the same token are one device: show it once (this device's doc wins).
   const visibleDevices = (devices ?? []).filter((d, i, all) =>
-    !(d.id === 'legacy' && all.some(o => o.id !== 'legacy' && o.token === d.token)))
+    (all.find(o => o.token === d.token && o.id === myId) ?? all.find(o => o.token === d.token)) === d)
   const mine = visibleDevices.find(d => d.id === myId)
 
   let thisDevice = 'missing'
@@ -107,39 +119,29 @@ export function useNotifications(uid) {
 
   async function writeDevice(token) {
     const { label, platform } = describeDevice()
+    const now = Date.now()
     await setDoc(doc(db, 'users', uid, 'pushTokens', myId), {
-      token, label, platform, status: 'active', staleSince: null, updatedAt: Date.now(),
+      token, label, platform, status: 'active', staleSince: null, updatedAt: now, lastSeenAt: now,
     }, { merge: true })
-    const old = devicesRef.current.find(d => d.id === 'legacy' && d.token === token)
-    if (old) await deleteDoc(doc(db, 'users', uid, 'pushTokens', 'legacy')).catch(() => {})
+    // Same token under another id (old 'legacy' copy, or this browser before its
+    // id was reset) would be the same device twice.
+    const dupes = devicesRef.current.filter(d => d.id !== myId && d.token === token)
+    await Promise.all(dupes.map(d => deleteDoc(doc(db, 'users', uid, 'pushTokens', d.id)).catch(() => {})))
     return token
   }
 
-  // First run after the update: carry a token saved by the old single-device
-  // version over to the new structure, so nobody has to re-enable.
-  useEffect(() => {
-    if (!uid || loading || prefsDoc !== null || devices.length > 0) return
-    let done = false
-    try { done = !!localStorage.getItem(MIGRATED_KEY + uid) } catch {}
-    if (done) return
-    try { localStorage.setItem(MIGRATED_KEY + uid, '1') } catch {}
-    getDoc(doc(db, 'users', uid, 'pushToken', 'data')).then(async snap => {
-      const old = snap.exists() ? snap.data() : null
-      if (!old?.enabled || !old.token) return
-      await setDoc(doc(db, 'users', uid, 'pushTokens', 'legacy'), {
-        token: old.token, label: 'Dispositivo precedente', platform: '', status: 'active', updatedAt: Date.now(),
-      })
-      await setDoc(prefsRef(), { ...DEFAULT_PREFS, enabled: true, tz: deviceTz(), updatedAt: Date.now() }, { merge: true })
-    }).catch(() => {})
-  }, [uid, loading, prefsDoc, devices, prefsRef])
-
   // Opening the app on a device where it is enabled quietly repairs its token
-  // (rotated, or marked stale after a failed delivery).
+  // (rotated, or marked stale after a failed delivery) and records when it was
+  // last opened, so old devices can be told apart in the list. Skipped where the
+  // user removed this device.
   useEffect(() => {
-    if (!uid || loading || !supported || permission !== 'granted' || !prefs.enabled || healed.current) return
+    if (!uid || loading || !supported || permission !== 'granted' || !prefs.enabled || healed.current || offHere()) return
     healed.current = true
     fetchToken().then(token => {
       if (!mine || mine.token !== token || mine.status !== 'active') return writeDevice(token)
+      if (!(Date.now() - (mine.lastSeenAt ?? 0) < SEEN_EVERY_MS)) {
+        return setDoc(doc(db, 'users', uid, 'pushTokens', myId), { lastSeenAt: Date.now() }, { merge: true })
+      }
     }).catch(() => {})
   }, [uid, loading, supported, permission, prefs.enabled]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -164,20 +166,32 @@ export function useNotifications(uid) {
       setError('Permesso negato. Consenti le notifiche dalle impostazioni del browser e riprova.')
       return
     }
-    const token = await writeDevice(await fetchToken())
+    setOffHere(false)
+    await writeDevice(await fetchToken())
     healed.current = true
     await setDoc(prefsRef(), { ...prefs, enabled: true, tz: deviceTz(), updatedAt: Date.now() }, { merge: true })
-    // TODO(remove next release): the previous Cloud Function still reads this doc until it is redeployed.
-    await setDoc(doc(db, 'users', uid, 'pushToken', 'data'), { token, enabled: true, updatedAt: Date.now() }, { merge: true })
   }), [uid, supported, run, prefsRef, prefs.hour, prefs.minute, prefs.daysBefore.join()]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Switches the alerts off for every device; tokens are kept so turning them
   // back on is a single tap.
   const disable = useCallback(() => run(async () => {
     await setDoc(prefsRef(), { enabled: false, updatedAt: Date.now() }, { merge: true })
-    // TODO(remove next release): see enable().
-    await setDoc(doc(db, 'users', uid, 'pushToken', 'data'), { enabled: false, updatedAt: Date.now() }, { merge: true })
-  }), [uid, run, prefsRef])
+  }), [run, prefsRef])
+
+  // Stops sending to one device. For this device the push subscription is dropped
+  // too, and it is not re-registered on the next launch until the user turns it
+  // back on here.
+  const removeDevice = useCallback((id) => run(async () => {
+    if (!uid) return
+    const token = devicesRef.current.find(d => d.id === id)?.token
+    const sameDevice = devicesRef.current.filter(d => d.id === id || (token && d.token === token))
+    await Promise.all(sameDevice.map(d => deleteDoc(doc(db, 'users', uid, 'pushTokens', d.id))))
+    if (sameDevice.some(d => d.id === myId)) {
+      setOffHere(true)
+      const messaging = await messagingPromise
+      if (messaging) await deleteToken(messaging).catch(() => {})
+    }
+  }), [uid, myId, run])
 
   const setSchedule = useCallback((patch) => run(async () => {
     const next = {}
@@ -206,13 +220,43 @@ export function useNotifications(uid) {
   return {
     supported, permission, loading, busy, error,
     prefs, devices: visibleDevices, myId, thisDevice,
-    enable, disable, setSchedule, sendTest,
+    enable, disable, setSchedule, sendTest, removeDevice,
   }
 }
 
+function readOpenParam() {
+  const params = new URLSearchParams(window.location.search)
+  const open = params.get(OPEN_PARAM)
+  if (open === null) return null
+  params.delete(OPEN_PARAM)
+  const query = params.toString()
+  window.history.replaceState(window.history.state, '', window.location.pathname + (query ? `?${query}` : '') + window.location.hash)
+  return OPEN_TARGETS.includes(open) ? open : null
+}
+
+// Tapping a notification opens a view of the app: through `?apri=<view>` when the
+// app was closed, or a message from the service worker when it was already open.
+export function useNotificationOpen(active, onOpen) {
+  const onOpenRef = useRef(onOpen)
+  onOpenRef.current = onOpen
+  useEffect(() => {
+    if (!active) return
+    const fromUrl = readOpenParam()
+    if (fromUrl) onOpenRef.current(fromUrl)
+    if (!('serviceWorker' in navigator)) return
+    const onMsg = (e) => {
+      if (e.data?.type === 'sk-open' && OPEN_TARGETS.includes(e.data.open)) onOpenRef.current(e.data.open)
+    }
+    navigator.serviceWorker.addEventListener('message', onMsg)
+    return () => navigator.serviceWorker.removeEventListener('message', onMsg)
+  }, [active])
+}
+
 // Foreground pushes are not shown by the browser: surface them as a toast.
-export function useForegroundPush(active) {
+export function useForegroundPush(active, onOpen) {
   const { show } = useToast()
+  const onOpenRef = useRef(onOpen)
+  onOpenRef.current = onOpen
   useEffect(() => {
     if (!active) return
     let off
@@ -222,7 +266,13 @@ export function useForegroundPush(active) {
       off = onMessage(messaging, payload => {
         const { title, body } = payload.notification ?? {}
         const message = [title, body].filter(Boolean).join(' · ')
-        if (message) show({ message, ms: 8000 })
+        if (!message) return
+        const open = payload.data?.open
+        if (OPEN_TARGETS.includes(open) && onOpenRef.current) {
+          show({ message, ms: 8000, actionLabel: 'Vedi', onAction: () => onOpenRef.current(open) })
+        } else {
+          show({ message, ms: 8000 })
+        }
       })
     })
     return () => { cancelled = true; off?.() }

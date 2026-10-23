@@ -5,6 +5,7 @@ import { useAI } from './hooks/useAI.js'
 import { useSavedRecipes } from './hooks/useSavedRecipes.js'
 import { useSavedShopping } from './hooks/useSavedShopping.js'
 import { useMealTracker } from './hooks/useMealTracker.js'
+import { useApiKeySync } from './hooks/useApiKeySync.js'
 import { useNavigation } from './hooks/useNavigation.js'
 import { useOnline } from './hooks/useOnline.js'
 import { LoginScreen } from './components/LoginScreen.jsx'
@@ -16,11 +17,14 @@ import { TuTab } from './components/TuTab.jsx'
 import { Sidebar } from './components/Sidebar.jsx'
 import { BottomNav } from './components/BottomNav.jsx'
 import { AddFlow } from './components/AddFlow.jsx'
+import { SeasonalRecipesModal } from './components/SeasonalRecipesModal.jsx'
 import { useToast } from './components/ui/Toast.jsx'
-import { useForegroundPush } from './hooks/useNotifications.js'
+import { useForegroundPush, useNotificationOpen } from './hooks/useNotifications.js'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts.js'
 import { ShortcutsHelp } from './components/ShortcutsHelp.jsx'
 import { OfflineBanner } from './components/ui/OfflineBanner.jsx'
+import { MockBanner } from './components/ui/MockBanner.jsx'
+import { MOCK_MODE } from './mock/mode.js'
 import { todayStr } from './utils/date.js'
 import { hasApiKey } from './utils/apiKey.js'
 import { TABS } from './nav/tabs.js'
@@ -31,7 +35,22 @@ export default function App() {
   const nav = useNavigation('oggi')
   const toast = useToast()
   const online = useOnline()
-  useForegroundPush(!!user)
+  const mainRef = useRef(null)
+
+  // "In scadenza": from Oggi, the daily notification and its foreground toast.
+  const showingExpiring = nav.tab === 'oggi' && nav.detail?.type === 'scadenze'
+  const openExpiring = useCallback(() => {
+    if (!showingExpiring) {
+      nav.go('oggi')
+      nav.openDetail({ type: 'scadenze' })
+    }
+    if (mainRef.current) mainRef.current.scrollTop = 0
+  }, [showingExpiring, nav.go, nav.openDetail])
+  const openFromNotification = useCallback((target) => {
+    if (target === 'scadenze') openExpiring()
+  }, [openExpiring])
+  useForegroundPush(!!user && !MOCK_MODE, openFromNotification)
+  useNotificationOpen(!!user && !MOCK_MODE, openFromNotification)
 
   // undefined = auth still resolving, null = logged out, string = uid
   const authUid = user === undefined ? undefined : (user?.uid ?? null)
@@ -44,6 +63,10 @@ export default function App() {
 
   const ricette = useAI(getInventoryText, 'ricette')
   const spesa   = useAI(getInventoryText, 'spesa')
+  const stagione = useAI(getInventoryText, 'stagione', { session: false })
+  const [seasonalIngredient, setSeasonalIngredient] = useState(null)
+
+  const { saveApiKey } = useApiKeySync(authUid)
 
   const savedRecipes   = useSavedRecipes(authUid)
   const savedShopping  = useSavedShopping(authUid)
@@ -60,8 +83,6 @@ export default function App() {
   const openAdd = useCallback((mode = 'sheet', section = 'frigo') => setAdd({ mode, section }), [])
   const closeAdd = useCallback(() => setAdd(a => ({ ...a, mode: 'closed' })), [])
   const switchAdd = useCallback((mode) => setAdd(a => ({ ...a, mode })), [])
-
-  const mainRef = useRef(null)
 
   const handleTabChange = useCallback((tabId) => {
     nav.go(tabId)
@@ -172,13 +193,18 @@ export default function App() {
         />
 
         <main ref={mainRef} className={styles.main}>
+          {MOCK_MODE && <MockBanner />}
           {!online && <OfflineBanner />}
 
           {nav.tab === 'oggi' && (
             <TodayTab
               inventory={inventory}
               meals={mealTracker.meals}
+              detail={nav.detail}
+              onOpenExpiring={openExpiring}
+              onCloseDetail={nav.closeDetail}
               onCook={handleCook}
+              onSeasonal={setSeasonalIngredient}
               onPlan={() => nav.go('cucina', 'pasti')}
               onSavedRecipes={() => nav.go('cucina', 'salvate')}
               onProfile={() => nav.go('tu')}
@@ -241,9 +267,18 @@ export default function App() {
               onImport={importCSV}
               onClearInventory={clearInventory}
               onSignOut={signOut}
+              onSaveApiKey={saveApiKey}
             />
           )}
         </main>
+
+        <SeasonalRecipesModal
+          ingredient={seasonalIngredient}
+          ai={stagione}
+          onClose={() => setSeasonalIngredient(null)}
+          onSave={savedRecipes.addRecipes}
+          onGoApiKey={handleGoApiKey}
+        />
 
         <AddFlow
           state={add}
