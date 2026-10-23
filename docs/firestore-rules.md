@@ -45,6 +45,13 @@ service cloud.firestore {
                    && request.resource.data.items is list;
     }
 
+    // Chiave API Gemini dell'utente. La rimozione è `apiKey: ''` (il doc resta),
+    // così "doc assente" significa ancora "primo accesso: carica la chiave locale".
+    match /users/{userId}/settings/gemini {
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId) && isValidGeminiKey(request.resource.data);
+    }
+
     // Preferenze di notifica. Lettura e scrittura sono regole separate:
     // in lettura request.resource non esiste.
     // `lastRunDay` lo scrive la Function (Admin SDK), ma il client salva con
@@ -70,6 +77,12 @@ service cloud.firestore {
         && data.freezer  is list;
   }
 
+  function isValidGeminiKey(data) {
+    return data.keys().hasOnly(['apiKey', 'updatedAt'])
+        && data.get('apiKey', '') is string
+        && data.get('apiKey', '').size() <= 200;
+  }
+
   function isValidPrefs(data) {
     return data.keys().hasOnly(['enabled', 'hour', 'minute', 'tz', 'daysBefore', 'updatedAt', 'lastRunDay'])
         && data.get('enabled', false) is bool
@@ -92,4 +105,6 @@ service cloud.firestore {
 
 Ogni utente legge e scrive solo i propri documenti `/users/{uid}/...`. Le regole non si possono provare
 senza l'emulatore: dopo averle pubblicate, apri **Tu → Avvisi di scadenza** e attiva/disattiva gli avvisi
-(deve funzionare senza errori), poi usa "Invia notifica di prova".
+(deve funzionare senza errori), poi usa "Invia notifica di prova". Per la chiave Gemini: salva una chiave in
+**Tu → Chiave API Gemini** (il toast deve dire "nel tuo account"; se dice "solo su questo dispositivo" le regole
+non sono ancora pubblicate).

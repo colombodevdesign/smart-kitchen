@@ -7,7 +7,7 @@ import { StatusBadge } from './ui/StatusBadge.jsx'
 import { useNotifications } from '../hooks/useNotifications.js'
 import { useToast } from './ui/Toast.jsx'
 import { validateApiKey } from '../ai/validateKey.js'
-import { getApiKey, GEMINI_API_KEY_STORAGE } from '../utils/apiKey.js'
+import { getApiKey } from '../utils/apiKey.js'
 import { getPref, setPref } from '../utils/theme.js'
 import styles from './ProfileTab.module.css'
 
@@ -17,7 +17,7 @@ const THEME_OPTIONS = [
   { value: 'dark', label: 'Scuro' },
 ]
 
-export function ProfileTab({ user, online, onExport, onImport, onClearInventory, onSignOut, onOpenNotifications }) {
+export function ProfileTab({ user, online, onExport, onImport, onClearInventory, onSignOut, onOpenNotifications, onSaveApiKey }) {
   const push = useNotifications(user?.uid)
   const alertsOn = push.prefs.enabled && push.thisDevice === 'active'
   const pad = n => String(n).padStart(2, '0')
@@ -29,7 +29,7 @@ export function ProfileTab({ user, online, onExport, onImport, onClearInventory,
   const [showKey, setShowKey] = useState(false)
   const [keyChecking, setKeyChecking] = useState(false)
   const [keyError, setKeyError] = useState('')
-  const [hasKey, setHasKey] = useState(() => !!getApiKey())
+  const hasKey = !!getApiKey()
   const toast = useToast()
 
   function openKeyDialog() {
@@ -46,8 +46,7 @@ export function ProfileTab({ user, online, onExport, onImport, onClearInventory,
   async function saveKey() {
     const trimmed = apiKey.trim()
     if (!trimmed) {
-      try { localStorage.removeItem(GEMINI_API_KEY_STORAGE) } catch {}
-      setHasKey(false)
+      await onSaveApiKey('')
       setDialog(null)
       toast.show({ message: 'Chiave API rimossa' })
       return
@@ -55,15 +54,19 @@ export function ProfileTab({ user, online, onExport, onImport, onClearInventory,
     setKeyChecking(true)
     setKeyError('')
     const result = await validateApiKey(trimmed)
-    setKeyChecking(false)
     if (!result.ok) {
+      setKeyChecking(false)
       setKeyError(result.message)
       return
     }
-    try { localStorage.setItem(GEMINI_API_KEY_STORAGE, trimmed) } catch {}
-    setHasKey(true)
+    const where = await onSaveApiKey(trimmed)
+    setKeyChecking(false)
     setDialog(null)
-    toast.show({ message: 'Chiave API verificata e salvata' })
+    toast.show({
+      message: where === 'synced'
+        ? 'Chiave API verificata e salvata nel tuo account'
+        : 'Chiave API verificata, salvata solo su questo dispositivo',
+    })
   }
 
   // CSV
@@ -156,7 +159,7 @@ export function ProfileTab({ user, online, onExport, onImport, onClearInventory,
           onSubmit={e => { e.preventDefault(); if (!keyChecking) saveKey() }}
         >
           <p className={styles.desc}>
-            La chiave viene salvata solo nel tuo browser. Prima di salvarla la verifichiamo con Google.
+            Prima di salvarla verifichiamo la chiave con Google. Viene salvata nel tuo account, così la ritrovi su tutti i dispositivi.
           </p>
           <div className={styles.keyField}>
             <div className={styles.keyRow}>

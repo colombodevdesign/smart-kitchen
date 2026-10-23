@@ -5,6 +5,7 @@ import { useAI } from './hooks/useAI.js'
 import { useSavedRecipes } from './hooks/useSavedRecipes.js'
 import { useSavedShopping } from './hooks/useSavedShopping.js'
 import { useMealTracker } from './hooks/useMealTracker.js'
+import { useApiKeySync } from './hooks/useApiKeySync.js'
 import { useNavigation } from './hooks/useNavigation.js'
 import { useOnline } from './hooks/useOnline.js'
 import { LoginScreen } from './components/LoginScreen.jsx'
@@ -59,6 +60,8 @@ export default function App() {
   const spesa   = useAI(getInventoryText, 'spesa')
   const stagione = useAI(getInventoryText, 'stagione', { session: false })
   const [seasonalIngredient, setSeasonalIngredient] = useState(null)
+
+  const { saveApiKey } = useApiKeySync(authUid)
 
   const savedRecipes   = useSavedRecipes(authUid)
   const savedShopping  = useSavedShopping(authUid)
@@ -230,6 +233,7 @@ export default function App() {
               onImport={importCSV}
               onClearInventory={clearInventory}
               onSignOut={signOut}
+              onSaveApiKey={saveApiKey}
             />
           )}
         </main>
