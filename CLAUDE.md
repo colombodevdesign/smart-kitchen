@@ -5,7 +5,7 @@ Reference rapido per sessioni future. Aggiorna quando cambia l'architettura.
 ## Progetto
 
 App React single-page per gestione dispensa con suggerimenti AI stagionali.
-Stack: React 18 + Vite 5 + CSS Modules + Firebase (Auth + Firestore).
+Stack: React 18 + Vite 5 + CSS Modules + Firebase (Auth + Firestore) + Motion (`motion/react`, solo per la Dispensa desktop).
 Autenticazione Google obbligatoria. Dispensa, pasti, ricette salvate e lista
 spesa vivono su Firestore, sincronizzati in real-time tra dispositivi. Nessun backend
 custom, nessun routing library.
@@ -60,7 +60,7 @@ src/
     useMediaQuery.js
   components/
     ui/                     # Icon, Segmented, StatusBadge, Chip, EmptyState, Toast(+useToast), PageHeader, OfflineBanner, RecipeCard
-    TodayTab, ExpiringList, SeasonalRecipesModal, PantryTab, ItemRow, CucinaTab, AITab, SavedRecipesTab, RecipeDetail, MealTrackerTab,
+    TodayTab, ExpiringList, SeasonalRecipesModal, PantryTab, PantryColumns, PantryComposer, ItemRow, CucinaTab, AITab, SavedRecipesTab, RecipeDetail, MealTrackerTab,
     SpesaTab, SavedShoppingTab, PantrySuggestionsModal, TuTab, ProfileTab, NotificationSettings,
     AddFlow, AddSheet, VoiceBatchModal, ReceiptScanModal, BatchReview, ShortcutsHelp,
     MealFormModal, MealDetailSheet, Modal, BottomNav, Sidebar, LoginScreen
@@ -107,14 +107,37 @@ Cinque destinazioni: Oggi, Dispensa, Cucina (Ricette AI / Salvate / Pasti), Spes
 alla history, quindi il tasto indietro del telefono le chiude. A ≥1024px Cucina e Spesa mostrano lo split a
 due colonne. `BottomNav` e il FAB si nascondono quando `nav.detail` è attivo (`data-detail`).
 
+Dispensa su mobile/tablet: segmented senza conteggi, righe `ItemRow` (variante `card`, con swipe) dentro **un solo contenitore** arrotondato con filetti
+(`.list` in `PantryTab.module.css`), stato vuoto illustrato (`EmptyState art="shapes"`); la schermata di verifica degli import (`BatchReview`) è una card per
+prodotto con riga originale/checkbox, nome + quantità e segmented con i nomi delle sezioni. Ogni riga (`ItemRow` variante `card`) è **un solo bersaglio** (≥64px) che apre `ItemEditSheet` (nome, quantità, scadenza con scorciatoie
+Nessuna/Domani/+3 giorni/+1 sett., interruttore «Aperto», «Sposta in», Elimina/Salva; stato `editing` in `PantryTab`); i chip «+ quantità» / «+ scadenza» sono solo indicazioni.
+Lo swipe (Aperto/Elimina) resta; il menu «⋯» non c'è più su mobile. `Modal` accetta `autoFocus={false}` (la scheda non apre la tastiera da sola).
+
+Dispensa su desktop (≥1024px, `PantryColumns`): tre colonne (Credenza / Frigo / Freezer) oppure una sezione **espansa**
+(pulsante "Espandi" nell'intestazione, "Riduci" per tornare) con le altre due ripiegate in schede-anteprima a destra (clic = espandi quella).
+La sezione espansa ospita `PantryComposer`: l'aggiunta di un prodotto è contestuale (niente selettore sezione), Invio aggiunge e
+tiene il cursore sul nome; "Scontrino"/"Voce" aprono i flussi di import già indirizzati a quella sezione. Nelle tre colonne non c'è
+aggiunta rapida (resta il pulsante in sidebar). Lo stato `expanded` vive in `PantryTab`.
+Ogni sezione è una card (icona in tondo, titolo, "N prodotti"); le righe sono `ItemRow` con `variant`: `card` (default, mobile/tablet/ricerca, con swipe),
+`flat` (dentro la card delle tre colonne: righe piatte separate da filetti, il menu "⋯" compare solo con hover/focus) e `table` (sezione espansa:
+colonne Prodotto / Quantità / Scadenza da `--table-cols`, azioni aperto / sposta / elimina sempre visibili; "sposta" apre la striscia con le sezioni).
+Quantità e scadenza sono facoltative: se mancano la riga mostra i chip tratteggiati "+ quantità" / "+ scadenza" (come nel canvas, varianti "senza quantità" e "senza scadenza").
+Sopra il titolo, su desktop, `PageHeader` mostra il riepilogo ("16 prodotti · 6 da usare presto").
+Le card sono gli stessi elementi in tutti i layout e Motion (`layout`, FLIP a molla) le anima tra griglia ed espansione; il contenuto del corpo
+cambia con un crossfade (`AnimatePresence mode="popLayout"`, chiave = modalità), le righe entrano/escono con `layout="position"`. I figli di una card
+con `layout` devono avere a loro volta `layout="position"`, altrimenti il testo si deforma durante la transizione. `LazyMotion` carica `domMax` (serve per i layout animation) da `src/motionFeatures.js`, un chunk a parte: se non si carica (offline) le card
+si vedono senza animazione. `MotionConfig reducedMotion="user"` sta dentro `PantryColumns`; mobile e tablet non usano Motion.
+
 ## Scorciatoie da tastiera
 
 Solo tasti singoli, senza Ctrl/⌘/Alt: sono identici su Windows e Mac e non collidono con il browser.
 `useKeyboardShortcuts(bindings, enabled)` ascolta `keydown` su `document` e ignora l'evento se si sta
 scrivendo in un campo, se c'è un `[role="dialog"][aria-modal]` aperto o se c'è un modificatore.
 I binding sono in `App.jsx`: `1`–`5` destinazioni (ordine di `TABS`), `N` aggiungi, `S` scontrino, `V` voce
-(entrambi richiedono la chiave Gemini, altrimenti toast), `C` "Cosa cucino", `/` cerca in Dispensa
-(`searchRequested` → `PantryTab`), `?` aiuto, `Esc` chiude il dettaglio. **Se aggiungi o cambi un binding,
+(entrambi richiedono la chiave Gemini, altrimenti toast), `C` "Cosa cucino", `P` aggiungi un pasto (apre Cucina › Pasti e il form sul giorno selezionato, via `mealRequested` → `MealTrackerTab`), `/` cerca in Dispensa
+(`searchRequested` → `PantryTab`), `?` aiuto, `Esc` chiude il dettaglio. `N`, `S`, `V` e il pulsante «Aggiungi prodotti» della sidebar aggiungono nella sezione che si sta guardando in Dispensa
+(sezione espansa su desktop, segmented su tablet; `PantryTab` la comunica con `onViewChange` → `pantryView` in `App`); altrove, in
+ricerca o con le tre colonne, il default è Frigo. **Se aggiungi o cambi un binding,
 aggiorna anche `nav/shortcuts.js`** (è la lista dell'aiuto). La sidebar ha il link «Scorciatoie da tastiera» (con badge `?`, piccolo) sopra «Aggiungi prodotti»; nessun altro badge.
 
 Layout mobile (≤600px): `.app` è una colonna flex con la bottom nav **in flusso** (non fixed), quindi l'area
@@ -215,7 +238,7 @@ lo stesso pattern (`useInventory.js` è il riferimento canonico):
     food: boolean,   // false = non alimentare: escluso da Oggi, "In scadenza", prompt e match
     openDays: number | null,  // giorni di conservazione dopo l'apertura, nella sezione in cui sta
     freshDays: number | null, // giorni dall'acquisto per i freschi senza data stampata
-    manual?: true,   // categoria scelta a mano dal menu ⋯: la rianalisi la mantiene
+    manual?: true,   // categoria scelta a mano dalla scheda di modifica (ItemEditSheet): la rianalisi la mantiene
   }
 }
 ```

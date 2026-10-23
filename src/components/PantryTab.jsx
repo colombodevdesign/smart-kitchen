@@ -1,6 +1,8 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { ItemEditSheet } from './ItemEditSheet.jsx'
 import { ItemRow } from './ItemRow.jsx'
-import { Icon, SectionIcon } from './ui/Icon.jsx'
+import { PantryColumns } from './PantryColumns.jsx'
+import { Icon } from './ui/Icon.jsx'
 import { PageHeader } from './ui/PageHeader.jsx'
 import { Segmented } from './ui/Segmented.jsx'
 import { EmptyState } from './ui/EmptyState.jsx'
@@ -16,6 +18,7 @@ const SORT_LABELS = {
   priority:      'Da usare prima',
   category:      'Per categoria',
   none:          'Ordine inserimento',
+  'added-desc':  'Inseriti di recente',
   urgent:        'Aperti prima',
   'name-asc':    'Nome A → Z',
   'name-desc':   'Nome Z → A',
@@ -51,6 +54,9 @@ function sortPairs(pairs, sortMode) {
         .sort((a, b) => comparePriority(a.k, b.k))
         .map(x => x.p)
     }
+    case 'added-desc':
+      // Reversed first so items added together (same timestamp) also come out newest-first.
+      return arr.reverse().sort((a, b) => (b.item.added ?? 0) - (a.item.added ?? 0))
     case 'urgent':
       return arr.sort((a, b) => (b.item.urgent ? 1 : 0) - (a.item.urgent ? 1 : 0))
     case 'name-asc':
@@ -78,11 +84,13 @@ function groupByCategory(pairs) {
 }
 
 export function PantryTab({
-  inventory, onToggleUrgent, onUpdate, onRemove, onRestore, onMove, onSetCategory, onOpenAdd, onGoApiKey,
-  searchRequested, onSearchHandled,
+  inventory, onAdd, onToggleUrgent, onUpdate, onRemove, onRestore, onMove, onSetCategory, onOpenAdd, onGoApiKey,
+  searchRequested, onSearchHandled, onViewChange,
 }) {
   const [section, setSection] = useState('frigo')
   const [sortMode, setSortMode] = useState('priority')
+  const [expanded, setExpanded] = useState(null) // desktop: section shown full-width, or null
+  const [editing, setEditing] = useState(null)   // { section, id }: product open in the edit sheet
   const [search, setSearch] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
   const searchRef = useRef(null)
@@ -99,6 +107,21 @@ export function PantryTab({
         onAction: () => onRestore?.(itemSection, item),
       })
     }
+  }
+
+  const editItem = editing ? inventory[editing.section]?.find(i => i.id === editing.id) : null
+
+  function handleSave({ section: target, category, ...fields }) {
+    onUpdate(editing.section, editing.id, fields)
+    if (category !== (editItem?.ai?.category ?? '')) onSetCategory?.(editing.section, editing.id, category)
+    if (target !== editing.section) onMove(editing.section, editing.id, target)
+    setEditing(null)
+  }
+
+  // Add from the expanded section's form: same confirmation as the add sheet.
+  function handleAdd(itemSection, name, qty, expiry) {
+    onAdd(itemSection, name, qty, expiry)
+    toast.show({ message: `${name.trim()} aggiunto in ${SECTION_LABELS[itemSection].toLowerCase()}`, ms: 3000 })
   }
 
   useEffect(() => {
@@ -118,10 +141,18 @@ export function PantryTab({
   const searchQuery  = search.trim().toLowerCase()
   const searchActive = searchQuery.length > 0
 
-  // Desktop shows one column per section; everywhere else one section at a time
+  // Desktop shows the columns (or one expanded section); everywhere else one section at a time
   // (a search always looks across all sections).
   const isDesktop = useMediaQuery('(min-width: 1024px)')
   const showColumns = isDesktop && !searchActive
+
+  // Tell the app which section is on screen, so the add shortcuts and the sidebar button target it.
+  // (Not while searching: results span every section.)
+  const viewSection = searchActive ? null : showColumns ? expanded : section
+  useEffect(() => {
+    onViewChange?.(viewSection)
+    return () => onViewChange?.(null)
+  }, [viewSection, onViewChange])
 
   const pairs = (s) => inventory[s].map(i => ({ item: i, itemSection: s }))
   const displayItems = searchActive
@@ -133,7 +164,14 @@ export function PantryTab({
     return getUseSoonItems(only).length
   }, [inventory, section])
 
-  const sectionOptions = SECTIONS.map(s => ({ value: s, label: SECTION_LABELS[s], count: inventory[s].length }))
+  // Desktop summary above the title: all products and the ones to use soon.
+  const totalsText = useMemo(() => {
+    const total = SECTIONS.reduce((n, s) => n + inventory[s].length, 0)
+    const soon = getUseSoonItems(inventory).length
+    return `${total === 1 ? '1 prodotto' : `${total} prodotti`}${soon > 0 ? ` · ${soon} da usare presto` : ''}`
+  }, [inventory])
+
+  const sectionOptions = SECTIONS.map(s => ({ value: s, label: SECTION_LABELS[s] }))
   const keyOk = hasApiKey()
 
   function renderRows(list, { showSection, query }) {
@@ -146,29 +184,16 @@ export function PantryTab({
         searchQuery={query}
         onToggleUrgent={onToggleUrgent}
         onUpdate={onUpdate}
+        onEdit={(s, id) => setEditing({ section: s, id })}
         onRemove={handleRemove}
         onMove={onMove}
-        onSetCategory={onSetCategory}
       />
-    ))
-  }
-
-  // Sorted rows of one section, with a heading per category in "Per categoria".
-  function renderSection(list) {
-    if (sortMode !== 'category') return renderRows(list, { showSection: false, query: '' })
-    return groupByCategory(list).map(g => (
-      <Fragment key={g.id || 'unsorted'}>
-        <h3 className={styles.groupTitle}>
-          {g.label} <span className={styles.groupCount}>{g.pairs.length}</span>
-        </h3>
-        {renderRows(g.pairs, { showSection: false, query: '' })}
-      </Fragment>
     ))
   }
 
   return (
     <div className={styles.wrap}>
-      <PageHeader title="Dispensa">
+      <PageHeader title="Dispensa" eyebrow={showColumns ? totalsText : undefined}>
         <div className={styles.actions}>
           <button type="button" className={styles.iconBtn} onClick={() => setSearchOpen(true)} aria-label="Cerca prodotti">
             <Icon name="search" size={20} />
@@ -223,30 +248,23 @@ export function PantryTab({
       )}
 
       {showColumns ? (
-        <div className={styles.columns}>
-          {SECTIONS.map(s => {
-            const colItems = sortPairs(pairs(s), sortMode)
-            return (
-              <section key={s} className={styles.column} aria-label={SECTION_LABELS[s]}>
-                <header className={styles.columnHead}>
-                  <span className={styles.columnTitle}><SectionIcon section={s} size={18} /> {SECTION_LABELS[s]}</span>
-                  <span className={styles.columnCount}>{colItems.length}</span>
-                </header>
-                <div className={styles.columnList}>
-                  {colItems.length === 0
-                    ? <p className={styles.columnEmpty}>Vuoto</p>
-                    : renderSection(colItems)}
-                </div>
-              </section>
-            )
-          })}
-        </div>
+        <PantryColumns
+          inventory={inventory}
+          getPairs={s => sortPairs(pairs(s), sortMode)}
+          expanded={expanded}
+          onExpand={setExpanded}
+          rowProps={{ onToggleUrgent, onUpdate, onRemove: handleRemove, onMove }}
+          groupPairs={sortMode === 'category' ? groupByCategory : null}
+          onAdd={handleAdd}
+          onOpenAdd={onOpenAdd}
+          onGoApiKey={onGoApiKey}
+        />
       ) : displayItems.length === 0 ? (
         searchActive ? (
           <p className={styles.empty}>Nessun risultato per "{search.trim()}"</p>
         ) : (
           <EmptyState
-            icon="pantry"
+            art="shapes"
             title={EMPTY_TITLE[section]}
             text="Aggiungi quello che hai: fotografa uno scontrino, detta la spesa o scrivi un prodotto."
           >
@@ -290,12 +308,29 @@ export function PantryTab({
             </div>
           )}
           <div className={styles.list}>
-            {searchActive
-              ? renderRows(displayItems, { showSection: true, query: searchQuery })
-              : renderSection(displayItems)}
+            {searchActive || sortMode !== 'category'
+              ? renderRows(displayItems, { showSection: searchActive, query: searchActive ? searchQuery : '' })
+              : groupByCategory(displayItems).map(g => (
+                <Fragment key={g.id || 'unsorted'}>
+                  <h3 className={styles.groupTitle}>
+                    {g.label} <span className={styles.groupCount}>{g.pairs.length}</span>
+                  </h3>
+                  {renderRows(g.pairs, { showSection: false, query: '' })}
+                </Fragment>
+              ))}
           </div>
         </>
       )}
+
+      <ItemEditSheet
+        open={!!editItem}
+        item={editItem}
+        section={editing?.section}
+        withCategory={!!onSetCategory}
+        onClose={() => setEditing(null)}
+        onSave={handleSave}
+        onRemove={() => { handleRemove(editing.section, editing.id); setEditing(null) }}
+      />
 
       <button
         type="button"

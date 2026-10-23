@@ -34,3 +34,12 @@
   gap: 10px;
   margin-top: 8px;
 }
+
+/* Illustrated variant (pantry): shapes use palette tokens only. */
+.withArt { gap: 12px; }
+.withArt .title { font-size: 26px; }
+.art { position: relative; width: 168px; height: 140px; }
+.art span { position: absolute; border-radius: 50%; }
+.sun  { left: 62px; top: 0;    width: 104px; height: 104px; background: var(--highlight); }
+.disc { left: 0;    top: 36px; width: 88px;  height: 88px;  background: var(--accent); }
+.ring { left: 96px; top: 84px; width: 40px;  height: 40px;  border: 5px solid var(--accent); }

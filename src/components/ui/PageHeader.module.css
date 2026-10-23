@@ -5,6 +5,11 @@
   gap: 12px;
 }
 
+.eyebrow {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
 .title {
   font-family: var(--font-display);
   font-size: 32px;

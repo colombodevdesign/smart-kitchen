@@ -13,6 +13,7 @@ export const SHORTCUT_GROUPS = [
       { keys: ['S'], label: 'Aggiungi da scontrino' },
       { keys: ['V'], label: 'Aggiungi a voce' },
       { keys: ['C'], label: 'Cosa cucino stasera?' },
+      { keys: ['P'], label: 'Aggiungi un pasto' },
       { keys: ['/'], label: 'Cerca in dispensa' },
     ],
   },

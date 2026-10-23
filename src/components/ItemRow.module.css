@@ -1,9 +1,8 @@
-/* Swipe wrapper: clips the sliding card and hosts the revealed actions */
+/* Swipe wrapper: clips the sliding card and hosts the revealed actions.
+   Rows sit inside a list container (border, radius, hairlines between rows). */
 .swipeWrapper {
   position: relative;
   overflow: hidden;
-  border-radius: var(--radius-md);
-  margin-bottom: 8px;
 }
 
 /* Actions revealed by swiping the card to the left (two 72px buttons).
@@ -33,21 +32,114 @@
 .swipeOpen   { background: var(--info-strong); }
 .swipeDelete { background: var(--urgent); }
 
-/* Card: border + background + rounded corners */
+/* Card variant: the whole row is one tap target (opens the edit sheet). */
+.rowBtn {
+  width: 100%;
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px 8px 16px;
+  text-align: left;
+  color: var(--text);
+  font: inherit;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+}
+.rowBtn:active { background: var(--surface-hover); }
+.nameText {
+  min-width: 0;
+  font-size: 16px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.qtyText { font-size: 13px; color: var(--text-muted); }
+/* "+ quantità" / "+ scadenza" are only hints here: the row opens the sheet. */
+.hintChip, .hintChip:hover { color: var(--text-muted); background: transparent; border-color: var(--border-strong); }
+.rowBtn .qtyEmpty { align-self: flex-start; }
+.chev { color: var(--text-muted); }
+
+/* Desktop pantry: no swipe, no card chrome. `flat` rows sit inside a section
+   card, `table` rows form the expanded section's table (columns from --table-cols). */
+.plainWrapper { margin: 0 -8px; overflow: visible; border-radius: var(--radius-sm); }
+.card.cardFlat {
+  padding: 0 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  z-index: auto;
+  touch-action: auto;
+  transition: background 0.12s;
+}
+.card.cardFlat:hover { background: var(--surface-hover); }
+.cardFlat .row { position: relative; min-height: 58px; padding: 6px 0; }
+.cardFlat .actionStrip { margin: 0 -8px; padding: 8px; }
+/* The "⋯" menu appears on hover or keyboard focus, to keep the list calm: it
+   floats over the right edge and the expiry badge makes room for it. */
+.cardFlat .moreBtn {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  margin: 0;
+  transform: translateY(-50%);
+  opacity: 0;
+}
+.cardFlat .badgeBtn,
+.cardFlat .expiryAdd { transition: margin 0.12s; }
+.cardFlat:hover .moreBtn,
+.cardFlat:focus-within .moreBtn,
+.cardFlat .moreBtnActive { opacity: 1; }
+.cardFlat:hover .badgeBtn,
+.cardFlat:hover .expiryAdd,
+.cardFlat:focus-within .badgeBtn,
+.cardFlat:focus-within .expiryAdd { margin-right: var(--tap); }
+
+.tableRow {
+  display: grid;
+  grid-template-columns: var(--table-cols, minmax(0, 1fr) 96px 120px 132px);
+  gap: 12px;
+  align-items: center;
+  min-height: 56px;
+}
+.tableName { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.tableName .name { font-size: 16px; }
+.tableCell { display: flex; align-items: center; min-width: 0; }
+.tableCell .qty { font-size: 14px; }
+.tableCell .qtyInput { width: 100%; }
+.tableCell .expiryInput { max-width: 100%; }
+.tableActions { display: flex; align-items: center; justify-content: flex-end; }
+.tableBtn {
+  width: var(--tap);
+  height: var(--tap);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  transition: background 0.12s, color 0.12s;
+}
+.tableBtn:hover { color: var(--text); background: var(--surface-hover); }
+.tableBtnOn { color: var(--info-text); }
+.tableDelete { color: var(--urgent-text); }
+.tableDelete:hover { color: var(--urgent-text); background: var(--urgent-light); }
+
+/* Row: background, clips the swipe */
 .card {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
   background: var(--surface);
-  transition: border-color 0.12s;
+  transition: background 0.12s;
   overflow: hidden;
   min-width: 0;
   touch-action: pan-y;
   position: relative;
   z-index: var(--z-row);
 }
-.card:hover { border-color: var(--border-strong); }
-.editing   { border-color: var(--accent) !important; }
-.cardExpanded { border-color: var(--border-strong); }
+.editing { background: var(--surface-hover); }
 
 /* Main flex row */
 .row {
@@ -240,26 +332,6 @@
   white-space: nowrap;
 }
 .moveOption:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
-
-.categoryRow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-basis: 100%;
-}
-.categorySelect {
-  min-height: 36px;
-  max-width: 100%;
-  padding: 0 12px;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text);
-  background: var(--surface);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-pill);
-}
-.categorySelect:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .openedBtn {
   width: 36px;

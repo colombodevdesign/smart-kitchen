@@ -130,9 +130,16 @@ export default function App() {
   }, [nav.go, ricette.fetchRicette])
 
   // Keyboard shortcuts (desktop). Voice and receipt import need the Gemini key, like their buttons.
+  // Section on screen in Dispensa (expanded section on desktop, selected tab otherwise):
+  // "N", "S", "V" and the sidebar button add there instead of the default (frigo).
+  const [pantryView, setPantryView] = useState(null)
+  const openAddHere = useCallback((mode) => openAdd(mode, pantryView ?? undefined), [openAdd, pantryView])
+
   const [helpOpen, setHelpOpen] = useState(false)
   const [pantrySearch, setPantrySearch] = useState(false)
   const clearPantrySearch = useCallback(() => setPantrySearch(false), [])
+  const [mealRequested, setMealRequested] = useState(false)
+  const clearMealRequested = useCallback(() => setMealRequested(false), [])
 
   const needsKey = (fn) => () => {
     if (hasApiKey()) fn()
@@ -141,10 +148,11 @@ export default function App() {
 
   useKeyboardShortcuts({
     ...Object.fromEntries(TABS.map((t, i) => [String(i + 1), () => handleTabChange(t.id)])),
-    n: () => openAdd('sheet'),
-    v: needsKey(() => openAdd('voice')),
-    s: needsKey(() => openAdd('receipt')),
+    n: () => openAddHere('sheet'),
+    v: needsKey(() => openAddHere('voice')),
+    s: needsKey(() => openAddHere('receipt')),
     c: () => (ricette.loading ? handleTabChange('cucina') : handleCook()),
+    p: () => { nav.go('cucina', 'pasti'); setMealRequested(true) },
     '/': () => { handleTabChange('dispensa'); setPantrySearch(true) },
     '?': () => setHelpOpen(true),
     Escape: () => { if (nav.detail) nav.closeDetail() },
@@ -192,7 +200,7 @@ export default function App() {
         <Sidebar
           activeTab={nav.tab}
           onTabChange={handleTabChange}
-          onAdd={() => openAdd('sheet')}
+          onAdd={() => openAddHere('sheet')}
           onShortcuts={() => setHelpOpen(true)}
         />
 
@@ -219,6 +227,7 @@ export default function App() {
           {nav.tab === 'dispensa' && (
             <PantryTab
               inventory={inventory}
+              onAdd={addItem}
               onToggleUrgent={toggleUrgent}
               onUpdate={updateItem}
               onRemove={removeItem}
@@ -226,6 +235,7 @@ export default function App() {
               onMove={moveItem}
               onSetCategory={setCategory}
               onOpenAdd={openAdd}
+              onViewChange={setPantryView}
               onGoApiKey={handleGoApiKey}
               searchRequested={pantrySearch}
               onSearchHandled={clearPantrySearch}
@@ -246,6 +256,8 @@ export default function App() {
               onCloseDetail={nav.closeDetail}
               onCookTonight={handleCookTonight}
               onAddMissing={handleAddMissing}
+              mealRequested={mealRequested}
+              onMealHandled={clearMealRequested}
             />
           )}
 

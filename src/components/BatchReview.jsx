@@ -1,6 +1,6 @@
 import { SECTIONS, SECTION_LABELS } from '../data/initialInventory.js'
 import styles from './BatchReview.module.css'
-import { Icon, SectionIcon } from './ui/Icon.jsx'
+import { Icon } from './ui/Icon.jsx'
 
 // Shared by VoiceBatchModal and ReceiptScanModal so the two review screens
 // (and their footer buttons) stay visually identical.
@@ -18,53 +18,55 @@ export function BatchReviewList({ candidates, emptyMessage, onToggle, onUpdate, 
   return (
     <ul className={styles.list}>
       {candidates.map(c => (
-        <li key={c.id} className={`${styles.row} ${c.checked ? styles.rowOn : ''}`}>
-          <input
-            type="checkbox"
-            className={styles.check}
-            checked={c.checked}
-            onChange={() => onToggle(c.id)}
-            aria-label={`Includi ${c.name}`}
-          />
+        <li key={c.id} className={`${styles.row} ${c.checked ? '' : styles.rowOff}`}>
+          <div className={styles.top}>
+            <label className={styles.include}>
+              <input
+                type="checkbox"
+                className={styles.check}
+                checked={c.checked}
+                onChange={() => onToggle(c.id)}
+              />
+              <span className={styles.hint} title={c.hint || undefined}>{c.hint || 'Includi'}</span>
+            </label>
+            <button
+              type="button"
+              className={styles.removeBtn}
+              onClick={() => onRemove(c.id)}
+              aria-label={`Rimuovi ${c.name}`}
+            ><Icon name="close" size={18} strokeWidth={2.2} /></button>
+          </div>
           <div className={styles.fields}>
-            {c.hint && (
-              <p className={styles.hint} title={c.hint}>{c.hint}</p>
-            )}
             <input
               className={styles.nameInput}
               value={c.name}
               onChange={e => onUpdate(c.id, { name: e.target.value })}
               placeholder="Nome"
+              aria-label="Nome prodotto"
             />
             <input
               className={styles.qtyInput}
               value={c.qty}
               onChange={e => onUpdate(c.id, { qty: e.target.value })}
               placeholder="Quantità"
+              aria-label="Quantità"
             />
-            <div className={styles.segmented} role="radiogroup" aria-label="Sezione">
-              {SECTIONS.map(s => (
-                <button
-                  key={s}
-                  type="button"
-                  role="radio"
-                  aria-checked={c.section === s}
-                  className={`${styles.segBtn} ${c.section === s ? styles.segOn : ''}`}
-                  data-s={s}
-                  onClick={() => onUpdate(c.id, { section: s })}
-                  title={SECTION_LABELS[s]}
-                >
-                  <SectionIcon section={s} size={16} />
-                </button>
-              ))}
-            </div>
           </div>
-          <button
-            type="button"
-            className={styles.removeBtn}
-            onClick={() => onRemove(c.id)}
-            aria-label={`Rimuovi ${c.name}`}
-          ><Icon name="close" size={18} strokeWidth={2.2} /></button>
+          <div className={styles.segmented} role="radiogroup" aria-label="Sezione">
+            {SECTIONS.map(sec => (
+              <button
+                key={sec}
+                type="button"
+                role="radio"
+                aria-checked={c.section === sec}
+                className={`${styles.segBtn} ${c.section === sec ? styles.segOn : ''}`}
+                data-s={sec}
+                onClick={() => onUpdate(c.id, { section: sec })}
+              >
+                {SECTION_LABELS[sec]}
+              </button>
+            ))}
+          </div>
         </li>
       ))}
     </ul>
