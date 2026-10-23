@@ -17,13 +17,32 @@ import styles from './PantryTab.module.css'
 const SORT_LABELS = {
   priority:      'Da usare prima',
   category:      'Per categoria',
-  none:          'Ordine inserimento',
-  'added-desc':  'Inseriti di recente',
+  'added-asc':   'Data aggiunta ↑',
+  'added-desc':  'Data aggiunta ↓',
   urgent:        'Aperti prima',
   'name-asc':    'Nome A → Z',
   'name-desc':   'Nome Z → A',
   'expiry-asc':  'Scadenza ↑',
   'expiry-desc': 'Scadenza ↓',
+}
+
+const SORT_STORAGE_KEY = 'sk-pantry-sort'
+const DEFAULT_SORT = 'priority'
+
+function loadSortMode() {
+  try {
+    const v = localStorage.getItem(SORT_STORAGE_KEY)
+    return v && v in SORT_LABELS ? v : DEFAULT_SORT
+  } catch {
+    return DEFAULT_SORT
+  }
+}
+
+function storeSortMode(mode) {
+  try {
+    if (mode === DEFAULT_SORT) localStorage.removeItem(SORT_STORAGE_KEY)
+    else localStorage.setItem(SORT_STORAGE_KEY, mode)
+  } catch {}
 }
 
 const EMPTY_TITLE = {
@@ -54,6 +73,9 @@ function sortPairs(pairs, sortMode) {
         .sort((a, b) => comparePriority(a.k, b.k))
         .map(x => x.p)
     }
+    case 'added-asc':
+      // Stable sort on a list that is already in insertion order: ties keep it.
+      return arr.sort((a, b) => (a.item.added ?? 0) - (b.item.added ?? 0))
     case 'added-desc':
       // Reversed first so items added together (same timestamp) also come out newest-first.
       return arr.reverse().sort((a, b) => (b.item.added ?? 0) - (a.item.added ?? 0))
@@ -88,7 +110,7 @@ export function PantryTab({
   searchRequested, onSearchHandled, onViewChange,
 }) {
   const [section, setSection] = useState('frigo')
-  const [sortMode, setSortMode] = useState('priority')
+  const [sortMode, setSortMode] = useState(loadSortMode)
   const [expanded, setExpanded] = useState(null) // desktop: section shown full-width, or null
   const [editing, setEditing] = useState(null)   // { section, id }: product open in the edit sheet
   const [search, setSearch] = useState('')
@@ -199,15 +221,15 @@ export function PantryTab({
             <Icon name="search" size={20} />
           </button>
           <div
-            className={`${styles.iconBtn} ${styles.sortWrap} ${sortMode !== 'priority' ? styles.sortActive : ''}`}
+            className={`${styles.iconBtn} ${styles.sortWrap} ${sortMode !== DEFAULT_SORT ? styles.sortActive : ''}`}
             title={SORT_LABELS[sortMode]}
           >
             <Icon name="sort" size={20} />
             <select
               className={styles.sortOverlay}
               value={sortMode}
-              onChange={e => setSortMode(e.target.value)}
-              aria-label="Ordina per"
+              onChange={e => { setSortMode(e.target.value); storeSortMode(e.target.value) }}
+              aria-label={sortMode !== DEFAULT_SORT ? `Ordina per: ${SORT_LABELS[sortMode]}` : 'Ordina per'}
             >
               {Object.entries(SORT_LABELS).map(([val, label]) => (
                 <option key={val} value={val}>{label}</option>

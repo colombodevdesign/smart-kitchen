@@ -203,6 +203,7 @@ si può cancellare dalla Console.
 | `theme` | preferenza tema: `system` \| `light` \| `dark` |
 | `sk-device-id` | id di questo dispositivo per `pushTokens/{deviceId}` |
 | `sk-notif-off-here` | `'1'` se l'utente ha rimosso questo dispositivo: l'auto-riparazione non lo ri-registra |
+| `sk-pantry-sort` | ordinamento scelto in Dispensa (assente = «Da usare prima», il default) |
 | `sk-expiring-banner-dismissed` | data (`YYYY-MM-DD`) in cui è stato chiuso il banner «stanno per scadere» di Spesa; riappare il giorno dopo |
 | `cucina-ai-cache-v1` | cache risposte AI (l'hash include `PROMPT_VERSION`) |
 | `cucina-session-ricette-v1` | sessione chat ricette |

@@ -29,6 +29,19 @@
 }
 .iconBtn:hover { border-color: var(--border-strong); }
 .sortActive { border-color: var(--accent); color: var(--accent); }
+/* Dot on the corner: a sort other than the default is applied */
+.sortActive::after {
+  content: '';
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--surface);
+  pointer-events: none;
+}
 
 /* Sort icon with a native select laid over it */
 .sortOverlay {
