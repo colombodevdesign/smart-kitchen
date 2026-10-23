@@ -9,6 +9,7 @@ import { useToast } from './ui/Toast.jsx'
 import { validateApiKey } from '../ai/validateKey.js'
 import { getApiKey } from '../utils/apiKey.js'
 import { getPref, setPref } from '../utils/theme.js'
+import { MOCK_MODE } from '../mock/mode.js'
 import styles from './ProfileTab.module.css'
 
 const THEME_OPTIONS = [
@@ -110,7 +111,7 @@ export function ProfileTab({ user, online, onExport, onImport, onClearInventory,
           <span className={styles.accountName}>{user.displayName || 'Il tuo account'}</span>
           <span className={styles.accountEmail}>{user.email}</span>
           <span className={`${styles.sync} ${online ? '' : styles.syncOff}`}>
-            Google · {online ? 'sincronizzato' : 'offline'}
+            {MOCK_MODE ? 'Modalità demo · solo su questo dispositivo' : `Google · ${online ? 'sincronizzato' : 'offline'}`}
           </span>
         </div>
       </section>
@@ -151,7 +152,7 @@ export function ProfileTab({ user, online, onExport, onImport, onClearInventory,
         </li>
       </ul>
 
-      <button type="button" className={styles.signOut} onClick={onSignOut}>Esci</button>
+      <button type="button" className={styles.signOut} onClick={onSignOut}>{MOCK_MODE ? 'Ripristina dati demo' : 'Esci'}</button>
 
       <Modal open={dialog === 'api'} onClose={closeKeyDialog} title="Chiave API Gemini">
         <form
