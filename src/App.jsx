@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react'
 import { useAuth } from './hooks/useAuth.js'
 import { useInventory } from './hooks/useInventory.js'
+import { usePantryAnalysis } from './hooks/usePantryAnalysis.js'
 import { useAI } from './hooks/useAI.js'
 import { useSavedRecipes } from './hooks/useSavedRecipes.js'
 import { useSavedShopping } from './hooks/useSavedShopping.js'
@@ -58,8 +59,11 @@ export default function App() {
   const {
     inventory,
     addItem, addBatch, removeItem, restoreItem, updateItem, moveItem, toggleUrgent,
+    applyAnalysis, setCategory,
     exportCSV, importCSV, clearInventory, getInventoryText,
   } = useInventory(authUid)
+  // Hidden AI metadata (category, shelf life) for every product, in the background.
+  usePantryAnalysis(user ? inventory : null, applyAnalysis)
 
   const ricette = useAI(getInventoryText, 'ricette')
   const spesa   = useAI(getInventoryText, 'spesa')
@@ -229,6 +233,7 @@ export default function App() {
               onRemove={removeItem}
               onRestore={restoreItem}
               onMove={moveItem}
+              onSetCategory={setCategory}
               onOpenAdd={openAdd}
               onViewChange={setPantryView}
               onGoApiKey={handleGoApiKey}

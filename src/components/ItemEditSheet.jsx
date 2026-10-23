@@ -3,6 +3,7 @@ import { Modal } from './Modal.jsx'
 import { Icon } from './ui/Icon.jsx'
 import { Segmented } from './ui/Segmented.jsx'
 import { SECTIONS, SECTION_LABELS } from '../data/initialInventory.js'
+import { FOOD_CATEGORIES } from '../data/foodCategories.js'
 import { todayStr } from '../utils/date.js'
 import styles from './ItemEditSheet.module.css'
 
@@ -26,12 +27,14 @@ const toTs = iso => (iso ? new Date(iso + 'T23:59:59').getTime() : null)
 
 // Bottom sheet to edit a pantry product: name, quantity, expiry, "aperto" flag,
 // section. Opened by tapping a row on mobile/tablet.
-export function ItemEditSheet({ open, item, section, onClose, onSave, onRemove }) {
+// withCategory: show the AI category picker (a manual choice survives re-analysis).
+export function ItemEditSheet({ open, item, section, withCategory = false, onClose, onSave, onRemove }) {
   const [name, setName] = useState('')
   const [qty, setQty] = useState('')
   const [expiry, setExpiry] = useState('')
   const [urgent, setUrgent] = useState(false)
   const [target, setTarget] = useState(section)
+  const [category, setCategory] = useState('')
 
   const itemId = item?.id
   useEffect(() => {
@@ -41,6 +44,7 @@ export function ItemEditSheet({ open, item, section, onClose, onSave, onRemove }
     setExpiry(toIso(item.expiresAt))
     setUrgent(!!item.urgent)
     setTarget(section)
+    setCategory(item.ai?.category ?? '')
     // Reset only when a different product is opened, not on every live update.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, itemId, section])
@@ -50,7 +54,7 @@ export function ItemEditSheet({ open, item, section, onClose, onSave, onRemove }
   function save(e) {
     e?.preventDefault()
     if (!canSave) return
-    onSave({ name: name.trim(), qty: qty.trim(), expiresAt: toTs(expiry), urgent, section: target })
+    onSave({ name: name.trim(), qty: qty.trim(), expiresAt: toTs(expiry), urgent, section: target, category })
   }
 
   return (
@@ -143,6 +147,17 @@ export function ItemEditSheet({ open, item, section, onClose, onSave, onRemove }
             ariaLabel="Sposta in"
           />
         </div>
+
+        {withCategory && (
+          <label className={styles.field}>
+            <span>Categoria</span>
+            {/* Set by the AI; a choice made here is kept when the product is analysed again. */}
+            <select className={styles.input} value={category} onChange={e => setCategory(e.target.value)}>
+              <option value="">{item?.ai?.category ? 'Rianalizza con l\u2019AI' : 'Da analizzare'}</option>
+              {FOOD_CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+            </select>
+          </label>
+        )}
       </form>
     </Modal>
   )

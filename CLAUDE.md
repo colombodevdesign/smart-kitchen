@@ -40,10 +40,12 @@ src/
     errors.js               # classifyError → no-key | quota | billing | invalid-key | offline | unknown
     validateKey.js          # validateApiKey: verifica la chiave Gemini (models.list, gratuito) prima di salvarla
     extractIngredients.js   # estrazione batch degli ingredienti delle ricette (generateContent + responseSchema)
+    analyzePantry.js        # metadata nascosti dei prodotti (categoria, durate), ANALYSIS_VERSION, analysisKey
   hooks/
     useAuth.js              # Firebase Auth (Google), onAuthStateChanged
     useNavigation.js        # {tab, sub, detail} + history.pushState/popstate (nessun router)
-    useInventory.js         # CRUD dispensa + CSV + Firestore sync (fallback localStorage), restoreItem
+    useInventory.js         # CRUD dispensa + CSV + Firestore sync (fallback localStorage), restoreItem, applyAnalysis, setCategory
+    usePantryAnalysis.js    # analisi AI in background dei prodotti senza item.ai valido
     useMealTracker.js       # pasti + sync
     useSavedRecipes.js      # ricette salvate + sync + estrazione ingredienti in background
     useSavedShopping.js     # lista spesa + sync
@@ -66,9 +68,10 @@ src/
     initialInventory.js     # SECTIONS, SECTION_LABELS
     seasonal.js             # produce stagionale per mese (Lombardia)
     mealCategories.js       # categorie pasti {id, label, icon}; i colori sono token --cat-*
+    foodCategories.js       # categorie alimentari dell'analisi AI (ordine = gruppi "Per categoria"), FALLBACK_OPEN_DAYS
   utils/
     date.js                 # SOON_DAYS, daysUntil (giorni di calendario), toDateStr, formatExpiry, expiryStatus
-    pantry.js               # statusRank, itemBadge, getUseSoonItems, getPantryCandidates
+    pantry.js               # estimateRemaining, priorityInfo/comparePriority, itemBadge, getUseSoonItems, getPantryCandidates
     markdown.js             # md(): escape HTML poi #/##→h3, ###→h4, **bold**, liste
     parsers.js              # parseRecipes (split su "## "), parseShoppingItems, extractQty
     ingredientMatch.js      # "Hai X ingredienti su Y": matching per radici (puro)
@@ -226,9 +229,38 @@ lo stesso pattern (`useInventory.js` è il riferimento canonico):
   qty: string,
   urgent: boolean,   // flag "aperto": elemento aperto, da consumare presto (senza scadenza precisa)
   added: number,     // timestamp ms
-  expiresAt: number | null
+  expiresAt: number | null,
+  openedAt?: number | null,  // impostato da toggleUrgent; gli aperti senza openedAt contano da `added`
+  ai?: {             // metadata nascosti dell'analisi AI (vedi "Priorità della dispensa")
+    key: string,     // analysisKey(item, section): versione|nome|sezione; se non coincide si rianalizza
+    name: string,    // nome generico ("fagioli" per "Fagioli alla Bud Spencer"), usato dal match ingredienti
+    category: string,// id di data/foodCategories.js
+    food: boolean,   // false = non alimentare: escluso da Oggi, "In scadenza", prompt e match
+    openDays: number | null,  // giorni di conservazione dopo l'apertura, nella sezione in cui sta
+    freshDays: number | null, // giorni dall'acquisto per i freschi senza data stampata
+    manual?: true,   // categoria scelta a mano dalla scheda di modifica (ItemEditSheet): la rianalisi la mantiene
+  }
 }
 ```
+
+## Priorità della dispensa
+
+Ogni prodotto ha una **stima dei giorni rimasti** (`estimateRemaining` in `utils/pantry.js`): il minimo tra
+scadenza stampata, `openDays − giorni da openedAt` (se aperto) e `freshDays − giorni da added` (fresco senza
+data). Senza analisi gli aperti usano `FALLBACK_OPEN_DAYS` per sezione. `comparePriority` ordina: scaduti
+stampati, poi meno giorni rimasti, a parità date stampate e prodotti più deperibili, poi nome. La usano
+"Da usare prima" e "Per categoria" in Dispensa, `getPantryCandidates` (Oggi, "In scadenza", suggerimenti spesa).
+- Candidati: scaduti/in scadenza stampati, tutti gli aperti, freschi con stima ≤ `SOON_DAYS`; mai i non alimentari.
+  `relevant` = stampati o stima ≤ `USE_SOON_DAYS` (7): solo questi vanno su Oggi e nel conteggio "da usare presto".
+  "In scadenza" mette gli altri aperti (le salse) in fondo, in "Aperti, nessuna fretta".
+- `itemBadge(item, { age: true, section })` mostra l'età reale ("Aperto da 9 gg", "Preso 6 gg fa"); la stima
+  sceglie solo il tono (`soon` se ≤ `SOON_DAYS`), mai `expired`. Senza `age` (righe Dispensa) resta "Aperto".
+- Analisi: `usePantryAnalysis` (in `App`) dopo 1,5 s di quiete manda in una chiamata (blocchi da 50, `MODEL_NAME`)
+  i prodotti con `ai?.key !== analysisKey(item, section)`: nuovi, rinominati o spostati. Mai bloccante: senza
+  chiave, offline o tab nascosta non fa nulla; un errore si riprova solo al ricaricamento. `applyAnalysis` scarta i
+  risultati di prodotti cambiati nel frattempo. Per rianalizzare tutto si alza `ANALYSIS_VERSION`.
+- La stessa regola, solo per prodotti analizzati senza data stampata, è duplicata in `functions/lib/notify.js`
+  (`estimatedOffset`, CommonJS): cambiare entrambe.
 
 ## Modello dati — Meal (pasti)
 
@@ -281,8 +313,9 @@ Due flussi paralleli, stessa struttura e stessa schermata di verifica:
 - Prompt in `src/ai/prompts.js`. **Formato ricetta**: `## Titolo`, una riga meta (tempo/porzioni), poi
   `### Ingredienti` e `### Procedimento`. Le sezioni interne usano `###` perché `parseRecipes` spezza le
   ricette su `## `; il testo prima del primo `##` viene scartato. Se cambi il formato, alza `PROMPT_VERSION`.
-- Marcatori nell'inventario inviato: `[scad]`/`[oggi]`/`[Ngg]` (scade presto) e `[APERTO]`; priorità: scade
-  presto > aperto; i già scaduti vanno controllati prima di usarli.
+- Marcatori nell'inventario inviato: `[scad]`/`[oggi]`/`[Ngg]` (scade presto), `[APERTO]` (solo aperti con stima
+  ≤ 7 gg: un ketchup aperto non lo riceve) e `[presto]` (freschi senza data con stima ≤ 3 gg); priorità: scade
+  presto > aperto/presto; i già scaduti vanno controllati prima di usarli. I non alimentari non vengono inviati.
 - Streaming: `generateContentStream`, `chunk.text` (stringa). Multi-turn con `apiHistoryRef`.
 - "Di stagione" su Oggi: i chip sono bottoni (il "+N" mostra tutti gli ingredienti del mese). Il tocco apre
   `SeasonalRecipesModal`, che con `useAI(…, 'stagione', { session: false })` genera 3 ricette con quell'ingrediente
@@ -358,8 +391,9 @@ accetta solo token `active` dal client (`stale` lo imposta la Function).
 - `sendExpiryNotifications`: schedule `*/15 * * * *`. Per ogni utente con `notificationPrefs.enabled`
   controlla se l'ora locale (`tz`) è nella finestra `[hour:minute, +30 min)` (minuti arrotondati al quarto
   d'ora) e se `lastRunDay` non è oggi; raccoglie i prodotti che scadono nei giorni di `daysBefore`
-  (giorni di calendario locali, DST-safe), invia **un solo** messaggio di riepilogo ("3 prodotti scadono
-  domani" + nomi) a tutti i token attivi (deduplicati per valore) con `sendEach`. Il messaggio ha
+  (giorni di calendario locali, DST-safe), compresi quelli analizzati senza data stampata la cui scadenza
+  stimata cade quel giorno (`estimatedOffset`), invia **un solo** messaggio di riepilogo ("3 prodotti scadono
+  domani", oppure "da usare" se il gruppo contiene stime, + nomi) a tutti i token attivi (deduplicati per valore) con `sendEach`. Il messaggio ha
   `webpush.notification.tag = 'sk-scadenze'` (due push sullo stesso dispositivo si fondono) e
   `data.open = 'scadenze'` (il tocco apre la lista "In scadenza"). I token rifiutati da FCM diventano
   `status:'stale'` (eliminati dopo 30 giorni).

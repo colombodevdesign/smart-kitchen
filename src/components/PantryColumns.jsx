@@ -1,11 +1,11 @@
-import { useMemo } from 'react'
+import { Fragment, useMemo } from 'react'
 import { AnimatePresence, LazyMotion, MotionConfig, m } from 'motion/react'
 import { ItemRow } from './ItemRow.jsx'
 import { PantryComposer } from './PantryComposer.jsx'
 import { Icon, SectionIcon } from './ui/Icon.jsx'
 import { StatusBadge } from './ui/StatusBadge.jsx'
 import { SECTIONS, SECTION_LABELS } from '../data/initialInventory.js'
-import { getPantryCandidates, itemBadge } from '../utils/pantry.js'
+import { getUseSoonItems, itemBadge } from '../utils/pantry.js'
 import styles from './PantryColumns.module.css'
 
 // Desktop pantry: three columns, or one expanded section with the other two
@@ -63,7 +63,7 @@ function Preview({ pairs }) {
 const RADIUS = { column: 24, focus: 28, rail: 24 }
 const ICON_SIZE = { column: 22, focus: 26, rail: 20 }
 
-function SectionCard({ section, mode, pairs, soonCount, onExpand, onCollapse, rowProps, composerProps }) {
+function SectionCard({ section, mode, pairs, groupPairs, soonCount, onExpand, onCollapse, rowProps, composerProps }) {
   const label = SECTION_LABELS[section]
   const countText = pairs.length === 1 ? '1 prodotto' : `${pairs.length} prodotti`
   const placement = mode === 'focus'
@@ -131,7 +131,16 @@ function SectionCard({ section, mode, pairs, soonCount, onExpand, onCollapse, ro
                 ? <p className={styles.columnEmpty}>Vuoto</p>
                 : (
                   <div className={styles.list}>
-                    <Rows pairs={pairs} rowProps={rowProps} variant={mode === 'focus' ? 'table' : 'flat'} />
+                    {groupPairs
+                      ? groupPairs(pairs).map(g => (
+                        <Fragment key={g.id || 'unsorted'}>
+                          <h3 className={styles.groupTitle}>
+                            {g.label} <span className={styles.groupCount}>{g.pairs.length}</span>
+                          </h3>
+                          <Rows pairs={g.pairs} rowProps={rowProps} variant={mode === 'focus' ? 'table' : 'flat'} />
+                        </Fragment>
+                      ))
+                      : <Rows pairs={pairs} rowProps={rowProps} variant={mode === 'focus' ? 'table' : 'flat'} />}
                   </div>
                 )}
             </>
@@ -151,10 +160,11 @@ function SectionCard({ section, mode, pairs, soonCount, onExpand, onCollapse, ro
   )
 }
 
-export function PantryColumns({ inventory, getPairs, expanded, onExpand, rowProps, onAdd, onOpenAdd, onGoApiKey }) {
+// groupPairs: optional (pairs) => [{ id, label, pairs }], a heading per group ("Per categoria").
+export function PantryColumns({ inventory, getPairs, groupPairs, expanded, onExpand, rowProps, onAdd, onOpenAdd, onGoApiKey }) {
   const soon = useMemo(() => Object.fromEntries(SECTIONS.map(s => {
     const only = { credenza: [], frigo: [], freezer: [], [s]: inventory[s] }
-    return [s, getPantryCandidates(only).length]
+    return [s, getUseSoonItems(only).length]
   })), [inventory])
 
   const composerProps = { onAdd, onOpenAdd, onGoApiKey }
@@ -169,6 +179,7 @@ export function PantryColumns({ inventory, getPairs, expanded, onExpand, rowProp
               section={s}
               mode={!expanded ? 'column' : expanded === s ? 'focus' : 'rail'}
               pairs={getPairs(s)}
+              groupPairs={groupPairs}
               soonCount={soon[s]}
               onExpand={onExpand}
               onCollapse={() => onExpand(null)}

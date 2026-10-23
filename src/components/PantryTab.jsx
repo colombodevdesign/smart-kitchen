@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { ItemEditSheet } from './ItemEditSheet.jsx'
 import { ItemRow } from './ItemRow.jsx'
 import { PantryColumns } from './PantryColumns.jsx'
@@ -8,14 +8,15 @@ import { Segmented } from './ui/Segmented.jsx'
 import { EmptyState } from './ui/EmptyState.jsx'
 import { useToast } from './ui/Toast.jsx'
 import { SECTIONS, SECTION_LABELS } from '../data/initialInventory.js'
+import { FOOD_CATEGORIES } from '../data/foodCategories.js'
 import { useMediaQuery } from '../hooks/useMediaQuery.js'
-import { expiryStatus } from '../utils/date.js'
-import { getPantryCandidates, statusRank } from '../utils/pantry.js'
+import { comparePriority, getUseSoonItems, priorityInfo } from '../utils/pantry.js'
 import { hasApiKey } from '../utils/apiKey.js'
 import styles from './PantryTab.module.css'
 
 const SORT_LABELS = {
   priority:      'Da usare prima',
+  category:      'Per categoria',
   none:          'Ordine inserimento',
   'added-desc':  'Inseriti di recente',
   urgent:        'Aperti prima',
@@ -45,11 +46,14 @@ function sortPairs(pairs, sortMode) {
   const arr = [...pairs]
   switch (sortMode) {
     case 'priority':
-      return arr.sort((a, b) => {
-        const ra = statusRank({ status: expiryStatus(a.item.expiresAt), urgent: a.item.urgent })
-        const rb = statusRank({ status: expiryStatus(b.item.expiresAt), urgent: b.item.urgent })
-        return ra - rb || byExpiry(1)(a, b) || a.item.name.localeCompare(b.item.name, 'it')
-      })
+    case 'category': {
+      // Estimated days left (printed expiry, opened, fresh): see utils/pantry.js.
+      const now = Date.now()
+      return arr
+        .map(p => ({ p, k: priorityInfo(p.item, p.itemSection, now) }))
+        .sort((a, b) => comparePriority(a.k, b.k))
+        .map(x => x.p)
+    }
     case 'added-desc':
       // Reversed first so items added together (same timestamp) also come out newest-first.
       return arr.reverse().sort((a, b) => (b.item.added ?? 0) - (a.item.added ?? 0))
@@ -68,8 +72,19 @@ function sortPairs(pairs, sortMode) {
   }
 }
 
+// "Per categoria": groups in FOOD_CATEGORIES order, products the AI has not
+// analysed yet at the end. Each group keeps the priority order.
+const UNSORTED = { id: '', label: 'Da analizzare' }
+
+function groupByCategory(pairs) {
+  const groups = [...FOOD_CATEGORIES, UNSORTED].map(c => ({ ...c, pairs: [] }))
+  const byId = Object.fromEntries(groups.map(g => [g.id, g]))
+  for (const p of pairs) (byId[p.item.ai?.category] ?? byId['']).pairs.push(p)
+  return groups.filter(g => g.pairs.length > 0)
+}
+
 export function PantryTab({
-  inventory, onAdd, onToggleUrgent, onUpdate, onRemove, onRestore, onMove, onOpenAdd, onGoApiKey,
+  inventory, onAdd, onToggleUrgent, onUpdate, onRemove, onRestore, onMove, onSetCategory, onOpenAdd, onGoApiKey,
   searchRequested, onSearchHandled, onViewChange,
 }) {
   const [section, setSection] = useState('frigo')
@@ -96,8 +111,9 @@ export function PantryTab({
 
   const editItem = editing ? inventory[editing.section]?.find(i => i.id === editing.id) : null
 
-  function handleSave({ section: target, ...fields }) {
+  function handleSave({ section: target, category, ...fields }) {
     onUpdate(editing.section, editing.id, fields)
+    if (category !== (editItem?.ai?.category ?? '')) onSetCategory?.(editing.section, editing.id, category)
     if (target !== editing.section) onMove(editing.section, editing.id, target)
     setEditing(null)
   }
@@ -145,13 +161,13 @@ export function PantryTab({
 
   const useSoonCount = useMemo(() => {
     const only = { credenza: [], frigo: [], freezer: [], [section]: inventory[section] }
-    return getPantryCandidates(only).length
+    return getUseSoonItems(only).length
   }, [inventory, section])
 
   // Desktop summary above the title: all products and the ones to use soon.
   const totalsText = useMemo(() => {
     const total = SECTIONS.reduce((n, s) => n + inventory[s].length, 0)
-    const soon = getPantryCandidates(inventory).length
+    const soon = getUseSoonItems(inventory).length
     return `${total === 1 ? '1 prodotto' : `${total} prodotti`}${soon > 0 ? ` · ${soon} da usare presto` : ''}`
   }, [inventory])
 
@@ -238,6 +254,7 @@ export function PantryTab({
           expanded={expanded}
           onExpand={setExpanded}
           rowProps={{ onToggleUrgent, onUpdate, onRemove: handleRemove, onMove }}
+          groupPairs={sortMode === 'category' ? groupByCategory : null}
           onAdd={handleAdd}
           onOpenAdd={onOpenAdd}
           onGoApiKey={onGoApiKey}
@@ -291,7 +308,16 @@ export function PantryTab({
             </div>
           )}
           <div className={styles.list}>
-            {renderRows(displayItems, { showSection: searchActive, query: searchActive ? searchQuery : '' })}
+            {searchActive || sortMode !== 'category'
+              ? renderRows(displayItems, { showSection: searchActive, query: searchActive ? searchQuery : '' })
+              : groupByCategory(displayItems).map(g => (
+                <Fragment key={g.id || 'unsorted'}>
+                  <h3 className={styles.groupTitle}>
+                    {g.label} <span className={styles.groupCount}>{g.pairs.length}</span>
+                  </h3>
+                  {renderRows(g.pairs, { showSection: false, query: '' })}
+                </Fragment>
+              ))}
           </div>
         </>
       )}
@@ -300,6 +326,7 @@ export function PantryTab({
         open={!!editItem}
         item={editItem}
         section={editing?.section}
+        withCategory={!!onSetCategory}
         onClose={() => setEditing(null)}
         onSave={handleSave}
         onRemove={() => { handleRemove(editing.section, editing.id); setEditing(null) }}

@@ -183,3 +183,18 @@
 @media (min-width: 1024px) {
   .fab { display: none; }
 }
+
+/* "Per categoria": heading above each group of rows. */
+.groupTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 14px 4px 6px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.groupTitle:first-child { margin-top: 4px; }
+.groupCount { font-weight: 600; opacity: 0.8; }

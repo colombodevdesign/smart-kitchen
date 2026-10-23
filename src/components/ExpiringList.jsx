@@ -9,19 +9,22 @@ import styles from './ExpiringList.module.css'
 const GROUPS = [
   { id: 'expired', title: 'Scaduti', hint: 'Controllali prima di usarli.' },
   { id: 'soon',    title: 'In scadenza' },
-  { id: 'open',    title: 'Aperti' },
+  { id: 'use',     title: 'Da usare presto', hint: 'Aperti o freschi da qualche giorno.' },
+  { id: 'calm',    title: 'Aperti, nessuna fretta', hint: 'Si conservano ancora a lungo.' },
 ]
 
-const byExpiry = (a, b) => (a.item.expiresAt ?? Infinity) - (b.item.expiresAt ?? Infinity)
+function groupOf(c) {
+  if (c.status === 'expired' || c.status === 'soon') return c.status
+  return c.relevant ? 'use' : 'calm'
+}
 
-// Every expired, expiring or opened product, in one list. Opened from Oggi
-// ("Vedi tutti") and from the daily expiry notification.
+// Every expired, expiring, opened or ageing fresh product, in one list, most
+// urgent first. Opened from Oggi ("Vedi tutti") and from the daily notification.
 export function ExpiringList({ inventory, onBack, onCook }) {
   const groups = useMemo(() => {
     const all = getPantryCandidates(inventory)
-    const pick = id => all.filter(c => (c.status === 'expired' || c.status === 'soon' ? c.status : 'open') === id)
     return GROUPS
-      .map(g => ({ ...g, items: pick(g.id).sort(byExpiry) }))
+      .map(g => ({ ...g, items: all.filter(c => groupOf(c) === g.id) }))
       .filter(g => g.items.length > 0)
   }, [inventory])
 
@@ -47,7 +50,7 @@ export function ExpiringList({ inventory, onBack, onCook }) {
               {g.hint && <p className={styles.hint}>{g.hint}</p>}
               <ul className={styles.list}>
                 {g.items.map(c => {
-                  const badge = itemBadge(c.item)
+                  const badge = itemBadge(c.item, { age: true, section: c.section })
                   return (
                     <li key={c.id} className={styles.row}>
                       <span className={styles.name}>
