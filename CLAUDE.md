@@ -107,6 +107,16 @@ Cinque destinazioni: Oggi, Dispensa, Cucina (Ricette AI / Salvate / Pasti), Spes
 alla history, quindi il tasto indietro del telefono le chiude. A ≥1024px Cucina e Spesa mostrano lo split a
 due colonne. `BottomNav` e il FAB si nascondono quando `nav.detail` è attivo (`data-detail`).
 
+Transizioni (solo CSS, nessuna libreria): `useNavigation` espone `motion` (`tab` cambiando destinazione, `detail` aprendo/chiudendo un dettaglio,
+poi `none` dopo 600 ms) e `App` lo mette in `data-motion` su `.page` (`display: contents`). In `App.module.css`, ciò che monta o si de-nasconde in quella finestra
+entra con dissolvenza + leggero zoom: sono i **figli della radice di ogni pagina**, non la radice, perché un antenato con `transform` farebbe scorrere con la pagina gli
+elementi `position: fixed`; quelli (FAB, barra di `RecipeDetail`) hanno `data-fixed` e fanno solo fade. Il cambio tab è in `startTransition` e BottomNav/Sidebar usano
+`useOptimisticValue`: l'evidenziatore parte subito al tocco e la pagina cambia 120 ms dopo (`PAGE_DELAY_MS`), così il render pesante non cade a metà dello scorrimento (su iPhone lo rendeva scattoso). Le sotto-sezioni di Cucina/Spesa restano montate con `hidden`
+e usano `.view` (`Containers.module.css`): `display: none → block` rilancia l'animazione. Token in `index.css`: `--ease-ios` e `--dur-slide` (0,3 s), usati dagli indicatori che scorrono (BottomNav, Sidebar, Segmented);
+una molla con coda lunga (0,6 s) sembrava lenta e scattosa, non reintrodurla. `Modal` resta montato 240 ms dopo la chiusura per l'animazione
+di uscita (`data-closing`) e su iOS segue `visualViewport` (`data-keyboard`, `--vv-top`/`--vv-h`) così con la tastiera aperta il foglio si ridimensiona sopra di essa.
+`AddSheet` non mette il focus sul campo sui dispositivi touch (`pointer: coarse`): altrimenti la tastiera sale da sola all'apertura.
+
 Dispensa su mobile/tablet: segmented senza conteggi, righe `ItemRow` (variante `card`, con swipe) dentro **un solo contenitore** arrotondato con filetti
 (`.list` in `PantryTab.module.css`), stato vuoto illustrato (`EmptyState art="shapes"`); la schermata di verifica degli import (`BatchReview`) è una card per
 prodotto con riga originale/checkbox, nome + quantità e segmented con i nomi delle sezioni. Ogni riga (`ItemRow` variante `card`) è **un solo bersaglio** (≥64px) che apre `ItemEditSheet` (nome, quantità, scadenza con scorciatoie

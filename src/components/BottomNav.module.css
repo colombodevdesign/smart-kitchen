@@ -4,6 +4,7 @@
 
 @media (max-width: 600px) {
   .nav {
+    position: relative;
     display: flex;
     flex-shrink: 0;
     height: var(--bottom-nav-h);
@@ -13,7 +14,31 @@
   }
 }
 
+/* Sliding highlight: --n items, --i active index (set inline). The track is as wide
+   as one item, so translating it by 100% per index lands it on the item. */
+.track {
+  position: absolute;
+  top: 8px;
+  left: 4px;
+  width: calc((100% - 8px) / var(--n));
+  height: 30px;
+  display: flex;
+  justify-content: center;
+  transform: translate3d(calc(var(--i) * 100%), 0, 0);
+  transition: transform var(--dur-slide) var(--ease-ios);
+  will-change: transform;
+  pointer-events: none;
+}
+
+.thumb {
+  width: 56px;
+  height: 30px;
+  border-radius: 15px;
+  background: var(--accent-light);
+}
+
 .item {
+  position: relative;   /* above the sliding highlight */
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -25,6 +50,8 @@
   font-size: 12px;
   font-weight: 500;
   min-width: 0;
+  transition: color 0.25s var(--ease-ios);
+  -webkit-tap-highlight-color: transparent;
 }
 
 .pill {
@@ -34,8 +61,12 @@
   width: 56px;
   height: 30px;
   border-radius: 15px;
-  transition: background 0.12s;
 }
+
+.pill svg {
+  transition: transform 0.35s var(--ease-ios);
+}
+.item:active .pill svg { transform: scale(0.86); transition-duration: 0.08s; }
 
 .label {
   max-width: 100%;
@@ -45,4 +76,7 @@
 }
 
 .active { color: var(--accent); font-weight: 700; }
-.active .pill { background: var(--accent-light); }
+
+@media (prefers-reduced-motion: reduce) {
+  .track { transition: none; }
+}

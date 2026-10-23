@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { startTransition, useCallback, useRef, useState } from 'react'
 import { useAuth } from './hooks/useAuth.js'
 import { useInventory } from './hooks/useInventory.js'
 import { usePantryAnalysis } from './hooks/usePantryAnalysis.js'
@@ -88,8 +88,9 @@ export default function App() {
   const closeAdd = useCallback(() => setAdd(a => ({ ...a, mode: 'closed' })), [])
   const switchAdd = useCallback((mode) => setAdd(a => ({ ...a, mode })), [])
 
+  // Low priority: the menu highlight (urgent) starts sliding before the new page renders.
   const handleTabChange = useCallback((tabId) => {
-    nav.go(tabId)
+    startTransition(() => nav.go(tabId))
     if (mainRef.current) mainRef.current.scrollTop = 0
   }, [nav.go])
 
@@ -208,6 +209,8 @@ export default function App() {
           {MOCK_MODE && <MockBanner />}
           {!online && <OfflineBanner />}
 
+          {/* No box of its own: only carries the direction of the last navigation for the entrance animation (App.module.css). */}
+          <div className={styles.page} data-motion={nav.motion}>
           {nav.tab === 'oggi' && (
             <TodayTab
               inventory={inventory}
@@ -287,6 +290,7 @@ export default function App() {
               onSaveApiKey={saveApiKey}
             />
           )}
+          </div>
         </main>
 
         <SeasonalRecipesModal

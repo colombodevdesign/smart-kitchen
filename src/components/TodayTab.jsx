@@ -138,7 +138,7 @@ function Today({ inventory, meals, onOpenExpiring, onCook, onSeasonal, onPlan, o
       </div>
 
       {onAdd && (
-        <button type="button" className={styles.fab} onClick={onAdd} aria-label="Aggiungi prodotti">
+        <button type="button" className={styles.fab} data-fixed onClick={onAdd} aria-label="Aggiungi prodotti">
           <Icon name="plus" size={26} strokeWidth={2} />
         </button>
       )}

@@ -4,6 +4,7 @@ import { Icon } from './ui/Icon.jsx'
 import { Segmented } from './ui/Segmented.jsx'
 import { SECTIONS, SECTION_LABELS } from '../data/initialInventory.js'
 import { hasApiKey } from '../utils/apiKey.js'
+import { useMediaQuery } from '../hooks/useMediaQuery.js'
 import styles from './AddSheet.module.css'
 
 // "Cosa aggiungi?": receipt / voice import, or type one product.
@@ -12,6 +13,8 @@ export function AddSheet({ open, section, onClose, onSwitch, onSubmit, onGoApiKe
   const [qty, setQty] = useState('')
   const [expiry, setExpiry] = useState('')
   const [target, setTarget] = useState(section)
+  // On touch screens focusing the name field would raise the keyboard over the sheet the moment it opens.
+  const touch = useMediaQuery('(pointer: coarse)')
 
   useEffect(() => {
     if (open) { setName(''); setQty(''); setExpiry(''); setTarget(section) }
@@ -30,6 +33,7 @@ export function AddSheet({ open, section, onClose, onSwitch, onSubmit, onGoApiKe
       open={open}
       onClose={onClose}
       title="Cosa aggiungi?"
+      autoFocus={!touch}
       footer={
         <button type="button" className={styles.submit} onClick={submit} disabled={!canSubmit}>
           Aggiungi in dispensa

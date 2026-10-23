@@ -71,6 +71,34 @@
   overflow-y: auto;
 }
 
+/* ── Page transitions ──
+   `.page` has no box; useNavigation sets data-motion ('tab' | 'detail') on a
+   navigation and clears it once the entrance is over. What mounts (or un-hides)
+   during that window fades in with a light zoom: the children of each page's
+   root, not the root itself, because a transformed ancestor would turn the
+   position:fixed buttons (data-fixed) into ones that scroll with the page.
+   Those only fade. */
+.page { display: contents; }
+
+.page[data-motion='tab']    { --from-scale: 0.97; --dur: 0.38s; }
+.page[data-motion='detail'] { --from-scale: 0.95; --dur: 0.42s; }
+
+.page:not([data-motion='none']) > * > :not([data-fixed]) {
+  animation: pageIn var(--dur) var(--ease-ios) backwards;
+  transform-origin: 50% 20%;
+  will-change: transform, opacity;
+}
+.page:not([data-motion='none']) [data-fixed] {
+  animation: pageFade 0.3s ease-out 0.08s backwards;
+}
+
+@keyframes pageIn {
+  from { opacity: 0; transform: scale(var(--from-scale)); }
+}
+@keyframes pageFade {
+  from { opacity: 0; }
+}
+
 .loadingWrap {
   min-height: 100svh;
   display: flex;

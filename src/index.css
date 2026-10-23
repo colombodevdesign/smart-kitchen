@@ -91,6 +91,10 @@
   --bottom-nav-h: 0px;                       /* set below on mobile */
   --float-bottom: calc(var(--bottom-nav-h) + 16px);   /* fixed FABs; in-flow sticky bars use 16px: the nav is a flex sibling of the scroll area */
 
+  /* motion: iOS-style ease-out, for entrances and for the sliding highlights (menu, segmented) */
+  --ease-ios: cubic-bezier(0.32, 0.72, 0, 1);
+  --dur-slide: 0.3s;
+
   /* z-index scale */
   --z-row: 1;
   --z-sticky: 10;

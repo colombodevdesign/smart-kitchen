@@ -118,7 +118,7 @@
   background: var(--accent-light);
   border-radius: var(--radius-sm);
   transform: translateY(calc(var(--i) * (48px + 6px)));
-  transition: transform 0.28s cubic-bezier(0.3, 0.7, 0.2, 1);
+  transition: transform var(--dur-slide) var(--ease-ios);
   pointer-events: none;
 }
 
