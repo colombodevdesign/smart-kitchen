@@ -22,15 +22,16 @@ export function Sidebar({ activeTab, onTabChange, onAdd, onShortcuts }) {
         ))}
       </nav>
       <div className={styles.footer}>
+        {onShortcuts && (
+          <button type="button" className={styles.help} onClick={onShortcuts} aria-keyshortcuts="?">
+            Scorciatoie da tastiera
+            <kbd className={styles.kbd} aria-hidden="true">?</kbd>
+          </button>
+        )}
         {onAdd && (
           <button type="button" className={styles.cta} onClick={onAdd} aria-keyshortcuts="n">
             <Icon name="plus" size={20} strokeWidth={2} />
             Aggiungi prodotti
-          </button>
-        )}
-        {onShortcuts && (
-          <button type="button" className={styles.help} onClick={onShortcuts} aria-keyshortcuts="?">
-            Scorciatoie da tastiera
           </button>
         )}
       </div>

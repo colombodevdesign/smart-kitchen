@@ -112,7 +112,7 @@ scrivendo in un campo, se c'è un `[role="dialog"][aria-modal]` aperto o se c'è
 I binding sono in `App.jsx`: `1`–`5` destinazioni (ordine di `TABS`), `N` aggiungi, `S` scontrino, `V` voce
 (entrambi richiedono la chiave Gemini, altrimenti toast), `C` "Cosa cucino", `/` cerca in Dispensa
 (`searchRequested` → `PantryTab`), `?` aiuto, `Esc` chiude il dettaglio. **Se aggiungi o cambi un binding,
-aggiorna anche `nav/shortcuts.js`** (è la lista dell'aiuto). La sidebar ha solo il link «Scorciatoie da tastiera» (nessun badge sui tasti).
+aggiorna anche `nav/shortcuts.js`** (è la lista dell'aiuto). La sidebar ha il link «Scorciatoie da tastiera» (con badge `?`, piccolo) sopra «Aggiungi prodotti»; nessun altro badge.
 
 Layout mobile (≤600px): `.app` è una colonna flex con la bottom nav **in flusso** (non fixed), quindi l'area
 scrollabile `.main` finisce già sopra la nav. Conseguenze: le barre `position: sticky` dentro `.main` usano
