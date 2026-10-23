@@ -1,5 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
+import { Analytics } from '@vercel/analytics/react'
 import App from './App.jsx'
 import { ToastProvider } from './components/ui/Toast.jsx'
 import { watchSystemTheme } from './utils/theme.js'
@@ -19,5 +20,6 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <ToastProvider>
       <App />
     </ToastProvider>
+    <Analytics />
   </React.StrictMode>
 )
