@@ -15,16 +15,15 @@ Stack: React 18 + Vite 5 + Firebase (Auth + Firestore) + Gemini AI.
 ## Screenshot
 
 <p align="center">
-  <img src="screenshots/Screenshot%202026-10-23%20at%2022.00.31.png" alt="Oggi" width="49%">
-  <img src="screenshots/Screenshot%202026-10-23%20at%2022.00.35.png" alt="Dispensa" width="49%">
-  <img src="screenshots/Screenshot%202026-10-23%20at%2022.00.41.png" alt="Dispensa, sezione espansa" width="49%">
-  <img src="screenshots/Screenshot%202026-10-23%20at%2022.00.48.png" alt="Ricette" width="49%">
-  <img src="screenshots/Screenshot%202026-10-23%20at%2022.01.00.png" alt="Pasti" width="49%">
-  <img src="screenshots/Screenshot%202026-10-23%20at%2022.03.25.png" alt="Spesa" width="49%">
-  <img src="screenshots/Screenshot%202026-10-23%20at%2022.05.08.png" alt="Ricetta" width="49%">
-  <img src="screenshots/Screenshot%202026-10-23%20at%2022.05.46.png" alt="Ricetta con ingredienti mancanti" width="49%">
-  <img src="screenshots/Screenshot%202026-10-23%20at%2022.07.22.png" alt="Profilo" width="49%">
-  <img src="screenshots/Screenshot%202026-10-23%20at%2022.07.41.png" alt="Notifiche" width="49%">
+  <img src="screens/desktop-oggi.png" alt="Oggi" width="49%">
+  <img src="screens/desktop-dispensa.png" alt="Dispensa" width="49%">
+  <img src="screens/desktop-dispensa-credenza.png" alt="Dispensa, sezione espansa" width="49%">
+  <img src="screens/desktop-cucina-ricette.png" alt="Ricette" width="49%">
+  <img src="screens/desktop-cucina-ricette-dettaglio.png" alt="Dettaglio ricetta" width="49%">
+  <img src="screens/desktop-cucina-pasti.png" alt="Pasti" width="49%">
+  <img src="screens/desktop-spesa.png" alt="Spesa" width="49%">
+  <img src="screens/desktop-profilo.png" alt="Profilo" width="49%">
+  <img src="screens/desktop-notifiche.png" alt="Notifiche" width="49%">
 </p>
 
 ## Prerequisiti
