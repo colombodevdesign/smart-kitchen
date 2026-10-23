@@ -1,0 +1,30 @@
+.wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  visibility: hidden;
+  transition:
+    grid-template-rows var(--dur-slide) var(--ease-ios),
+    visibility 0s linear var(--dur-slide);
+}
+.wrap[data-open] {
+  grid-template-rows: 1fr;
+  visibility: visible;
+  transition:
+    grid-template-rows var(--dur-slide) var(--ease-ios),
+    visibility 0s;
+}
+
+.clip { min-height: 0; overflow: hidden; }
+
+.inner {
+  opacity: 0;
+  transition: opacity 0.15s ease-out;
+}
+.wrap[data-open] .inner {
+  opacity: 1;
+  transition: opacity 0.25s ease-out 0.05s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wrap, .wrap[data-open], .inner, .wrap[data-open] .inner { transition: none; }
+}

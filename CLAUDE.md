@@ -57,9 +57,10 @@ src/
     useNotifications.js     # preferenze + dispositivi push, enable/disable, notifica di prova; useForegroundPush
     useKeyboardShortcuts.js # scorciatoie a tasto singolo (document keydown), vedi "Scorciatoie da tastiera"
     useOnline.js            # navigator.onLine + eventi
+    useCollapsedGroups.js   # gruppi ripiegati di "Per categoria", ricordati in localStorage
     useMediaQuery.js
   components/
-    ui/                     # Icon, Segmented, StatusBadge, Chip, EmptyState, Toast(+useToast), PageHeader, OfflineBanner, RecipeCard
+    ui/                     # Icon, GroupHeader, Segmented, StatusBadge, Chip, EmptyState, Toast(+useToast), PageHeader, OfflineBanner, RecipeCard
     TodayTab, ExpiringList, SeasonalRecipesModal, PantryTab, PantryColumns, PantryComposer, ItemRow, CucinaTab, AITab, SavedRecipesTab, RecipeDetail, MealTrackerTab,
     SpesaTab, SavedShoppingTab, PantrySuggestionsModal, TuTab, ProfileTab, NotificationSettings,
     AddFlow, AddSheet, VoiceBatchModal, ReceiptScanModal, BatchReview, ShortcutsHelp,
@@ -68,7 +69,7 @@ src/
     initialInventory.js     # SECTIONS, SECTION_LABELS
     seasonal.js             # produce stagionale per mese (Lombardia)
     mealCategories.js       # categorie pasti {id, label, icon}; i colori sono token --cat-*
-    foodCategories.js       # categorie alimentari dell'analisi AI (ordine = gruppi "Per categoria"), FALLBACK_OPEN_DAYS
+    foodCategories.js       # categorie alimentari dell'analisi AI, FOOD_GROUPS (i gruppi di "Per categoria") e ordine per sezione, FALLBACK_OPEN_DAYS
   utils/
     date.js                 # SOON_DAYS, daysUntil (giorni di calendario), toDateStr, formatExpiry, expiryStatus
     pantry.js               # estimateRemaining, priorityInfo/comparePriority, itemBadge, getUseSoonItems, getPantryCandidates
@@ -203,6 +204,8 @@ si può cancellare dalla Console.
 | `theme` | preferenza tema: `system` \| `light` \| `dark` |
 | `sk-device-id` | id di questo dispositivo per `pushTokens/{deviceId}` |
 | `sk-notif-off-here` | `'1'` se l'utente ha rimosso questo dispositivo: l'auto-riparazione non lo ri-registra |
+| `sk-pantry-sort` | ordinamento scelto in Dispensa (assente = «Da usare prima», il default) |
+| `sk-pantry-collapsed` | chiavi (`<sezione>:<gruppo>`) dei gruppi ripiegati in Dispensa › Per categoria |
 | `sk-expiring-banner-dismissed` | data (`YYYY-MM-DD`) in cui è stato chiuso il banner «stanno per scadere» di Spesa; riappare il giorno dopo |
 | `cucina-ai-cache-v1` | cache risposte AI (l'hash include `PROMPT_VERSION`) |
 | `cucina-session-ricette-v1` | sessione chat ricette |
@@ -272,6 +275,15 @@ stampati, poi meno giorni rimasti, a parità date stampate e prodotti più deper
   risultati di prodotti cambiati nel frattempo. Per rianalizzare tutto si alza `ANALYSIS_VERSION`.
 - La stessa regola, solo per prodotti analizzati senza data stampata, è duplicata in `functions/lib/notify.js`
   (`estimatedOffset`, CommonJS): cambiare entrambe.
+
+### Dispensa › Per categoria
+
+`groupByCategory(pairs, section)` in `utils/pantry.js` raggruppa i prodotti di **una sezione** (già in ordine di priorità): prima
+«Da usare presto» (gli stessi prodotti di Oggi e del conteggio «da usare presto», ognuno compare una sola volta), poi i gruppi
+`FOOD_GROUPS` di `data/foodCategories.js` nell'ordine di `SECTION_GROUP_ORDER` per quella sezione (i non elencati seguono, «Altro» è
+sempre ultimo), infine «Da analizzare». I gruppi derivano da `item.ai.category`: cambiarli non richiede di rianalizzare (la scheda di
+modifica continua a offrire le 17 categorie). Le intestazioni (`ui/GroupHeader`) si ripiegano; lo stato per `<sezione>:<gruppo>` sta in
+`useCollapsedGroups` (`sk-pantry-collapsed`) ed è condiviso da mobile e desktop.
 
 ## Modello dati — Meal (pasti)
 

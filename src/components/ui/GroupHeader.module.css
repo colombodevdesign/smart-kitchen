@@ -1,0 +1,59 @@
+/* A band across the list, a shade apart from the rows: --surface-hover mixed into the card. */
+.head {
+  --gh-bg: color-mix(in srgb, var(--surface-hover) 55%, var(--surface));
+  margin: 0;
+}
+
+.btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 40px;
+  padding: 0 16px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 400;
+  text-align: left;
+  color: var(--text-muted);
+  background: var(--gh-bg);
+  border: none;
+  border-radius: 0;
+}
+.btn:hover { background: var(--surface-hover); }
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.btn[data-urgent] .label { color: var(--urgent-text); }
+
+.chev { transition: transform 0.15s; }
+.btn[aria-expanded='false'] .chev { transform: rotate(-90deg); }
+
+.label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+.count { font-weight: 400; }
+
+.preview {
+  flex: 1;
+  min-width: 0;
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Desktop columns: text lines up with the rows, the band bleeds 8px like their hover. */
+.head[data-variant='flat'] {
+  margin: 10px -8px 2px;
+}
+.head[data-variant='flat']:first-child { margin-top: 0; }
+.head[data-variant='flat'] .btn {
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chev { transition: none; }
+}

@@ -2,28 +2,49 @@ import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { ItemEditSheet } from './ItemEditSheet.jsx'
 import { ItemRow } from './ItemRow.jsx'
 import { PantryColumns } from './PantryColumns.jsx'
+import { Collapsible } from './ui/Collapsible.jsx'
+import { GroupHeader } from './ui/GroupHeader.jsx'
 import { Icon } from './ui/Icon.jsx'
 import { PageHeader } from './ui/PageHeader.jsx'
 import { Segmented } from './ui/Segmented.jsx'
 import { EmptyState } from './ui/EmptyState.jsx'
 import { useToast } from './ui/Toast.jsx'
 import { SECTIONS, SECTION_LABELS } from '../data/initialInventory.js'
-import { FOOD_CATEGORIES } from '../data/foodCategories.js'
+import { useCollapsedGroups } from '../hooks/useCollapsedGroups.js'
 import { useMediaQuery } from '../hooks/useMediaQuery.js'
-import { comparePriority, getUseSoonItems, priorityInfo } from '../utils/pantry.js'
+import { comparePriority, getUseSoonItems, groupByCategory, priorityInfo } from '../utils/pantry.js'
 import { hasApiKey } from '../utils/apiKey.js'
 import styles from './PantryTab.module.css'
 
 const SORT_LABELS = {
   priority:      'Da usare prima',
   category:      'Per categoria',
-  none:          'Ordine inserimento',
-  'added-desc':  'Inseriti di recente',
+  'added-asc':   'Data aggiunta ↑',
+  'added-desc':  'Data aggiunta ↓',
   urgent:        'Aperti prima',
   'name-asc':    'Nome A → Z',
   'name-desc':   'Nome Z → A',
   'expiry-asc':  'Scadenza ↑',
   'expiry-desc': 'Scadenza ↓',
+}
+
+const SORT_STORAGE_KEY = 'sk-pantry-sort'
+const DEFAULT_SORT = 'priority'
+
+function loadSortMode() {
+  try {
+    const v = localStorage.getItem(SORT_STORAGE_KEY)
+    return v && v in SORT_LABELS ? v : DEFAULT_SORT
+  } catch {
+    return DEFAULT_SORT
+  }
+}
+
+function storeSortMode(mode) {
+  try {
+    if (mode === DEFAULT_SORT) localStorage.removeItem(SORT_STORAGE_KEY)
+    else localStorage.setItem(SORT_STORAGE_KEY, mode)
+  } catch {}
 }
 
 const EMPTY_TITLE = {
@@ -54,6 +75,9 @@ function sortPairs(pairs, sortMode) {
         .sort((a, b) => comparePriority(a.k, b.k))
         .map(x => x.p)
     }
+    case 'added-asc':
+      // Stable sort on a list that is already in insertion order: ties keep it.
+      return arr.sort((a, b) => (a.item.added ?? 0) - (b.item.added ?? 0))
     case 'added-desc':
       // Reversed first so items added together (same timestamp) also come out newest-first.
       return arr.reverse().sort((a, b) => (b.item.added ?? 0) - (a.item.added ?? 0))
@@ -72,28 +96,18 @@ function sortPairs(pairs, sortMode) {
   }
 }
 
-// "Per categoria": groups in FOOD_CATEGORIES order, products the AI has not
-// analysed yet at the end. Each group keeps the priority order.
-const UNSORTED = { id: '', label: 'Da analizzare' }
-
-function groupByCategory(pairs) {
-  const groups = [...FOOD_CATEGORIES, UNSORTED].map(c => ({ ...c, pairs: [] }))
-  const byId = Object.fromEntries(groups.map(g => [g.id, g]))
-  for (const p of pairs) (byId[p.item.ai?.category] ?? byId['']).pairs.push(p)
-  return groups.filter(g => g.pairs.length > 0)
-}
-
 export function PantryTab({
   inventory, onAdd, onToggleUrgent, onUpdate, onRemove, onRestore, onMove, onSetCategory, onOpenAdd, onGoApiKey,
   searchRequested, onSearchHandled, onViewChange,
 }) {
   const [section, setSection] = useState('frigo')
-  const [sortMode, setSortMode] = useState('priority')
+  const [sortMode, setSortMode] = useState(loadSortMode)
   const [expanded, setExpanded] = useState(null) // desktop: section shown full-width, or null
   const [editing, setEditing] = useState(null)   // { section, id }: product open in the edit sheet
   const [search, setSearch] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
   const searchRef = useRef(null)
+  const { collapsed, toggle: toggleGroup } = useCollapsedGroups()
   const toast = useToast()
 
   // Deleting from the list keeps the product around for a few seconds so it can be undone.
@@ -199,15 +213,15 @@ export function PantryTab({
             <Icon name="search" size={20} />
           </button>
           <div
-            className={`${styles.iconBtn} ${styles.sortWrap} ${sortMode !== 'priority' ? styles.sortActive : ''}`}
+            className={`${styles.iconBtn} ${styles.sortWrap} ${sortMode !== DEFAULT_SORT ? styles.sortActive : ''}`}
             title={SORT_LABELS[sortMode]}
           >
             <Icon name="sort" size={20} />
             <select
               className={styles.sortOverlay}
               value={sortMode}
-              onChange={e => setSortMode(e.target.value)}
-              aria-label="Ordina per"
+              onChange={e => { setSortMode(e.target.value); storeSortMode(e.target.value) }}
+              aria-label={sortMode !== DEFAULT_SORT ? `Ordina per: ${SORT_LABELS[sortMode]}` : 'Ordina per'}
             >
               {Object.entries(SORT_LABELS).map(([val, label]) => (
                 <option key={val} value={val}>{label}</option>
@@ -255,6 +269,8 @@ export function PantryTab({
           onExpand={setExpanded}
           rowProps={{ onToggleUrgent, onUpdate, onRemove: handleRemove, onMove }}
           groupPairs={sortMode === 'category' ? groupByCategory : null}
+          collapsedGroups={collapsed}
+          onToggleGroup={toggleGroup}
           onAdd={handleAdd}
           onOpenAdd={onOpenAdd}
           onGoApiKey={onGoApiKey}
@@ -310,14 +326,23 @@ export function PantryTab({
           <div className={styles.list}>
             {searchActive || sortMode !== 'category'
               ? renderRows(displayItems, { showSection: searchActive, query: searchActive ? searchQuery : '' })
-              : groupByCategory(displayItems).map(g => (
-                <Fragment key={g.id || 'unsorted'}>
-                  <h3 className={styles.groupTitle}>
-                    {g.label} <span className={styles.groupCount}>{g.pairs.length}</span>
-                  </h3>
-                  {renderRows(g.pairs, { showSection: false, query: '' })}
-                </Fragment>
-              ))}
+              : groupByCategory(displayItems, section).map(g => {
+                const open = !collapsed.has(g.key)
+                return (
+                  <Fragment key={g.key}>
+                    <GroupHeader
+                      label={g.label}
+                      pairs={g.pairs}
+                      urgent={g.urgent}
+                      open={open}
+                      onToggle={() => toggleGroup(g.key)}
+                    />
+                    <Collapsible open={open} className={styles.group}>
+                      {renderRows(g.pairs, { showSection: false, query: '' })}
+                    </Collapsible>
+                  </Fragment>
+                )
+              })}
           </div>
         </>
       )}

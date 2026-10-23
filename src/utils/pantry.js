@@ -1,5 +1,5 @@
 import { SECTIONS } from '../data/initialInventory.js'
-import { FALLBACK_OPEN_DAYS } from '../data/foodCategories.js'
+import { FALLBACK_OPEN_DAYS, FOOD_GROUPS, GROUP_OF_CATEGORY, SECTION_GROUP_ORDER } from '../data/foodCategories.js'
 import { SOON_DAYS, daysUntil, expiryStatus, formatExpiry } from './date.js'
 
 // Opened or fresh products with at most this many days left are worth using soon.
@@ -132,4 +132,35 @@ export function getPantryCandidates(inventory, excludeNames = new Set(), now = D
 
 export function getUseSoonItems(inventory, limit = Infinity) {
   return getPantryCandidates(inventory).filter(c => c.relevant).slice(0, limit)
+}
+
+// "Per categoria": pairs ({ item, itemSection }, already in priority order) of one
+// section as [{ id, key, label, urgent?, pairs }]. "Da usare presto" comes first (the
+// same products as Oggi and the "da usare presto" count), then the food groups in the
+// order of the section, "Altro" last and products not analysed yet at the very end.
+// `key` identifies the group in that section (collapsed state).
+export function groupByCategory(pairs, section, now = Date.now()) {
+  const soonIds = new Set(
+    getPantryCandidates({ credenza: [], frigo: [], freezer: [], [section]: pairs.map(p => p.item) }, new Set(), now)
+      .filter(c => c.relevant)
+      .map(c => c.id),
+  )
+  const listed = SECTION_GROUP_ORDER[section] ?? []
+  const order = [
+    ...listed,
+    ...FOOD_GROUPS.map(g => g.id).filter(id => id !== 'altro' && !listed.includes(id)),
+    'altro',
+  ]
+  const labels = Object.fromEntries(FOOD_GROUPS.map(g => [g.id, g.label]))
+  const groups = [
+    { id: 'presto', label: 'Da usare presto', urgent: true },
+    ...order.map(id => ({ id, label: labels[id] })),
+    { id: '', label: 'Da analizzare' },
+  ].map(g => ({ ...g, key: `${section}:${g.id || 'nuovi'}`, pairs: [] }))
+  const byId = Object.fromEntries(groups.map(g => [g.id, g]))
+  for (const p of pairs) {
+    const target = soonIds.has(p.item.id) ? 'presto' : GROUP_OF_CATEGORY[p.item.ai?.category] ?? ''
+    byId[target].pairs.push(p)
+  }
+  return groups.filter(g => g.pairs.length > 0)
 }
