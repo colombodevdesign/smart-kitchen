@@ -1,0 +1,26 @@
+.banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--info-text);
+  background: var(--info-light);
+  border-radius: var(--radius-sm);
+}
+
+.reset {
+  flex: none;
+  min-height: var(--tap);
+  padding: 0 8px;
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+  text-decoration: underline;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}

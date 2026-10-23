@@ -21,6 +21,8 @@ import { SeasonalRecipesModal } from './components/SeasonalRecipesModal.jsx'
 import { useToast } from './components/ui/Toast.jsx'
 import { useForegroundPush, useNotificationOpen } from './hooks/useNotifications.js'
 import { OfflineBanner } from './components/ui/OfflineBanner.jsx'
+import { MockBanner } from './components/ui/MockBanner.jsx'
+import { MOCK_MODE } from './mock/mode.js'
 import { todayStr } from './utils/date.js'
 import { TABS } from './nav/tabs.js'
 import styles from './App.module.css'
@@ -44,8 +46,8 @@ export default function App() {
   const openFromNotification = useCallback((target) => {
     if (target === 'scadenze') openExpiring()
   }, [openExpiring])
-  useForegroundPush(!!user, openFromNotification)
-  useNotificationOpen(!!user, openFromNotification)
+  useForegroundPush(!!user && !MOCK_MODE, openFromNotification)
+  useNotificationOpen(!!user && !MOCK_MODE, openFromNotification)
 
   // undefined = auth still resolving, null = logged out, string = uid
   const authUid = user === undefined ? undefined : (user?.uid ?? null)
@@ -162,6 +164,7 @@ export default function App() {
         <Sidebar activeTab={nav.tab} onTabChange={handleTabChange} onAdd={() => openAdd('sheet')} />
 
         <main ref={mainRef} className={styles.main}>
+          {MOCK_MODE && <MockBanner />}
           {!online && <OfflineBanner />}
 
           {nav.tab === 'oggi' && (
