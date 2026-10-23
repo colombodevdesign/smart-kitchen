@@ -134,6 +134,8 @@ export default function App() {
   const [helpOpen, setHelpOpen] = useState(false)
   const [pantrySearch, setPantrySearch] = useState(false)
   const clearPantrySearch = useCallback(() => setPantrySearch(false), [])
+  const [mealRequested, setMealRequested] = useState(false)
+  const clearMealRequested = useCallback(() => setMealRequested(false), [])
 
   const needsKey = (fn) => () => {
     if (hasApiKey()) fn()
@@ -146,6 +148,7 @@ export default function App() {
     v: needsKey(() => openAddHere('voice')),
     s: needsKey(() => openAddHere('receipt')),
     c: () => (ricette.loading ? handleTabChange('cucina') : handleCook()),
+    p: () => { nav.go('cucina', 'pasti'); setMealRequested(true) },
     '/': () => { handleTabChange('dispensa'); setPantrySearch(true) },
     '?': () => setHelpOpen(true),
     Escape: () => { if (nav.detail) nav.closeDetail() },
@@ -248,6 +251,8 @@ export default function App() {
               onCloseDetail={nav.closeDetail}
               onCookTonight={handleCookTonight}
               onAddMissing={handleAddMissing}
+              mealRequested={mealRequested}
+              onMealHandled={clearMealRequested}
             />
           )}
 
