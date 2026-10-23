@@ -141,6 +141,7 @@ function SectionCard({ section, mode, pairs, groupPairs, collapsedGroups, onTogg
                               label={g.label}
                               pairs={g.pairs}
                               urgent={g.urgent}
+                              variant="flat"
                               open={open}
                               onToggle={() => onToggleGroup(g.key)}
                             />
