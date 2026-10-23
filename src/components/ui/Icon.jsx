@@ -23,6 +23,8 @@ const ICONS = {
   chevU: (<path d="M5 15l7-7 7 7"/>),
   arrowRight: (<path d="M5 12h14M13 6l6 6-6 6"/>),
   arrowUp: (<path d="M12 19V5M6 11l6-6 6 6"/>),
+  expand: (<path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/>),
+  collapse: (<path d="M20 10h-6V4M4 14h6v6M14 10l7-7M10 14l-7 7"/>),
   more: (<><circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/></>),
   bell: (<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4l2-2zM10 21h4"/>),
   sparkle: (<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3zM19 17l.8 2.2L22 20l-2.2.8L19 23l-.8-2.2L16 20l2.2-.8L19 17z"/>),

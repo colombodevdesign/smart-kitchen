@@ -183,6 +183,7 @@ export default function App() {
           {nav.tab === 'dispensa' && (
             <PantryTab
               inventory={inventory}
+              onAdd={addItem}
               onToggleUrgent={toggleUrgent}
               onUpdate={updateItem}
               onRemove={removeItem}

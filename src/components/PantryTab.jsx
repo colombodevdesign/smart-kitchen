@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ItemRow } from './ItemRow.jsx'
-import { Icon, SectionIcon } from './ui/Icon.jsx'
+import { PantryColumns } from './PantryColumns.jsx'
+import { Icon } from './ui/Icon.jsx'
 import { PageHeader } from './ui/PageHeader.jsx'
 import { Segmented } from './ui/Segmented.jsx'
 import { EmptyState } from './ui/EmptyState.jsx'
@@ -63,10 +64,11 @@ function sortPairs(pairs, sortMode) {
 }
 
 export function PantryTab({
-  inventory, onToggleUrgent, onUpdate, onRemove, onRestore, onMove, onOpenAdd, onGoApiKey,
+  inventory, onAdd, onToggleUrgent, onUpdate, onRemove, onRestore, onMove, onOpenAdd, onGoApiKey,
 }) {
   const [section, setSection] = useState('frigo')
   const [sortMode, setSortMode] = useState('priority')
+  const [expanded, setExpanded] = useState(null) // desktop: section shown full-width, or null
   const [search, setSearch] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
   const searchRef = useRef(null)
@@ -85,6 +87,12 @@ export function PantryTab({
     }
   }
 
+  // Add from the expanded section's form: same confirmation as the add sheet.
+  function handleAdd(itemSection, name, qty, expiry) {
+    onAdd(itemSection, name, qty, expiry)
+    toast.show({ message: `${name.trim()} aggiunto in ${SECTION_LABELS[itemSection].toLowerCase()}`, ms: 3000 })
+  }
+
   useEffect(() => {
     if (searchOpen) searchRef.current?.focus()
   }, [searchOpen])
@@ -94,7 +102,7 @@ export function PantryTab({
   const searchQuery  = search.trim().toLowerCase()
   const searchActive = searchQuery.length > 0
 
-  // Desktop shows one column per section; everywhere else one section at a time
+  // Desktop shows the columns (or one expanded section); everywhere else one section at a time
   // (a search always looks across all sections).
   const isDesktop = useMediaQuery('(min-width: 1024px)')
   const showColumns = isDesktop && !searchActive
@@ -184,24 +192,16 @@ export function PantryTab({
       )}
 
       {showColumns ? (
-        <div className={styles.columns}>
-          {SECTIONS.map(s => {
-            const colItems = sortPairs(pairs(s), sortMode)
-            return (
-              <section key={s} className={styles.column} aria-label={SECTION_LABELS[s]}>
-                <header className={styles.columnHead}>
-                  <span className={styles.columnTitle}><SectionIcon section={s} size={18} /> {SECTION_LABELS[s]}</span>
-                  <span className={styles.columnCount}>{colItems.length}</span>
-                </header>
-                <div className={styles.columnList}>
-                  {colItems.length === 0
-                    ? <p className={styles.columnEmpty}>Vuoto</p>
-                    : renderRows(colItems, { showSection: false, query: '' })}
-                </div>
-              </section>
-            )
-          })}
-        </div>
+        <PantryColumns
+          inventory={inventory}
+          getPairs={s => sortPairs(pairs(s), sortMode)}
+          expanded={expanded}
+          onExpand={setExpanded}
+          rowProps={{ onToggleUrgent, onUpdate, onRemove: handleRemove, onMove }}
+          onAdd={handleAdd}
+          onOpenAdd={onOpenAdd}
+          onGoApiKey={onGoApiKey}
+        />
       ) : displayItems.length === 0 ? (
         searchActive ? (
           <p className={styles.empty}>Nessun risultato per "{search.trim()}"</p>

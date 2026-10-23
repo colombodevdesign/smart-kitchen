@@ -5,7 +5,7 @@ Reference rapido per sessioni future. Aggiorna quando cambia l'architettura.
 ## Progetto
 
 App React single-page per gestione dispensa con suggerimenti AI stagionali.
-Stack: React 18 + Vite 5 + CSS Modules + Firebase (Auth + Firestore).
+Stack: React 18 + Vite 5 + CSS Modules + Firebase (Auth + Firestore) + Motion (`motion/react`, solo per la Dispensa desktop).
 Autenticazione Google obbligatoria. Dispensa, pasti, ricette salvate e lista
 spesa vivono su Firestore, sincronizzati in real-time tra dispositivi. Nessun backend
 custom, nessun routing library.
@@ -55,7 +55,7 @@ src/
     useMediaQuery.js
   components/
     ui/                     # Icon, Segmented, StatusBadge, Chip, EmptyState, Toast(+useToast), PageHeader, OfflineBanner, RecipeCard
-    TodayTab, ExpiringList, SeasonalRecipesModal, PantryTab, ItemRow, CucinaTab, AITab, SavedRecipesTab, RecipeDetail, MealTrackerTab,
+    TodayTab, ExpiringList, SeasonalRecipesModal, PantryTab, PantryColumns, PantryComposer, ItemRow, CucinaTab, AITab, SavedRecipesTab, RecipeDetail, MealTrackerTab,
     SpesaTab, SavedShoppingTab, PantrySuggestionsModal, TuTab, ProfileTab, NotificationSettings,
     AddFlow, AddSheet, VoiceBatchModal, ReceiptScanModal, BatchReview,
     MealFormModal, MealDetailSheet, Modal, BottomNav, Sidebar, LoginScreen
@@ -85,6 +85,16 @@ Cinque destinazioni: Oggi, Dispensa, Cucina (Ricette AI / Salvate / Pasti), Spes
 `useNavigation` tiene `{tab, sub, detail}`; le viste di dettaglio (ricetta, notifiche, "In scadenza" su Oggi) aggiungono una voce
 alla history, quindi il tasto indietro del telefono le chiude. A ≥1024px Cucina e Spesa mostrano lo split a
 due colonne. `BottomNav` e il FAB si nascondono quando `nav.detail` è attivo (`data-detail`).
+
+Dispensa su desktop (≥1024px, `PantryColumns`): tre colonne (Credenza / Frigo / Freezer) oppure una sezione **espansa**
+(pulsante "Espandi" nell'intestazione, "Riduci" per tornare) con le altre due ripiegate in schede-anteprima a destra (clic = espandi quella).
+La sezione espansa ospita `PantryComposer`: l'aggiunta di un prodotto è contestuale (niente selettore sezione), Invio aggiunge e
+tiene il cursore sul nome; "Scontrino"/"Voce" aprono i flussi di import già indirizzati a quella sezione. Nelle tre colonne non c'è
+aggiunta rapida (resta il pulsante in sidebar). Lo stato `expanded` vive in `PantryTab`.
+Le card sono gli stessi elementi in tutti i layout e Motion (`layout`, FLIP a molla) le anima tra griglia ed espansione; il contenuto del corpo
+cambia con un crossfade (`AnimatePresence mode="popLayout"`, chiave = modalità), le righe entrano/escono con `layout="position"`. I figli di una card
+con `layout` devono avere a loro volta `layout="position"`, altrimenti il testo si deforma durante la transizione. `LazyMotion` carica `domMax` (serve per i layout animation) da `src/motionFeatures.js`, un chunk a parte: se non si carica (offline) le card
+si vedono senza animazione. `MotionConfig reducedMotion="user"` sta dentro `PantryColumns`; mobile e tablet non usano Motion.
 
 Layout mobile (≤600px): `.app` è una colonna flex con la bottom nav **in flusso** (non fixed), quindi l'area
 scrollabile `.main` finisce già sopra la nav. Conseguenze: le barre `position: sticky` dentro `.main` usano
