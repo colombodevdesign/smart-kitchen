@@ -70,6 +70,7 @@ src/
     initialInventory.js     # SECTIONS, SECTION_LABELS
     seasonal.js             # produce stagionale per mese (Lombardia)
     mealCategories.js       # categorie pasti {id, label, icon}; i colori sono token --cat-*
+    staples.js              # STAPLES: sale, pepe, olio, acqua… sempre in casa (match ricette + prompt)
     foodCategories.js       # categorie alimentari dell'analisi AI, FOOD_GROUPS (i gruppi di "Per categoria") e ordine per sezione, FALLBACK_OPEN_DAYS
   utils/
     date.js                 # SOON_DAYS, daysUntil (giorni di calendario), toDateStr, formatExpiry, expiryStatus
@@ -369,6 +370,9 @@ Due flussi paralleli, stessa struttura e stessa schermata di verifica:
   bloccante; "Analizza ingredienti" fa il backfill). Il matching è per radici: un ingrediente è "in dispensa" se
   le sue radici sono un sottoinsieme di quelle del prodotto con la stessa radice principale ("pasta" ≈ "pasta
   penne", ≠ "pasta sfoglia"). Non confronta le quantità.
+  Gli ingredienti di base di `data/staples.js` (sale, pepe, olio, acqua, aceto, zucchero, origano, peperoncino, alloro; match sul nome principale)
+  hanno stato `staple` (badge «Di base»): mai «Manca», fuori dal conteggio «Hai X su Y» e dai mancanti da aggiungere alla spesa; i prompt
+  ricette/spesa dicono all'AI di darli per scontati. Per cambiare l'elenco si modifica solo quel file (e si alza `PROMPT_VERSION`).
 
 ## Chiave API (Tu)
 
