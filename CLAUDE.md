@@ -142,6 +142,7 @@ sul figlio interno, mai sull'elemento posizionato; ferma con `prefers-reduced-mo
 (una card senza altre sotto arriva fino al fondo della finestra; con la sezione espansa valgono le anteprime): si evidenzia con «Rilascia per spostare
 in …». Il rilascio chiama `onDropMove` → `PantryTab.handleDropMove` (`moveItem` + toast «… spostato in … · Annulla»); stessa card o Esc = nessuno
 spostamento; il click che segue il rilascio viene ignorato.
+Il pulsante di ordinamento (select nativa invisibile sopra l'icona) su desktop diventa una pillola con l'etichetta dell'ordinamento applicato; l'anello di focus da tastiera lo disegna il wrapper (`:has(:focus-visible)`).
 Sopra il titolo, su desktop, `PageHeader` mostra il riepilogo ("16 prodotti · 6 da usare presto").
 Le card sono gli stessi elementi in tutti i layout e Motion (`layout`, FLIP a molla) le anima tra griglia ed espansione; il contenuto del corpo
 cambia con un crossfade (`AnimatePresence mode="popLayout"`, chiave = modalità), le righe entrano/escono con `layout="position"`. I figli di una card
@@ -155,7 +156,7 @@ Solo tasti singoli, senza Ctrl/⌘/Alt: sono identici su Windows e Mac e non col
 scrivendo in un campo, se c'è un `[role="dialog"][aria-modal]` aperto o se c'è un modificatore.
 I binding sono in `App.jsx`: `1`–`5` destinazioni (ordine di `TABS`), `N` aggiungi, `S` scontrino, `V` voce
 (entrambi richiedono la chiave Gemini, altrimenti toast), `C` "Cosa cucino", `P` aggiungi un pasto (apre Cucina › Pasti e il form sul giorno selezionato, via `mealRequested` → `MealTrackerTab`), `\` cerca in Dispensa
-(`searchRequested` → `PantryTab`), `?` aiuto, `Esc` chiude il dettaglio. `N`, `S`, `V` e il pulsante «Aggiungi prodotti» della sidebar aggiungono nella sezione che si sta guardando in Dispensa
+(`searchRequested` → `PantryTab`), `?` aiuto, `Esc` chiude il dettaglio (in Dispensa desktop, con una sezione espansa, `Esc` la riduce: listener in `PantryTab`, ignorato se si scrive, con un dialog aperto o durante un drag). `N`, `S`, `V` e il pulsante «Aggiungi prodotti» della sidebar aggiungono nella sezione che si sta guardando in Dispensa
 (sezione espansa su desktop, segmented su tablet; `PantryTab` la comunica con `onViewChange` → `pantryView` in `App`); altrove, in
 ricerca o con le tre colonne, il default è Frigo. **Se aggiungi o cambi un binding,
 aggiorna anche `nav/shortcuts.js`** (è la lista dell'aiuto). La sidebar ha il link «Scorciatoie da tastiera» (con badge `?`, piccolo) sopra «Aggiungi prodotti»; nessun altro badge.
