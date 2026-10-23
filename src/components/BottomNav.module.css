@@ -26,6 +26,7 @@
   justify-content: center;
   transform: translate3d(calc(var(--i) * 100%), 0, 0);
   transition: transform var(--dur-spring) var(--spring);
+  will-change: transform;
   pointer-events: none;
 }
 
@@ -75,12 +76,6 @@
 }
 
 .active { color: var(--accent); font-weight: 700; }
-.active .pill svg { animation: iconPop 0.5s var(--ease-ios); }
-
-@keyframes iconPop {
-  0%   { transform: scale(0.82); }
-  100% { transform: scale(1); }
-}
 
 @media (prefers-reduced-motion: reduce) {
   .track { transition: none; }

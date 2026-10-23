@@ -72,28 +72,28 @@
 }
 
 /* ── Page transitions ──
-   `.page` has no box; useNavigation sets data-motion to how the last navigation
-   should look and clears it once the entrance is over. What mounts (or un-hides)
-   during that window slides in from the side it came from: the children of each
-   page's root, not the root itself, because a transformed ancestor would turn the
+   `.page` has no box; useNavigation sets data-motion ('tab' | 'detail') on a
+   navigation and clears it once the entrance is over. What mounts (or un-hides)
+   during that window fades in with a light zoom: the children of each page's
+   root, not the root itself, because a transformed ancestor would turn the
    position:fixed buttons (data-fixed) into ones that scroll with the page.
    Those only fade. */
 .page { display: contents; }
 
-.page[data-motion='fwd']  { --from-x: 20px;  --dur: 0.42s; }
-.page[data-motion='back'] { --from-x: -20px; --dur: 0.42s; }
-.page[data-motion='push'] { --from-x: 36px;  --dur: 0.5s; }
-.page[data-motion='pop']  { --from-x: -28px; --dur: 0.46s; }
+.page[data-motion='tab']    { --from-scale: 0.97; --dur: 0.38s; }
+.page[data-motion='detail'] { --from-scale: 0.95; --dur: 0.42s; }
 
 .page:not([data-motion='none']) > * > :not([data-fixed]) {
   animation: pageIn var(--dur) var(--ease-ios) backwards;
+  transform-origin: 50% 20%;
+  will-change: transform, opacity;
 }
 .page:not([data-motion='none']) [data-fixed] {
-  animation: pageFade 0.35s ease-out 0.08s backwards;
+  animation: pageFade 0.3s ease-out 0.08s backwards;
 }
 
 @keyframes pageIn {
-  from { opacity: 0; transform: translate3d(var(--from-x), 0, 0); }
+  from { opacity: 0; transform: scale(var(--from-scale)); }
 }
 @keyframes pageFade {
   from { opacity: 0; }

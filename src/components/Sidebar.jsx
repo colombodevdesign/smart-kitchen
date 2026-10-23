@@ -1,9 +1,12 @@
 import { Icon } from './ui/Icon.jsx'
 import { TABS } from '../nav/tabs.js'
+import { useOptimisticValue } from '../hooks/useOptimisticValue.js'
 import styles from './Sidebar.module.css'
 
 export function Sidebar({ activeTab, onTabChange, onAdd, onShortcuts }) {
-  const index = Math.max(TABS.findIndex(t => t.id === activeTab), 0)
+  const [shownTab, setShownTab] = useOptimisticValue(activeTab)
+  const select = (id) => { setShownTab(id); onTabChange(id) }
+  const index = Math.max(TABS.findIndex(t => t.id === shownTab), 0)
   return (
     <aside className={styles.sidebar}>
       <div className={styles.logo}>smart kitchen</div>
@@ -14,10 +17,10 @@ export function Sidebar({ activeTab, onTabChange, onAdd, onShortcuts }) {
           <button
             key={id}
             type="button"
-            className={`${styles.item} ${activeTab === id ? styles.active : ''}`}
-            aria-current={activeTab === id ? 'page' : undefined}
+            className={`${styles.item} ${shownTab === id ? styles.active : ''}`}
+            aria-current={shownTab === id ? 'page' : undefined}
             aria-keyshortcuts={String(i + 1)}
-            onClick={() => onTabChange(id)}
+            onClick={() => select(id)}
           >
             <Icon name={icon} size={22} />
             <span>{label}</span>

@@ -1,17 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { DEFAULT_SUB, TABS } from '../nav/tabs.js'
+import { DEFAULT_SUB } from '../nav/tabs.js'
 
 // How long the page-transition CSS needs; `motion` goes back to 'none' after it so
 // content that appears later (data loading in) doesn't replay the entrance.
 const MOTION_MS = 600
 
-const tabIndex = (id) => TABS.findIndex(t => t.id === id)
-
 // Navigation state without a router: { tab, sub, detail }.
 // Detail views (a recipe, notification settings) push a history entry so the
 // device Back button closes them instead of leaving the app.
-// `motion` ({ kind, n }) says how the last change should animate: 'fwd' / 'back'
-// between tabs (by their order), 'push' / 'pop' when a detail opens / closes.
+// `motion` ({ kind, n }) says what the last change was, for the entrance animation:
+// 'tab' between tabs, 'detail' when a detail opens / closes.
 export function useNavigation(initialTab = 'oggi') {
   const [tab, setTab] = useState(initialTab)
   const [sub, setSub] = useState(DEFAULT_SUB)
@@ -34,7 +32,7 @@ export function useNavigation(initialTab = 'oggi') {
 
   useEffect(() => {
     const onPop = () => {
-      if (detailRef.current) animate('pop')
+      if (detailRef.current) animate('detail')
       setDetail(null)
     }
     window.addEventListener('popstate', onPop)
@@ -43,14 +41,14 @@ export function useNavigation(initialTab = 'oggi') {
 
   const openDetail = useCallback((d) => {
     window.history.pushState({ detail: true }, '')
-    animate('push')
+    animate('detail')
     setDetail(d)
   }, [animate])
 
   const closeDetail = useCallback(() => {
     if (window.history.state?.detail) window.history.back()
     else {
-      if (detailRef.current) animate('pop')
+      if (detailRef.current) animate('detail')
       setDetail(null)
     }
   }, [animate])
@@ -58,15 +56,15 @@ export function useNavigation(initialTab = 'oggi') {
   // Leaving a tab always drops an open detail view.
   const go = useCallback((nextTab, nextSub) => {
     const from = tabRef.current
-    if (nextTab !== from) animate(tabIndex(nextTab) > tabIndex(from) ? 'fwd' : 'back')
-    else if (detailRef.current) animate('pop')
+    if (nextTab !== from) animate('tab')
+    else if (detailRef.current) animate('detail')
     setDetail(null)
     setTab(nextTab)
     if (nextSub) setSub(prev => ({ ...prev, [nextTab]: nextSub }))
   }, [animate])
 
   const setSubView = useCallback((forTab, value) => {
-    if (detailRef.current) animate('pop')
+    if (detailRef.current) animate('detail')
     setDetail(null)
     setSub(prev => ({ ...prev, [forTab]: value }))
   }, [animate])
