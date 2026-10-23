@@ -36,6 +36,7 @@ src/
     model.js                # MODEL_NAME (Lite) + MODEL_PRO e PRO_CONFIG (unico punto dove cambiare modelli)
     prompts.js              # prompt ricette/spesa/stagione, PROMPT_VERSION (entra nell'hash della cache)
     errors.js               # classifyError → no-key | quota | billing | invalid-key | offline | unknown
+    validateKey.js          # validateApiKey: verifica la chiave Gemini (models.list, gratuito) prima di salvarla
     extractIngredients.js   # estrazione batch degli ingredienti delle ricette (generateContent + responseSchema)
   hooks/
     useAuth.js              # Firebase Auth (Google), onAuthStateChanged
@@ -44,6 +45,7 @@ src/
     useMealTracker.js       # pasti + sync
     useSavedRecipes.js      # ricette salvate + sync + estrazione ingredienti in background
     useSavedShopping.js     # lista spesa + sync
+    useApiKeySync.js        # chiave Gemini: localStorage ↔ users/{uid}/settings/gemini
     useAI.js                # Gemini: ricette/spesa/follow-up, streaming, cache
     useVoiceBatch.js        # voce → item dispensa
     useReceiptScan.js       # scontrino → item dispensa
@@ -115,6 +117,7 @@ L'unico provider è Google (Firebase Console → Authentication → Sign-in meth
 /users/{uid}/meals/data                →  { "YYYY-MM-DD": Meal[] }
 /users/{uid}/savedRecipes/data         →  { items: SavedRecipe[] }
 /users/{uid}/savedShopping/data        →  { items: ShoppingItem[] }
+/users/{uid}/settings/gemini          →  { apiKey, updatedAt }   (apiKey '' = rimossa)
 /users/{uid}/notificationPrefs/data    →  { enabled, hour, minute, tz, daysBefore: number[], lastRunDay, updatedAt }
 /users/{uid}/pushTokens/{deviceId}     →  { token, label, platform, status: 'active'|'stale', lastOkAt, lastSeenAt, staleSince, updatedAt }
 ```
@@ -132,7 +135,7 @@ si può cancellare dalla Console.
 
 | Chiave | Contenuto |
 |---|---|
-| `gemini-api-key` | API key Gemini (rimane locale per sicurezza) |
+| `gemini-api-key` | API key Gemini: cache locale letta dagli hook AI, sincronizzata con `settings/gemini` |
 | `theme` | preferenza tema: `system` \| `light` \| `dark` |
 | `sk-device-id` | id di questo dispositivo per `pushTokens/{deviceId}` |
 | `sk-notif-off-here` | `'1'` se l'utente ha rimosso questo dispositivo: l'auto-riparazione non lo ri-registra |
@@ -248,6 +251,13 @@ Due flussi paralleli, stessa struttura e stessa schermata di verifica:
   bloccante; "Analizza ingredienti" fa il backfill). Il matching è per radici: un ingrediente è "in dispensa" se
   le sue radici sono un sottoinsieme di quelle del prodotto con la stessa radice principale ("pasta" ≈ "pasta
   penne", ≠ "pasta sfoglia"). Non confronta le quantità.
+
+## Chiave API (Tu)
+
+`ProfileTab` valida la chiave con `ai/validateKey.js` prima di salvarla: se è valida la salva (localStorage + account, via
+`useApiKeySync`), chiude la modale e mostra un toast ("solo su questo dispositivo" se la scrittura su Firestore fallisce,
+ad es. regole non ancora pubblicate); se fallisce la modale resta aperta con il messaggio sotto il campo (`role="alert"`). Campo vuoto = rimuove la chiave.
+La rimozione scrive `apiKey: ''` e non cancella il doc: doc assente = primo accesso, la chiave locale viene caricata.
 
 ## Componente AITab
 

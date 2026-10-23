@@ -5,7 +5,9 @@ import { PageHeader } from './ui/PageHeader.jsx'
 import { Segmented } from './ui/Segmented.jsx'
 import { StatusBadge } from './ui/StatusBadge.jsx'
 import { useNotifications } from '../hooks/useNotifications.js'
-import { getApiKey, GEMINI_API_KEY_STORAGE } from '../utils/apiKey.js'
+import { useToast } from './ui/Toast.jsx'
+import { validateApiKey } from '../ai/validateKey.js'
+import { getApiKey } from '../utils/apiKey.js'
 import { getPref, setPref } from '../utils/theme.js'
 import styles from './ProfileTab.module.css'
 
@@ -15,7 +17,7 @@ const THEME_OPTIONS = [
   { value: 'dark', label: 'Scuro' },
 ]
 
-export function ProfileTab({ user, online, onExport, onImport, onClearInventory, onSignOut, onOpenNotifications }) {
+export function ProfileTab({ user, online, onExport, onImport, onClearInventory, onSignOut, onOpenNotifications, onSaveApiKey }) {
   const push = useNotifications(user?.uid)
   const alertsOn = push.prefs.enabled && push.thisDevice === 'active'
   const pad = n => String(n).padStart(2, '0')
@@ -25,17 +27,46 @@ export function ProfileTab({ user, online, onExport, onImport, onClearInventory,
   // API key
   const [apiKey, setApiKey] = useState(getApiKey)
   const [showKey, setShowKey] = useState(false)
-  const [keySaved, setKeySaved] = useState(false)
+  const [keyChecking, setKeyChecking] = useState(false)
+  const [keyError, setKeyError] = useState('')
   const hasKey = !!getApiKey()
+  const toast = useToast()
 
-  function saveKey() {
+  function openKeyDialog() {
+    setApiKey(getApiKey())
+    setKeyError('')
+    setDialog('api')
+  }
+
+  function closeKeyDialog() {
+    if (keyChecking) return
+    setDialog(null)
+  }
+
+  async function saveKey() {
     const trimmed = apiKey.trim()
-    try {
-      if (trimmed) localStorage.setItem(GEMINI_API_KEY_STORAGE, trimmed)
-      else localStorage.removeItem(GEMINI_API_KEY_STORAGE)
-    } catch {}
-    setKeySaved(true)
-    setTimeout(() => setKeySaved(false), 2000)
+    if (!trimmed) {
+      await onSaveApiKey('')
+      setDialog(null)
+      toast.show({ message: 'Chiave API rimossa' })
+      return
+    }
+    setKeyChecking(true)
+    setKeyError('')
+    const result = await validateApiKey(trimmed)
+    if (!result.ok) {
+      setKeyChecking(false)
+      setKeyError(result.message)
+      return
+    }
+    const where = await onSaveApiKey(trimmed)
+    setKeyChecking(false)
+    setDialog(null)
+    toast.show({
+      message: where === 'synced'
+        ? 'Chiave API verificata e salvata nel tuo account'
+        : 'Chiave API verificata, salvata solo su questo dispositivo',
+    })
   }
 
   // CSV
@@ -101,7 +132,7 @@ export function ProfileTab({ user, online, onExport, onImport, onClearInventory,
 
       <ul className={styles.list}>
         <li>
-          <button type="button" className={styles.row} onClick={() => setDialog('api')}>
+          <button type="button" className={styles.row} onClick={openKeyDialog}>
             <span className={styles.rowLabel}>Chiave API Gemini</span>
             <StatusBadge tone={hasKey ? 'ok' : 'soon'}>{hasKey ? 'Impostata' : 'Mancante'}</StatusBadge>
             <Icon name="chevR" size={20} className={styles.chev} />
@@ -122,30 +153,42 @@ export function ProfileTab({ user, online, onExport, onImport, onClearInventory,
 
       <button type="button" className={styles.signOut} onClick={onSignOut}>Esci</button>
 
-      <Modal open={dialog === 'api'} onClose={() => setDialog(null)} title="Chiave API Gemini">
-        <div className={styles.dialogBody}>
+      <Modal open={dialog === 'api'} onClose={closeKeyDialog} title="Chiave API Gemini">
+        <form
+          className={styles.dialogBody}
+          onSubmit={e => { e.preventDefault(); if (!keyChecking) saveKey() }}
+        >
           <p className={styles.desc}>
-            La chiave viene salvata solo nel tuo browser e non viene mai inviata a server esterni.
+            Prima di salvarla verifichiamo la chiave con Google. Viene salvata nel tuo account, così la ritrovi su tutti i dispositivi.
           </p>
-          <div className={styles.keyRow}>
-            <input
-              className={styles.keyInput}
-              type={showKey ? 'text' : 'password'}
-              placeholder="Incolla la tua API key…"
-              value={apiKey}
-              onChange={e => setApiKey(e.target.value)}
-              spellCheck={false}
-              aria-label="Chiave API Gemini"
-            />
-            <button type="button" className={styles.visBtn} onClick={() => setShowKey(v => !v)} aria-label={showKey ? 'Nascondi chiave' : 'Mostra chiave'}>
-              <Icon name={showKey ? 'eyeOff' : 'eye'} size={20} />
-            </button>
+          <div className={styles.keyField}>
+            <div className={styles.keyRow}>
+              <input
+                className={`${styles.keyInput} ${keyError ? styles.keyInputErr : ''}`}
+                type={showKey ? 'text' : 'password'}
+                placeholder="Incolla la tua API key…"
+                value={apiKey}
+                onChange={e => { setApiKey(e.target.value); if (keyError) setKeyError('') }}
+                spellCheck={false}
+                autoComplete="off"
+                readOnly={keyChecking}
+                aria-label="Chiave API Gemini"
+                aria-invalid={keyError ? 'true' : undefined}
+                aria-describedby={keyError ? 'api-key-error' : undefined}
+              />
+              <button type="button" className={styles.visBtn} onClick={() => setShowKey(v => !v)} aria-label={showKey ? 'Nascondi chiave' : 'Mostra chiave'}>
+                <Icon name={showKey ? 'eyeOff' : 'eye'} size={20} />
+              </button>
+            </div>
+            {keyError && <p id="api-key-error" role="alert" className={styles.err}>{keyError}</p>}
           </div>
           <a className={styles.link} href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer">
             Ottieni una API key gratuita
           </a>
-          <button type="button" className={styles.primary} onClick={saveKey}>{keySaved ? 'Salvata' : 'Salva'}</button>
-        </div>
+          <button type="submit" className={styles.primary} disabled={keyChecking} aria-busy={keyChecking}>
+            {keyChecking ? 'Verifico…' : 'Salva'}
+          </button>
+        </form>
       </Modal>
 
       <Modal open={dialog === 'csv'} onClose={() => setDialog(null)} title="Backup e trasferimento">
