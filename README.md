@@ -8,6 +8,8 @@
   Gestione dispensa personale con sincronizzazione real-time tra dispositivi e suggerimenti AI stagionali.
 </p>
 
+È una **PWA** (Progressive Web App) ottimizzata sia per **desktop** che per **mobile**: si usa dal browser oppure si installa sul dispositivo (su iPhone con «Aggiungi a Home», su desktop e Android con «Installa app») e si apre a schermo intero come un'app nativa. Il layout si adatta allo schermo: sidebar e Dispensa a tre colonne su desktop, navigazione in basso e gesti di swipe su mobile. Funziona anche con le notifiche push di scadenza.
+
 Stack: React 18 + Vite 5 + Firebase (Auth + Firestore) + Gemini AI.
 
 ## Screenshot
@@ -94,7 +96,7 @@ service cloud.firestore {
 
 ## Funzionalità
 
-- **Autenticazione** — login con Google o Apple, dati isolati per utente
+- **Autenticazione** — login con Google, dati isolati per utente
 - **Sincronizzazione real-time** — dispensa aggiornata su tutti i dispositivi via Firestore
 - **Dispensa** — credenza / frigo / freezer con modifica inline di nome e quantità
 - **Data di aggiunta** mostrata sotto ogni prodotto
