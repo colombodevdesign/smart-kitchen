@@ -25,7 +25,7 @@
   display: flex;
   justify-content: center;
   transform: translate3d(calc(var(--i) * 100%), 0, 0);
-  transition: transform var(--dur-spring) var(--spring);
+  transition: transform var(--dur-slide) var(--ease-ios);
   will-change: transform;
   pointer-events: none;
 }

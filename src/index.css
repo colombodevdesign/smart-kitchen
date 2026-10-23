@@ -91,10 +91,9 @@
   --bottom-nav-h: 0px;                       /* set below on mobile */
   --float-bottom: calc(var(--bottom-nav-h) + 16px);   /* fixed FABs; in-flow sticky bars use 16px: the nav is a flex sibling of the scroll area */
 
-  /* motion: iOS-style ease-out for entrances, a light spring (see @supports below) for sliding highlights */
+  /* motion: iOS-style ease-out, for entrances and for the sliding highlights (menu, segmented) */
   --ease-ios: cubic-bezier(0.32, 0.72, 0, 1);
-  --spring: var(--ease-ios);
-  --dur-spring: 0.5s;
+  --dur-slide: 0.3s;
 
   /* z-index scale */
   --z-row: 1;
@@ -107,14 +106,6 @@
 
 @media (max-width: 600px) {
   :root { --bottom-nav-h: calc(var(--nav-h) + var(--safe-b)); }
-}
-
-/* A soft, almost critically damped spring where linear() easing exists (Safari 17.2+, Chrome 113+); the cubic above elsewhere. */
-@supports (transition-timing-function: linear(0, 1)) {
-  :root {
-    --spring: linear(0, 0.059 4.5%, 0.185 9.1%, 0.33 13.6%, 0.467 18.2%, 0.587 22.7%, 0.686 27.3%, 0.765 31.8%, 0.827 36.4%, 0.874 40.9%, 0.909 45.5%, 0.935 50%, 0.954 54.5%, 0.967 59.1%, 0.977 63.6%, 0.984 68.2%, 0.989 72.7%, 0.995 81.8%, 1);
-    --dur-spring: 0.6s;
-  }
 }
 
 :root[data-theme='dark'] {

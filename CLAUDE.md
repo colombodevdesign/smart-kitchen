@@ -111,9 +111,9 @@ Transizioni (solo CSS, nessuna libreria): `useNavigation` espone `motion` (`tab`
 poi `none` dopo 600 ms) e `App` lo mette in `data-motion` su `.page` (`display: contents`). In `App.module.css`, ciò che monta o si de-nasconde in quella finestra
 entra con dissolvenza + leggero zoom: sono i **figli della radice di ogni pagina**, non la radice, perché un antenato con `transform` farebbe scorrere con la pagina gli
 elementi `position: fixed`; quelli (FAB, barra di `RecipeDetail`) hanno `data-fixed` e fanno solo fade. Il cambio tab è in `startTransition` e BottomNav/Sidebar usano
-`useOptimisticValue`: l'evidenziatore parte subito al tocco, la pagina si monta dopo (su iPhone il render pesante altrimenti blocca la pillola). Le sotto-sezioni di Cucina/Spesa restano montate con `hidden`
-e usano `.view` (`Containers.module.css`): `display: none → block` rilancia l'animazione. Token in `index.css`: `--ease-ios`, `--spring` (curva `linear()` dove supportata,
-cubic-bezier altrove) e `--dur-spring`, usati dagli indicatori che scorrono (BottomNav, Sidebar, Segmented). `Modal` resta montato 240 ms dopo la chiusura per l'animazione
+`useOptimisticValue`: l'evidenziatore parte subito al tocco e la pagina cambia 120 ms dopo (`PAGE_DELAY_MS`), così il render pesante non cade a metà dello scorrimento (su iPhone lo rendeva scattoso). Le sotto-sezioni di Cucina/Spesa restano montate con `hidden`
+e usano `.view` (`Containers.module.css`): `display: none → block` rilancia l'animazione. Token in `index.css`: `--ease-ios` e `--dur-slide` (0,3 s), usati dagli indicatori che scorrono (BottomNav, Sidebar, Segmented);
+una molla con coda lunga (0,6 s) sembrava lenta e scattosa, non reintrodurla. `Modal` resta montato 240 ms dopo la chiusura per l'animazione
 di uscita (`data-closing`) e su iOS segue `visualViewport` (`data-keyboard`, `--vv-top`/`--vv-h`) così con la tastiera aperta il foglio si ridimensiona sopra di essa.
 `AddSheet` non mette il focus sul campo sui dispositivi touch (`pointer: coarse`): altrimenti la tastiera sale da sola all'apertura.
 

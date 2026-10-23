@@ -1,11 +1,21 @@
+import { useEffect, useRef } from 'react'
 import { Icon } from './ui/Icon.jsx'
 import { TABS } from '../nav/tabs.js'
 import { useOptimisticValue } from '../hooks/useOptimisticValue.js'
 import styles from './BottomNav.module.css'
 
+const PAGE_DELAY_MS = 120
+
 export function BottomNav({ activeTab, onTabChange }) {
   const [shownTab, setShownTab] = useOptimisticValue(activeTab)
-  const select = (id) => { setShownTab(id); onTabChange(id) }
+  // The highlight moves on the tap; the page changes a beat later, so the heavy render doesn't land mid-slide.
+  const timer = useRef(0)
+  useEffect(() => () => clearTimeout(timer.current), [])
+  const select = (id) => {
+    setShownTab(id)
+    clearTimeout(timer.current)
+    timer.current = setTimeout(() => onTabChange(id), PAGE_DELAY_MS)
+  }
   const index = Math.max(TABS.findIndex(t => t.id === shownTab), 0)
   return (
     <nav className={styles.nav} aria-label="Navigazione principale" style={{ '--n': TABS.length, '--i': index }}>
