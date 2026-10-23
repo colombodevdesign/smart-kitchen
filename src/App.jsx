@@ -154,7 +154,7 @@ export default function App() {
     s: needsKey(() => openAddHere('receipt')),
     c: () => (ricette.loading ? handleTabChange('cucina') : handleCook()),
     p: () => { nav.go('cucina', 'pasti'); setMealRequested(true) },
-    '/': () => { handleTabChange('dispensa'); setPantrySearch(true) },
+    '\\': () => { handleTabChange('dispensa'); setPantrySearch(true) },
     '?': () => setHelpOpen(true),
     Escape: () => { if (nav.detail) nav.closeDetail() },
   }, !!user)

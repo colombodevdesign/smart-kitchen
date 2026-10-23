@@ -4,7 +4,7 @@ const TYPING = 'input, textarea, select, [contenteditable=""], [contenteditable=
 
 // Single-key shortcuts (no Ctrl/Cmd/Alt, so they behave the same on Windows and
 // Mac and never collide with browser shortcuts). `bindings` maps a key to a
-// handler: letters in lowercase ('n'), others as KeyboardEvent.key ('/', '?', 'Escape').
+// handler: letters in lowercase ('n'), others as KeyboardEvent.key ('\\', '?', 'Escape').
 // Ignored while typing in a field and while any modal dialog is open.
 export function useKeyboardShortcuts(bindings, enabled = true) {
   const bindingsRef = useRef(bindings)
