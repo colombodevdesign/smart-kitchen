@@ -77,7 +77,7 @@ export function RecipeDetail({ recipe, inventory, onBack, onRemove, onCookTonigh
           <ul className={styles.rows}>
             {a.rows.map((r, i) => {
               const fromItem = r.state === 'soon' || r.state === 'expired' || r.state === 'open'
-              const label = fromItem ? itemBadge(r.item)?.label : STATE_LABEL[r.state]
+              const label = fromItem ? itemBadge(r.item, { age: true, section: r.section })?.label : STATE_LABEL[r.state]
               return (
                 <li key={i} className={styles.row}>
                   <span className={styles.name}>

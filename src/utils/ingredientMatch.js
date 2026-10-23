@@ -1,6 +1,7 @@
 // Matches recipe ingredients against pantry items. Pure, no imports other than
 // helpers, so it can be exercised with plain node.
-import { expiryStatus } from './date.js'
+import { SOON_DAYS, expiryStatus } from './date.js'
+import { USE_SOON_DAYS, estimateRemaining, isFood } from './pantry.js'
 
 const STOPWORDS = new Set([
   'di', 'del', 'della', 'dello', 'dei', 'degli', 'delle', 'al', 'alla', 'allo', 'ai', 'alle',
@@ -52,12 +53,18 @@ function isSubset(small, big) {
 // Returns { rows: [{ ingredient, state, item, section }], have, total } where state is
 // 'qb' | 'have' | 'soon' | 'expired' | 'open' | 'missing'.
 // Matching is approximate (name stems, no quantities): "latte" also matches "latte di soia".
+// A product matches by its own name or by the generic name from the AI analysis
+// (item.ai.name: "fagioli" for "Fagioli alla Bud Spencer"); non-food is skipped.
 export function matchIngredients(ingredients, inventory, now = Date.now()) {
   const pantry = []
   for (const section of Object.keys(inventory ?? {})) {
     for (const item of inventory[section] ?? []) {
-      const list = stemList(item.name)
-      pantry.push({ item, section, head: list[0], stems: new Set(list) })
+      if (!isFood(item)) continue
+      const variants = [item.name, item.ai?.name].filter(Boolean).map(name => {
+        const list = stemList(name)
+        return { head: list[0], stems: new Set(list) }
+      })
+      pantry.push({ item, section, variants })
     }
   }
 
@@ -70,13 +77,16 @@ export function matchIngredients(ingredients, inventory, now = Date.now()) {
     // Same head noun AND every word of the ingredient present in the product:
     // "pasta" matches "pasta penne", but "pomodori" does not match
     // "passata di pomodoro" and "pasta sfoglia" does not match "pasta penne".
-    const found = pantry.find(p => p.head === wantList[0] && isSubset(want, p.stems))
+    const found = pantry.find(p => p.variants.some(v => v.head === wantList[0] && isSubset(want, v.stems)))
     if (!found) return { ingredient, state: 'missing', item: null, section: null }
     const status = expiryStatus(found.item.expiresAt)
+    // Opened products only count as "to use" when they don't keep for long.
+    const est = estimateRemaining(found.item, found.section, now)
     let state = 'have'
     if (status === 'expired') state = 'expired'
     else if (status === 'soon') state = 'soon'
-    else if (found.item.urgent) state = 'open'
+    else if (found.item.urgent && est && est.days <= USE_SOON_DAYS) state = 'open'
+    else if (est?.source === 'fresh' && est.days <= SOON_DAYS) state = 'soon'
     return { ingredient, state, item: found.item, section: found.section }
   })
 

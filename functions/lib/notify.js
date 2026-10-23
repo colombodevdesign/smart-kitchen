@@ -1,6 +1,6 @@
 // Expiry notifications: pure builders plus processUser/sendTest, which take the
 // Firestore and Messaging instances as arguments so they can be tested with fakes.
-const { DEFAULT_TZ, dayWindow, localDateStr, shouldSendNow } = require('./schedule')
+const { DEFAULT_TZ, dayWindow, localDateStr, localParts, shouldSendNow } = require('./schedule')
 
 const SECTIONS = ['credenza', 'frigo', 'freezer']
 const STALE_CODES = [
@@ -20,19 +20,50 @@ function dayLabel(offset) {
   return `Tra ${offset} giorni`
 }
 
-// Items whose expiry falls on each of the chosen days → [{ offset, names }]
+// Same values as FALLBACK_OPEN_DAYS in src/data/foodCategories.js.
+const FALLBACK_OPEN_DAYS = { credenza: 30, frigo: 5, freezer: 60 }
+
+// Whole calendar days in `tz` from the day of `fromMs` to the day of `toMs`.
+function calendarDaysBetween(fromMs, toMs, tz) {
+  const a = localParts(fromMs, tz)
+  const b = localParts(toMs, tz)
+  return Math.round((Date.UTC(b.year, b.month - 1, b.day) - Date.UTC(a.year, a.month - 1, a.day)) / 86400000)
+}
+
+// Days from today (in `tz`) to the estimated last good day of a product without a
+// printed date: opened (openedAt, or added for products opened before openedAt
+// existed) + ai.openDays, or added + ai.freshDays for fresh food; the earlier wins.
+// Same rule as estimateRemaining in src/utils/pantry.js: change both. Only food the
+// AI has analysed counts, the section defaults are too rough for a push.
+function estimatedOffset(item, section, nowMs, tz) {
+  if (item.expiresAt || !item.ai || item.ai.food === false) return null
+  const offsets = []
+  const since = item.openedAt ?? item.added
+  if (item.urgent && since) {
+    const life = item.ai.openDays ?? FALLBACK_OPEN_DAYS[section] ?? FALLBACK_OPEN_DAYS.frigo
+    offsets.push(life - calendarDaysBetween(since, nowMs, tz))
+  }
+  if (item.ai.freshDays && item.added) offsets.push(item.ai.freshDays - calendarDaysBetween(item.added, nowMs, tz))
+  return offsets.length ? Math.min(...offsets) : null
+}
+
+// Items whose expiry (printed, or estimated for opened and fresh food) falls on
+// each of the chosen days → [{ offset, names, estimated }]; `estimated` is true
+// when at least one product of the group has no printed date.
 function collectExpiring(inventory, daysBefore, nowMs, tz) {
   const days = [...new Set(daysBefore)].filter(d => Number.isInteger(d) && d >= 0).sort((a, b) => a - b)
   const groups = []
   for (const offset of days) {
     const [start, end] = dayWindow(nowMs, tz, offset)
     const names = []
+    let printed = 0
     for (const section of SECTIONS) {
       for (const item of (inventory?.[section] ?? [])) {
-        if (item.expiresAt && item.expiresAt >= start && item.expiresAt <= end) names.push(item.name)
+        if (item.expiresAt && item.expiresAt >= start && item.expiresAt <= end) { names.push(item.name); printed++ }
+        else if (estimatedOffset(item, section, nowMs, tz) === offset) names.push(item.name)
       }
     }
-    if (names.length > 0) groups.push({ offset, names })
+    if (names.length > 0) groups.push({ offset, names, estimated: printed < names.length })
   }
   return groups
 }
@@ -46,12 +77,17 @@ function whenText(offset) {
   return offset === 0 ? 'oggi' : offset === 1 ? 'domani' : `tra ${offset} giorni`
 }
 
-// One recap per user and day, whatever the number of products.
+// One recap per user and day, whatever the number of products. Estimated dates
+// say "da usare" rather than "scade".
 function buildMessage(groups) {
   if (groups.length === 1) {
-    const { offset, names } = groups[0]
-    if (names.length === 1) return { title: `⏰ ${names[0]} scade ${whenText(offset)}`, body: 'Tocca per vedere cosa scade.' }
-    return { title: `⏰ ${names.length} prodotti scadono ${whenText(offset)}`, body: nameList(names) }
+    const { offset, names, estimated } = groups[0]
+    if (names.length === 1) {
+      const verb = estimated ? 'da usare' : 'scade'
+      return { title: `⏰ ${names[0]} ${verb} ${whenText(offset)}`, body: 'Tocca per vedere cosa scade.' }
+    }
+    const verb = estimated ? 'da usare' : 'scadono'
+    return { title: `⏰ ${names.length} prodotti ${verb} ${whenText(offset)}`, body: nameList(names) }
   }
   const total = groups.reduce((n, g) => n + g.names.length, 0)
   return {
@@ -175,5 +211,5 @@ async function sendTest({ db, messaging, uid, nowMs = Date.now() }) {
 }
 
 module.exports = {
-  collectExpiring, buildMessage, nameList, loadTokens, toMessage, processUser, runTick, sendTest,
+  collectExpiring, estimatedOffset, buildMessage, nameList, loadTokens, toMessage, processUser, runTick, sendTest,
 }

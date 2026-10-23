@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { itemBadge } from '../utils/pantry.js'
 import { SECTIONS, SECTION_LABELS } from '../data/initialInventory.js'
+import { FOOD_CATEGORIES } from '../data/foodCategories.js'
 import styles from './ItemRow.module.css'
 import { Icon, SectionIcon } from './ui/Icon.jsx'
 import { StatusBadge } from './ui/StatusBadge.jsx'
@@ -41,7 +42,7 @@ function applyOffset(card, actions, px, animate) {
   else setTimeout(() => { if (!card.style.transform) actions.style.visibility = '' }, animate && !reduce ? 240 : 0)
 }
 
-export function ItemRow({ item, section, showSection, searchQuery, onToggleUrgent, onUpdate, onRemove, onMove }) {
+export function ItemRow({ item, section, showSection, searchQuery, onToggleUrgent, onUpdate, onRemove, onMove, onSetCategory }) {
   const [editingField, setEditingField] = useState(null)
   const [draft, setDraft] = useState('')
   const [expanded, setExpanded] = useState(false)
@@ -323,6 +324,20 @@ export function ItemRow({ item, section, showSection, searchQuery, onToggleUrgen
             <button type="button" className={styles.deleteBtn} onClick={() => onRemove(section, item.id)}>
               Elimina
             </button>
+            {onSetCategory && (
+              <label className={styles.categoryRow}>
+                <span className={styles.stripLabel}>Categoria</span>
+                {/* Set by the AI; a choice made here is kept when the product is analysed again. */}
+                <select
+                  className={styles.categorySelect}
+                  value={item.ai?.category ?? ''}
+                  onChange={e => onSetCategory(section, item.id, e.target.value)}
+                >
+                  <option value="">{item.ai?.category ? 'Rianalizza con l’AI' : 'Da analizzare'}</option>
+                  {FOOD_CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                </select>
+              </label>
+            )}
           </div>
         )}
       </div>

@@ -1,6 +1,7 @@
 // Dati di esempio per la modalità demo (deploy non di produzione).
 // Le scadenze sono relative a oggi, così "In scadenza" ha sempre qualcosa da mostrare.
 import { todayStr } from '../utils/date.js'
+import { analysisKey } from '../ai/analyzePantry.js'
 
 // Nessun uid: gli hook dati usano il fallback localStorage e non toccano Firestore.
 export const MOCK_USER = {
@@ -34,40 +35,60 @@ function dateStr(offsetDays) {
   return todayStr(d)
 }
 
+// `ai`: [category, openDays, freshDays, genericName?, food?], the metadata the AI
+// analysis would store (see src/ai/analyzePantry.js); without it the product is
+// analysed only if a Gemini key is set. `opened`: days since it was opened.
 function buildInventory() {
   const now = Date.now()
   let n = 0
-  const item = (section, name, qty, { days = null, urgent = false, ago = 2 } = {}) => ({
-    id: section[0] + (now + n++),
-    name,
-    qty,
-    urgent,
-    added: now - ago * DAY,
-    expiresAt: days === null ? null : expiry(days),
-  })
+  const item = (section, name, qty, { days = null, opened = null, ago = 2, ai = null } = {}) => {
+    const it = {
+      id: section[0] + (now + n++),
+      name,
+      qty,
+      urgent: opened !== null,
+      added: now - Math.max(ago, opened ?? 0) * DAY,
+      expiresAt: days === null ? null : expiry(days),
+    }
+    if (opened !== null) it.openedAt = now - opened * DAY
+    if (ai) {
+      const [category, openDays, freshDays, generic = name.toLowerCase(), food = true] = ai
+      it.ai = { key: analysisKey(it, section), name: generic, category, food, openDays, freshDays }
+    }
+    return it
+  }
   return {
     credenza: [
-      item('credenza', 'Pasta penne', '500 g'),
-      item('credenza', 'Riso Carnaroli', '1 kg'),
-      item('credenza', 'Passata di pomodoro', '2 bottiglie'),
-      item('credenza', 'Lenticchie', '400 g', { days: 120 }),
-      item('credenza', 'Tonno in scatola', '3 scatole', { days: 300 }),
-      item('credenza', 'Farina 00', '1 kg', { urgent: true }),
+      item('credenza', 'Pasta penne', '500 g', { ai: ['pasta-cereali', 180, null, 'pasta penne'] }),
+      item('credenza', 'Riso Carnaroli', '1 kg', { opened: 20, ai: ['pasta-cereali', 180, null, 'riso carnaroli'] }),
+      item('credenza', 'Passata di pomodoro', '2 bottiglie', { ai: ['conserve', 4, null, 'passata di pomodoro'] }),
+      item('credenza', 'Lenticchie', '400 g', { days: 120, ai: ['legumi', 3, null] }),
+      item('credenza', 'Tonno in scatola', '3 scatole', { days: 300, ai: ['conserve', 2, null, 'tonno'] }),
+      item('credenza', 'Farina 00', '1 kg', { opened: 10, ai: ['pasta-cereali', 90, null, 'farina'] }),
+      item('credenza', 'Biscotti frollini', '1 pacco', { opened: 9, ai: ['dolci', 14, null, 'biscotti'] }),
+      item('credenza', 'Integratore multivitaminico', '60 compresse', { ai: ['non-alimentare', null, null, 'integratore', false] }),
+      item('credenza', 'Cipolle', '3', { ago: 8, ai: ['verdura', null, 30, 'cipolle'] }),
     ],
     frigo: [
-      item('frigo', 'Latte intero', '1 l', { days: 0 }),
-      item('frigo', 'Yogurt greco', '2 vasetti', { days: 1 }),
-      item('frigo', 'Zucchine', '4', { days: 2 }),
-      item('frigo', 'Mozzarella', '2 pezzi', { days: 3 }),
-      item('frigo', 'Spinaci freschi', '300 g', { days: -1 }),
-      item('frigo', 'Uova', '6', { days: 12 }),
-      item('frigo', 'Parmigiano Reggiano', '200 g', { urgent: true }),
-      item('frigo', 'Zucca', '1/2', { days: 6 }),
+      item('frigo', 'Latte intero', '1 l', { days: 0, ai: ['latticini', 3, null, 'latte'] }),
+      item('frigo', 'Yogurt greco', '2 vasetti', { days: 1, ai: ['latticini', 3, null, 'yogurt greco'] }),
+      item('frigo', 'Zucchine', '4', { ago: 5, ai: ['verdura', null, 6] }),
+      item('frigo', 'Mozzarella', '2 pezzi', { days: 3, ai: ['latticini', 2, null] }),
+      item('frigo', 'Spinaci freschi', '300 g', { days: -1, ai: ['verdura', 2, 4, 'spinaci'] }),
+      item('frigo', 'Uova', '6', { days: 12, ai: ['uova', null, null] }),
+      item('frigo', 'Parmigiano Reggiano', '200 g', { opened: 6, ai: ['latticini', 30, null, 'parmigiano'] }),
+      item('frigo', 'Zucca', '1/2', { days: 6, ai: ['verdura', 5, 30] }),
+      item('frigo', 'Alici sott\'olio', '1 vasetto', { opened: 4, ai: ['pesce', 5, null, 'alici'] }),
+      item('frigo', 'Ketchup', '', { opened: 25, ai: ['salse', 60, null] }),
+      item('frigo', 'Maionese', '', { opened: 12, ai: ['salse', 60, null] }),
+      item('frigo', 'Pesto alla genovese', '1 vasetto', { opened: 3, ai: ['salse', 5, null, 'pesto'] }),
+      item('frigo', 'Carote', '1 kg', { ago: 3, ai: ['verdura', null, 14] }),
     ],
     freezer: [
-      item('freezer', 'Piselli surgelati', '450 g', { days: 90 }),
-      item('freezer', 'Petto di pollo', '600 g', { days: 60 }),
+      item('freezer', 'Piselli surgelati', '450 g', { days: 90, ai: ['verdura', 60, null, 'piselli'] }),
+      item('freezer', 'Petto di pollo', '600 g', { days: 60, ai: ['carne', 60, 180, 'petto di pollo'] }),
       item('freezer', 'Pane a fette', '1 pacco'),
+      item('freezer', 'Gelato al caffè', '1 vaschetta', { opened: 15, ai: ['dolci', 30, null, 'gelato'] }),
     ],
   }
 }

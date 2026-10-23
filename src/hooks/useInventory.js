@@ -3,6 +3,8 @@ import { doc, onSnapshot, setDoc } from 'firebase/firestore'
 import { db } from '../firebase.js'
 import { SECTIONS } from '../data/initialInventory.js'
 import { daysUntil, SOON_DAYS } from '../utils/date.js'
+import { estimateRemaining, isFood, USE_SOON_DAYS } from '../utils/pantry.js'
+import { analysisKey } from '../ai/analyzePantry.js'
 
 const STORAGE_KEY = 'cucina-smart-v1'
 const EMPTY_INVENTORY = { credenza: [], frigo: [], freezer: [] }
@@ -162,9 +164,55 @@ export function useInventory(uid) {
     })
   }, [])
 
+  // Opening records when, so the remaining shelf life can be estimated.
   const toggleUrgent = useCallback((section, id) => {
     setInventory(prev => {
-      const next = { ...prev, [section]: prev[section].map(i => i.id === id ? { ...i, urgent: !i.urgent } : i) }
+      const next = {
+        ...prev,
+        [section]: prev[section].map(i => i.id === id
+          ? { ...i, urgent: !i.urgent, openedAt: i.urgent ? null : Date.now() }
+          : i),
+      }
+      if (uidRef.current) setDoc(firestoreRef(uidRef.current), next).catch(console.error)
+      return next
+    })
+  }, [])
+
+  // Stores the AI metadata from usePantryAnalysis: { [id]: { key, name, category, food, openDays, freshDays } }.
+  // A result is dropped if the item was renamed or moved meanwhile (its key no
+  // longer matches); a category chosen by the user is kept.
+  const applyAnalysis = useCallback((results) => {
+    setInventory(prev => {
+      let changed = false
+      const next = { ...prev }
+      for (const s of SECTIONS) {
+        next[s] = (prev[s] ?? []).map(item => {
+          const r = results[item.id]
+          if (!r || r.key !== analysisKey(item, s)) return item
+          changed = true
+          const ai = item.ai?.manual ? { ...r, category: item.ai.category, manual: true } : r
+          return { ...item, ai }
+        })
+      }
+      if (!changed) return prev
+      if (uidRef.current) setDoc(firestoreRef(uidRef.current), next).catch(console.error)
+      return next
+    })
+  }, [])
+
+  // Category picked by hand in the item menu; '' goes back to the AI's choice
+  // (clearing the key makes usePantryAnalysis analyse the item again).
+  const setCategory = useCallback((section, id, category) => {
+    setInventory(prev => {
+      const next = {
+        ...prev,
+        [section]: prev[section].map(i => {
+          if (i.id !== id) return i
+          const { manual, ...rest } = i.ai ?? {}
+          const ai = category ? { ...rest, category, manual: true } : { ...rest, key: '' }
+          return { ...i, ai }
+        }),
+      }
       if (uidRef.current) setDoc(firestoreRef(uidRef.current), next).catch(console.error)
       return next
     })
@@ -248,12 +296,17 @@ export function useInventory(uid) {
 
   const getInventoryText = useCallback(() => {
     return Object.entries(inventory)
+      .map(([section, items]) => [section, items.filter(isFood)])
       .filter(([, items]) => items.length > 0)
       .map(([section, items]) => {
         const label = section.charAt(0).toUpperCase() + section.slice(1)
         const list = items.map(i => {
           let text = i.qty ? `${i.name} ${i.qty}` : i.name
-          if (i.urgent) text += ' [APERTO]'
+          // Opened products only count when they don't keep for long (an opened
+          // ketchup is not urgent); fresh food is flagged near its estimated shelf life.
+          const est = estimateRemaining(i, section)
+          if (i.urgent && est && est.days <= USE_SOON_DAYS) text += ' [APERTO]'
+          else if (!i.urgent && est?.source === 'fresh' && est.days <= SOON_DAYS) text += ' [presto]'
           if (i.expiresAt) {
             const days = daysUntil(i.expiresAt)
             if (days < 0) text += '[scad]'
@@ -276,6 +329,8 @@ export function useInventory(uid) {
     updateItem,
     moveItem,
     toggleUrgent,
+    applyAnalysis,
+    setCategory,
     exportCSV,
     importCSV,
     clearInventory,

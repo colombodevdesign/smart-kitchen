@@ -1,6 +1,6 @@
 // Bump PROMPT_VERSION whenever a prompt changes: it is part of the cache hash,
 // so cached answers produced by an older prompt are not served again.
-export const PROMPT_VERSION = 'v2'
+export const PROMPT_VERSION = 'v3'
 
 const RECIPE_SYSTEM =
   'Sei un cuoco italiano pratico. Rispondi in italiano. Usa ## solo per il titolo di ogni ricetta, ### per le sezioni interne e - per le liste.'
@@ -17,8 +17,8 @@ export function ricettePrompts({ inventoryText, seasonal, month }) {
     system: RECIPE_SYSTEM,
     user:
       `Dispensa:\n${inventoryText}\n\n` +
-      'Legenda dei marcatori: [APERTO] = confezione aperta, da consumare presto; [scad] = già scaduto (non usarlo, ricordami di controllarlo); [oggi] = scade oggi; [1gg], [2gg], [3gg] = scade tra 1, 2, 3 giorni. ' +
-      'Dai priorità ai prodotti che scadono prima ([oggi], poi [1gg], [2gg], [3gg]) e poi a quelli [APERTO].\n\n' +
+      'Legenda dei marcatori: [APERTO] = confezione aperta, da consumare presto; [presto] = prodotto fresco comprato da qualche giorno, da usare presto; [scad] = già scaduto (non usarlo, ricordami di controllarlo); [oggi] = scade oggi; [1gg], [2gg], [3gg] = scade tra 1, 2, 3 giorni. ' +
+      'Dai priorità ai prodotti che scadono prima ([oggi], poi [1gg], [2gg], [3gg]) e poi a quelli [APERTO] o [presto].\n\n' +
       `Suggerisci 3 ricette fattibili con questi ingredienti (${month}, Lombardia). Stagionale del mese: ${seasonal}.\n\n` +
       RECIPE_FORMAT,
   }
@@ -33,7 +33,7 @@ export function stagionePrompts({ ingredient, inventoryText, month, exclude = []
       `Ingrediente di stagione (${month}, Lombardia): ${ingredient}.\n\n` +
       `Dispensa:\n${inventoryText}\n\n` +
       `Suggerisci 3 ricette in cui ${ingredient} è protagonista, varie tra loro (es. primo, secondo o contorno, dolce se adatto). ` +
-      'Usa il più possibile ciò che ho in dispensa, dando priorità a ciò che scade presto ([oggi], [1gg], [2gg], [3gg]) o è [APERTO]; non usare ciò che è [scad]. ' +
+      'Usa il più possibile ciò che ho in dispensa, dando priorità a ciò che scade presto ([oggi], [1gg], [2gg], [3gg]), è [APERTO] o va usato [presto]; non usare ciò che è [scad]. ' +
       'Puoi richiedere pochi ingredienti da comprare oltre all\'ingrediente di stagione.\n' +
       (exclude.length ? `Evita queste ricette, già proposte: ${exclude.join('; ')}.\n` : '') +
       '\n' + RECIPE_FORMAT,

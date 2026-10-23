@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { ItemRow } from './ItemRow.jsx'
 import { Icon, SectionIcon } from './ui/Icon.jsx'
 import { PageHeader } from './ui/PageHeader.jsx'
@@ -6,14 +6,15 @@ import { Segmented } from './ui/Segmented.jsx'
 import { EmptyState } from './ui/EmptyState.jsx'
 import { useToast } from './ui/Toast.jsx'
 import { SECTIONS, SECTION_LABELS } from '../data/initialInventory.js'
+import { FOOD_CATEGORIES } from '../data/foodCategories.js'
 import { useMediaQuery } from '../hooks/useMediaQuery.js'
-import { expiryStatus } from '../utils/date.js'
-import { getPantryCandidates, statusRank } from '../utils/pantry.js'
+import { comparePriority, getUseSoonItems, priorityInfo } from '../utils/pantry.js'
 import { hasApiKey } from '../utils/apiKey.js'
 import styles from './PantryTab.module.css'
 
 const SORT_LABELS = {
   priority:      'Da usare prima',
+  category:      'Per categoria',
   none:          'Ordine inserimento',
   urgent:        'Aperti prima',
   'name-asc':    'Nome A → Z',
@@ -42,11 +43,14 @@ function sortPairs(pairs, sortMode) {
   const arr = [...pairs]
   switch (sortMode) {
     case 'priority':
-      return arr.sort((a, b) => {
-        const ra = statusRank({ status: expiryStatus(a.item.expiresAt), urgent: a.item.urgent })
-        const rb = statusRank({ status: expiryStatus(b.item.expiresAt), urgent: b.item.urgent })
-        return ra - rb || byExpiry(1)(a, b) || a.item.name.localeCompare(b.item.name, 'it')
-      })
+    case 'category': {
+      // Estimated days left (printed expiry, opened, fresh): see utils/pantry.js.
+      const now = Date.now()
+      return arr
+        .map(p => ({ p, k: priorityInfo(p.item, p.itemSection, now) }))
+        .sort((a, b) => comparePriority(a.k, b.k))
+        .map(x => x.p)
+    }
     case 'urgent':
       return arr.sort((a, b) => (b.item.urgent ? 1 : 0) - (a.item.urgent ? 1 : 0))
     case 'name-asc':
@@ -62,8 +66,19 @@ function sortPairs(pairs, sortMode) {
   }
 }
 
+// "Per categoria": groups in FOOD_CATEGORIES order, products the AI has not
+// analysed yet at the end. Each group keeps the priority order.
+const UNSORTED = { id: '', label: 'Da analizzare' }
+
+function groupByCategory(pairs) {
+  const groups = [...FOOD_CATEGORIES, UNSORTED].map(c => ({ ...c, pairs: [] }))
+  const byId = Object.fromEntries(groups.map(g => [g.id, g]))
+  for (const p of pairs) (byId[p.item.ai?.category] ?? byId['']).pairs.push(p)
+  return groups.filter(g => g.pairs.length > 0)
+}
+
 export function PantryTab({
-  inventory, onToggleUrgent, onUpdate, onRemove, onRestore, onMove, onOpenAdd, onGoApiKey,
+  inventory, onToggleUrgent, onUpdate, onRemove, onRestore, onMove, onSetCategory, onOpenAdd, onGoApiKey,
   searchRequested, onSearchHandled,
 }) {
   const [section, setSection] = useState('frigo')
@@ -115,7 +130,7 @@ export function PantryTab({
 
   const useSoonCount = useMemo(() => {
     const only = { credenza: [], frigo: [], freezer: [], [section]: inventory[section] }
-    return getPantryCandidates(only).length
+    return getUseSoonItems(only).length
   }, [inventory, section])
 
   const sectionOptions = SECTIONS.map(s => ({ value: s, label: SECTION_LABELS[s], count: inventory[s].length }))
@@ -133,7 +148,21 @@ export function PantryTab({
         onUpdate={onUpdate}
         onRemove={handleRemove}
         onMove={onMove}
+        onSetCategory={onSetCategory}
       />
+    ))
+  }
+
+  // Sorted rows of one section, with a heading per category in "Per categoria".
+  function renderSection(list) {
+    if (sortMode !== 'category') return renderRows(list, { showSection: false, query: '' })
+    return groupByCategory(list).map(g => (
+      <Fragment key={g.id || 'unsorted'}>
+        <h3 className={styles.groupTitle}>
+          {g.label} <span className={styles.groupCount}>{g.pairs.length}</span>
+        </h3>
+        {renderRows(g.pairs, { showSection: false, query: '' })}
+      </Fragment>
     ))
   }
 
@@ -206,7 +235,7 @@ export function PantryTab({
                 <div className={styles.columnList}>
                   {colItems.length === 0
                     ? <p className={styles.columnEmpty}>Vuoto</p>
-                    : renderRows(colItems, { showSection: false, query: '' })}
+                    : renderSection(colItems)}
                 </div>
               </section>
             )
@@ -261,7 +290,9 @@ export function PantryTab({
             </div>
           )}
           <div className={styles.list}>
-            {renderRows(displayItems, { showSection: searchActive, query: searchActive ? searchQuery : '' })}
+            {searchActive
+              ? renderRows(displayItems, { showSection: true, query: searchQuery })
+              : renderSection(displayItems)}
           </div>
         </>
       )}

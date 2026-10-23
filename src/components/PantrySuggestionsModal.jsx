@@ -1,15 +1,17 @@
 import { useMemo, useState, useEffect } from 'react'
 import { Modal } from './Modal.jsx'
 import { SECTION_LABELS } from '../data/initialInventory.js'
-import { getPantryCandidates } from '../utils/pantry.js'
+import { getPantryCandidates, itemBadge } from '../utils/pantry.js'
 import styles from './PantrySuggestionsModal.module.css'
 import { SectionIcon } from './ui/Icon.jsx'
 
 function badgeFor(c) {
   if (c.status === 'expired') return { label: 'scaduto', cls: styles.badgeExpired }
   if (c.status === 'soon')    return { label: 'in scadenza', cls: styles.badgeSoon }
-  if (c.urgent)               return { label: 'aperto',     cls: styles.badgeUrgent }
-  return null
+  // Opened or ageing fresh food: how long ago ("aperto da 9 gg", "preso 6 gg fa").
+  const age = itemBadge(c.item, { age: true, section: c.section })
+  if (!age) return null
+  return { label: age.label.toLowerCase(), cls: age.tone === 'soon' ? styles.badgeSoon : styles.badgeUrgent }
 }
 
 export function PantrySuggestionsModal({ open, onClose, inventory, existingItems, onAdd }) {

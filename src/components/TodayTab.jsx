@@ -65,7 +65,7 @@ function Today({ inventory, meals, onOpenExpiring, onCook, onSeasonal, onPlan, o
           ) : (
             <ul className={styles.heroList}>
               {shown.map(c => {
-                const badge = itemBadge(c.item)
+                const badge = itemBadge(c.item, { age: true, section: c.section })
                 return (
                   <li key={c.id} className={styles.heroRow}>
                     <div className={styles.heroName}>
