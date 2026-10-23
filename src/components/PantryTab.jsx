@@ -17,6 +17,7 @@ import styles from './PantryTab.module.css'
 const SORT_LABELS = {
   priority:      'Da usare prima',
   none:          'Ordine inserimento',
+  'added-desc':  'Inseriti di recente',
   urgent:        'Aperti prima',
   'name-asc':    'Nome A → Z',
   'name-desc':   'Nome Z → A',
@@ -49,6 +50,9 @@ function sortPairs(pairs, sortMode) {
         const rb = statusRank({ status: expiryStatus(b.item.expiresAt), urgent: b.item.urgent })
         return ra - rb || byExpiry(1)(a, b) || a.item.name.localeCompare(b.item.name, 'it')
       })
+    case 'added-desc':
+      // Reversed first so items added together (same timestamp) also come out newest-first.
+      return arr.reverse().sort((a, b) => (b.item.added ?? 0) - (a.item.added ?? 0))
     case 'urgent':
       return arr.sort((a, b) => (b.item.urgent ? 1 : 0) - (a.item.urgent ? 1 : 0))
     case 'name-asc':
