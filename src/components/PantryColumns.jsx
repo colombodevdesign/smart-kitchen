@@ -20,7 +20,7 @@ const SPRING = { type: 'spring', stiffness: 340, damping: 38, mass: 0.9 }
 const FADE = { duration: 0.14 }
 const PREVIEW_ROWS = 3
 
-function Rows({ pairs, rowProps }) {
+function Rows({ pairs, rowProps, variant }) {
   return (
     <AnimatePresence mode="popLayout" initial={false}>
       {pairs.map(({ item, itemSection }) => (
@@ -33,7 +33,7 @@ function Rows({ pairs, rowProps }) {
           exit={{ opacity: 0 }}
           transition={{ layout: SPRING, default: FADE }}
         >
-          <ItemRow item={item} section={itemSection} showSection={false} searchQuery="" {...rowProps} />
+          <ItemRow item={item} section={itemSection} variant={variant} showSection={false} searchQuery="" {...rowProps} />
         </m.div>
       ))}
     </AnimatePresence>
@@ -60,8 +60,12 @@ function Preview({ pairs }) {
   )
 }
 
+const RADIUS = { column: 24, focus: 28, rail: 24 }
+const ICON_SIZE = { column: 22, focus: 26, rail: 20 }
+
 function SectionCard({ section, mode, pairs, soonCount, onExpand, onCollapse, rowProps, composerProps }) {
   const label = SECTION_LABELS[section]
+  const countText = pairs.length === 1 ? '1 prodotto' : `${pairs.length} prodotti`
   const placement = mode === 'focus'
     ? { gridColumn: 1, gridRow: '1 / span 2' }
     : mode === 'rail' ? { gridColumn: 2 } : undefined
@@ -72,13 +76,15 @@ function SectionCard({ section, mode, pairs, soonCount, onExpand, onCollapse, ro
       aria-label={label}
       className={`${styles.card} ${styles[mode]}`}
       // Set through `style` so Motion keeps the radius round while the box scales.
-      style={{ borderRadius: 24, ...placement }}
+      style={{ borderRadius: RADIUS[mode], ...placement }}
     >
       <m.header layout="position" className={styles.head}>
-        <span className={styles.title}><SectionIcon section={section} size={18} /> {label}</span>
-        <span className={styles.count}>{pairs.length}</span>
+        <span className={styles.tile}><SectionIcon section={section} size={ICON_SIZE[mode]} /></span>
+        <div className={styles.headText}>
+          <h2 className={styles.title}>{label}</h2>
+          <span className={styles.sub}>{countText}</span>
+        </div>
         {mode === 'focus' && soonCount > 0 && <span className={styles.soon}>{soonCount} da usare presto</span>}
-        <span className={styles.spacer} />
         {mode === 'column' && (
           <button
             type="button"
@@ -95,6 +101,7 @@ function SectionCard({ section, mode, pairs, soonCount, onExpand, onCollapse, ro
             <Icon name="collapse" size={18} /> Riduci
           </button>
         )}
+        {mode === 'rail' && <Icon name="expand" size={18} className={styles.railIcon} />}
       </m.header>
 
       <AnimatePresence mode="popLayout" initial={false}>
@@ -115,9 +122,18 @@ function SectionCard({ section, mode, pairs, soonCount, onExpand, onCollapse, ro
           ) : (
             <>
               {mode === 'focus' && <PantryComposer section={section} {...composerProps} />}
+              {mode === 'focus' && pairs.length > 0 && (
+                <div className={styles.tableHead} aria-hidden="true">
+                  <span>Prodotto</span><span>Quantità</span><span>Scadenza</span><span />
+                </div>
+              )}
               {pairs.length === 0
                 ? <p className={styles.columnEmpty}>Vuoto</p>
-                : <Rows pairs={pairs} rowProps={rowProps} />}
+                : (
+                  <div className={styles.list}>
+                    <Rows pairs={pairs} rowProps={rowProps} variant={mode === 'focus' ? 'table' : 'flat'} />
+                  </div>
+                )}
             </>
           )}
         </m.div>

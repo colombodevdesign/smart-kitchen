@@ -109,6 +109,11 @@ Dispensa su desktop (≥1024px, `PantryColumns`): tre colonne (Credenza / Frigo 
 La sezione espansa ospita `PantryComposer`: l'aggiunta di un prodotto è contestuale (niente selettore sezione), Invio aggiunge e
 tiene il cursore sul nome; "Scontrino"/"Voce" aprono i flussi di import già indirizzati a quella sezione. Nelle tre colonne non c'è
 aggiunta rapida (resta il pulsante in sidebar). Lo stato `expanded` vive in `PantryTab`.
+Ogni sezione è una card (icona in tondo, titolo, "N prodotti"); le righe sono `ItemRow` con `variant`: `card` (default, mobile/tablet/ricerca, con swipe),
+`flat` (dentro la card delle tre colonne: righe piatte separate da filetti, il menu "⋯" compare solo con hover/focus) e `table` (sezione espansa:
+colonne Prodotto / Quantità / Scadenza da `--table-cols`, azioni aperto / sposta / elimina sempre visibili; "sposta" apre la striscia con le sezioni).
+Quantità e scadenza sono facoltative: se mancano la riga mostra i chip tratteggiati "+ quantità" / "+ scadenza" (come nel canvas, varianti "senza quantità" e "senza scadenza").
+Sopra il titolo, su desktop, `PageHeader` mostra il riepilogo ("16 prodotti · 6 da usare presto").
 Le card sono gli stessi elementi in tutti i layout e Motion (`layout`, FLIP a molla) le anima tra griglia ed espansione; il contenuto del corpo
 cambia con un crossfade (`AnimatePresence mode="popLayout"`, chiave = modalità), le righe entrano/escono con `layout="position"`. I figli di una card
 con `layout` devono avere a loro volta `layout="position"`, altrimenti il testo si deforma durante la transizione. `LazyMotion` carica `domMax` (serve per i layout animation) da `src/motionFeatures.js`, un chunk a parte: se non si carica (offline) le card

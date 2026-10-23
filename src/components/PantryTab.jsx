@@ -126,6 +126,13 @@ export function PantryTab({
     return getPantryCandidates(only).length
   }, [inventory, section])
 
+  // Desktop summary above the title: all products and the ones to use soon.
+  const totalsText = useMemo(() => {
+    const total = SECTIONS.reduce((n, s) => n + inventory[s].length, 0)
+    const soon = getPantryCandidates(inventory).length
+    return `${total === 1 ? '1 prodotto' : `${total} prodotti`}${soon > 0 ? ` · ${soon} da usare presto` : ''}`
+  }, [inventory])
+
   const sectionOptions = SECTIONS.map(s => ({ value: s, label: SECTION_LABELS[s], count: inventory[s].length }))
   const keyOk = hasApiKey()
 
@@ -147,7 +154,7 @@ export function PantryTab({
 
   return (
     <div className={styles.wrap}>
-      <PageHeader title="Dispensa">
+      <PageHeader title="Dispensa" eyebrow={showColumns ? totalsText : undefined}>
         <div className={styles.actions}>
           <button type="button" className={styles.iconBtn} onClick={() => setSearchOpen(true)} aria-label="Cerca prodotti">
             <Icon name="search" size={20} />

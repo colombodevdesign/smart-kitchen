@@ -3,10 +3,10 @@
   flex-direction: column;
   gap: 12px;
   padding: 16px;
-  margin-bottom: 16px;
-  background: var(--surface);
+  margin-bottom: 20px;
+  background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
 }
 
 .head {
@@ -47,7 +47,7 @@
   padding: 0 14px;
   font-size: 16px;
   color: var(--text);
-  background: var(--bg);
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   outline: none;

@@ -78,7 +78,7 @@ export function PantryComposer({ section, onAdd, onOpenAdd, onGoApiKey }) {
         </button>
         <span className={styles.spacer} />
         <button type="submit" className={styles.submit} disabled={!canSubmit}>
-          <Icon name="plus" size={20} strokeWidth={2} /> Aggiungi
+          <Icon name="plus" size={20} strokeWidth={2} /> Aggiungi in {label}
         </button>
       </div>
 
