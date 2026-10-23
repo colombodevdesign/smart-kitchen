@@ -26,6 +26,8 @@ Stack: React 18 + Vite 5 + Firebase (Auth + Firestore) + Gemini AI.
   <img src="screens/desktop-notifiche.png" alt="Notifiche" width="49%">
 </p>
 
+Guida alle funzionalità: [wiki](https://github.com/colombodevdesign/smart-kitchen/wiki) (le pagine sono in [`docs/wiki/`](docs/wiki)).
+
 ## Prerequisiti
 
 - Account Google (per Firebase)
