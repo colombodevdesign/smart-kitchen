@@ -18,7 +18,6 @@ export function Sidebar({ activeTab, onTabChange, onAdd, onShortcuts }) {
           >
             <Icon name={icon} size={22} />
             <span>{label}</span>
-            <kbd className={styles.kbd} aria-hidden="true">{i + 1}</kbd>
           </button>
         ))}
       </nav>
@@ -27,13 +26,11 @@ export function Sidebar({ activeTab, onTabChange, onAdd, onShortcuts }) {
           <button type="button" className={styles.cta} onClick={onAdd} aria-keyshortcuts="n">
             <Icon name="plus" size={20} strokeWidth={2} />
             Aggiungi prodotti
-            <kbd className={`${styles.kbd} ${styles.kbdOnAccent}`} aria-hidden="true">N</kbd>
           </button>
         )}
         {onShortcuts && (
           <button type="button" className={styles.help} onClick={onShortcuts} aria-keyshortcuts="?">
             Scorciatoie da tastiera
-            <kbd className={styles.kbd} aria-hidden="true">?</kbd>
           </button>
         )}
       </div>
