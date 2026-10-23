@@ -63,7 +63,8 @@
 .chev { color: var(--text-muted); }
 
 /* Desktop pantry: no swipe, no card chrome. `flat` rows sit inside a section
-   card, `table` rows form the expanded section's table (columns from --table-cols). */
+   card, `table` rows form the expanded section's table (columns from --table-cols).
+   Like the mobile card, the whole row is one button that opens the edit sheet. */
 .plainWrapper { margin: 0 -8px; overflow: visible; border-radius: var(--radius-sm); }
 .card.cardFlat {
   padding: 0 8px;
@@ -75,59 +76,19 @@
   transition: background 0.12s;
 }
 .card.cardFlat:hover { background: var(--surface-hover); }
-.cardFlat .row { position: relative; min-height: 58px; padding: 6px 0; }
-.cardFlat .actionStrip { margin: 0 -8px; padding: 8px; }
-/* The "⋯" menu appears on hover or keyboard focus, to keep the list calm: it
-   floats over the right edge and the expiry badge makes room for it. */
-.cardFlat .moreBtn {
-  position: absolute;
-  top: 50%;
-  right: 0;
-  margin: 0;
-  transform: translateY(-50%);
-  opacity: 0;
-}
-.cardFlat .badgeBtn,
-.cardFlat .expiryAdd { transition: margin 0.12s; }
-.cardFlat:hover .moreBtn,
-.cardFlat:focus-within .moreBtn,
-.cardFlat .moreBtnActive { opacity: 1; }
-.cardFlat:hover .badgeBtn,
-.cardFlat:hover .expiryAdd,
-.cardFlat:focus-within .badgeBtn,
-.cardFlat:focus-within .expiryAdd { margin-right: var(--tap); }
+.cardFlat .rowBtn { min-height: 58px; padding: 6px 0; }
+.cardFlat .rowBtn:active { background: transparent; }
 
-.tableRow {
+.rowBtn.tableRow {
   display: grid;
-  grid-template-columns: var(--table-cols, minmax(0, 1fr) 96px 120px 132px);
+  grid-template-columns: var(--table-cols, minmax(0, 1fr) 120px 140px);
   gap: 12px;
   align-items: center;
   min-height: 56px;
 }
 .tableName { display: flex; align-items: center; gap: 6px; min-width: 0; }
-.tableName .name { font-size: 16px; }
 .tableCell { display: flex; align-items: center; min-width: 0; }
-.tableCell .qty { font-size: 14px; }
-.tableCell .qtyInput { width: 100%; }
-.tableCell .expiryInput { max-width: 100%; }
-.tableActions { display: flex; align-items: center; justify-content: flex-end; }
-.tableBtn {
-  width: var(--tap);
-  height: var(--tap);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  color: var(--text-muted);
-  background: transparent;
-  border: none;
-  border-radius: 50%;
-  transition: background 0.12s, color 0.12s;
-}
-.tableBtn:hover { color: var(--text); background: var(--surface-hover); }
-.tableBtnOn { color: var(--info-text); }
-.tableDelete { color: var(--urgent-text); }
-.tableDelete:hover { color: var(--urgent-text); background: var(--urgent-light); }
+.tableCell .qtyText { font-size: 14px; }
 
 /* Row: background, clips the swipe */
 .card {
@@ -138,17 +99,6 @@
   touch-action: pan-y;
   position: relative;
   z-index: var(--z-row);
-}
-.editing { background: var(--surface-hover); }
-
-/* Main flex row */
-.row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 62px;
-  padding: 8px 12px 8px 16px;
-  min-width: 0;
 }
 
 .main {
@@ -167,32 +117,6 @@
   min-width: 0;
 }
 
-.name {
-  max-width: 100%;
-  padding: 0;
-  font-size: 16px;
-  font-weight: 500;
-  text-align: left;
-  color: var(--text);
-  background: none;
-  border: none;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.name:hover { color: var(--accent); }
-
-.nameInput {
-  width: 100%;
-  font-size: 16px;
-  padding: 4px 8px;
-  border: 1.5px solid var(--accent);
-  border-radius: var(--radius-xs);
-  background: var(--surface);
-  color: var(--text);
-  outline: none;
-}
-
 .sectionBadge {
   display: inline-flex;
   align-items: center;
@@ -205,31 +129,6 @@
   padding: 2px 8px;
   white-space: nowrap;
   flex-shrink: 0;
-}
-
-.meta { display: flex; align-items: center; }
-
-/* Quantity: muted text, click to edit */
-.qty {
-  padding: 0;
-  font-size: 13px;
-  color: var(--text-muted);
-  background: none;
-  border: none;
-  white-space: nowrap;
-}
-.qty:hover { color: var(--text); text-decoration: underline; }
-
-.qtyInput {
-  font-size: 14px;
-  padding: 4px 8px;
-  border: 1.5px solid var(--accent);
-  border-radius: var(--radius-xs);
-  background: var(--surface);
-  color: var(--text);
-  outline: none;
-  width: 110px;
-  min-width: 0;
 }
 
 .qtyEmpty,
@@ -249,119 +148,6 @@
 .qtyEmpty { padding: 2px 8px; }
 .qtyEmpty:hover,
 .expiryAdd:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
-
-.badgeBtn {
-  display: flex;
-  flex-shrink: 0;
-  padding: 0;
-  background: none;
-  border: none;
-}
-
-.expiryInput {
-  font-size: 14px;
-  border: 1.5px solid var(--accent);
-  border-radius: var(--radius-xs);
-  background: var(--surface);
-  color: var(--text);
-  outline: none;
-  padding: 4px 6px;
-  max-width: 150px;
-}
-
-/* Confirm button shown while editing */
-.iconBtn,
-.moreBtn {
-  width: var(--tap);
-  height: var(--tap);
-  margin: -6px 0;
-  border-radius: 50%;
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--text-muted);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  padding: 0;
-  transition: background 0.12s, color 0.12s;
-}
-.confirm { color: var(--success-text); border-color: var(--success); }
-.confirm:hover { background: var(--success-light); }
-.moreBtn:hover,
-.moreBtnActive { color: var(--text); background: var(--surface-hover); }
-
-/* ── Action strip (move + flag + delete) ── */
-.actionStrip {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px 8px 16px;
-  border-top: 1px solid var(--border);
-  background: var(--surface-hover);
-  flex-wrap: wrap;
-}
-
-.moveGroup {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex: 1;
-  min-width: 0;
-  flex-wrap: wrap;
-}
-
-.stripLabel {
-  font-size: 12px;
-  color: var(--text-muted);
-  white-space: nowrap;
-}
-
-.moveOption {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 36px;
-  font-size: 13px;
-  font-weight: 500;
-  padding: 0 12px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-pill);
-  background: transparent;
-  color: var(--text);
-  white-space: nowrap;
-}
-.moveOption:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
-
-.openedBtn {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border: 1px solid var(--border-strong);
-  background: transparent;
-  color: var(--text-muted);
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-}
-.openedBtn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
-.openedBtnOn { border-color: var(--info-strong) !important; color: var(--info-text); background: var(--info-light); }
-
-.deleteBtn {
-  min-height: 36px;
-  font-size: 13px;
-  font-weight: 700;
-  padding: 0 14px;
-  border: 1px solid var(--urgent);
-  border-radius: var(--radius-pill);
-  background: transparent;
-  color: var(--urgent-text);
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-.deleteBtn:hover { background: var(--urgent-light); }
 
 /* Search highlight */
 :global(mark) {

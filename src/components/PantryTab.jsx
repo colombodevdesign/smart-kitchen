@@ -123,6 +123,22 @@ export function PantryTab({
     }
   }
 
+  // Desktop: a row dragged onto another section card. Undo puts it back.
+  function handleDropMove(from, id, to) {
+    const item = inventory[from]?.find(i => i.id === id)
+    onMove(from, id, to)
+    if (item) {
+      toast.show({
+        message: `${item.name} spostato in ${SECTION_LABELS[to].toLowerCase()}`,
+        actionLabel: 'Annulla',
+        onAction: () => onMove(to, id, from),
+        ms: 4000,
+      })
+    }
+  }
+
+  const openEdit = (s, id) => setEditing({ section: s, id })
+
   const editItem = editing ? inventory[editing.section]?.find(i => i.id === editing.id) : null
 
   function handleSave({ section: target, category, ...fields }) {
@@ -197,10 +213,8 @@ export function PantryTab({
         showSection={showSection}
         searchQuery={query}
         onToggleUrgent={onToggleUrgent}
-        onUpdate={onUpdate}
-        onEdit={(s, id) => setEditing({ section: s, id })}
+        onEdit={openEdit}
         onRemove={handleRemove}
-        onMove={onMove}
       />
     ))
   }
@@ -267,7 +281,8 @@ export function PantryTab({
           getPairs={s => sortPairs(pairs(s), sortMode)}
           expanded={expanded}
           onExpand={setExpanded}
-          rowProps={{ onToggleUrgent, onUpdate, onRemove: handleRemove, onMove }}
+          rowProps={{ onToggleUrgent, onRemove: handleRemove, onEdit: openEdit }}
+          onDropMove={handleDropMove}
           groupPairs={sortMode === 'category' ? groupByCategory : null}
           collapsedGroups={collapsed}
           onToggleGroup={toggleGroup}

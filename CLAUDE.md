@@ -56,6 +56,7 @@ src/
     useBatchCandidates.js   # lista candidati editabile condivisa dai due import
     useNotifications.js     # preferenze + dispositivi push, enable/disable, notifica di prova; useForegroundPush
     useKeyboardShortcuts.js # scorciatoie a tasto singolo (document keydown), vedi "Scorciatoie da tastiera"
+    usePantryDrag.js        # Dispensa desktop: drag di una riga su un'altra card (copia in portal, hit-test su [data-section])
     useOnline.js            # navigator.onLine + eventi
     useCollapsedGroups.js   # gruppi ripiegati di "Per categoria", ricordati in localStorage
     useMediaQuery.js
@@ -130,9 +131,17 @@ La sezione espansa ospita `PantryComposer`: l'aggiunta di un prodotto è contest
 tiene il cursore sul nome; "Scontrino"/"Voce" aprono i flussi di import già indirizzati a quella sezione. Nelle tre colonne non c'è
 aggiunta rapida (resta il pulsante in sidebar). Lo stato `expanded` vive in `PantryTab`.
 Ogni sezione è una card (icona in tondo, titolo, "N prodotti"); le righe sono `ItemRow` con `variant`: `card` (default, mobile/tablet/ricerca, con swipe),
-`flat` (dentro la card delle tre colonne: righe piatte separate da filetti, il menu "⋯" compare solo con hover/focus) e `table` (sezione espansa:
-colonne Prodotto / Quantità / Scadenza da `--table-cols`, azioni aperto / sposta / elimina sempre visibili; "sposta" apre la striscia con le sezioni).
-Quantità e scadenza sono facoltative: se mancano la riga mostra i chip tratteggiati "+ quantità" / "+ scadenza" (come nel canvas, varianti "senza quantità" e "senza scadenza").
+`flat` (dentro la card delle tre colonne: righe piatte separate da filetti) e `table` (sezione espansa: colonne Prodotto / Quantità / Scadenza da `--table-cols`).
+In tutte le varianti la riga è **un solo pulsante** che apre `ItemEditSheet` (come su mobile): niente modifica in riga, niente menu "⋯" né icone
+di azione; Aperto, Sposta ed Elimina stanno nella scheda (percorso da tastiera: Invio sulla riga → scheda → «Sposta in»).
+Quantità e scadenza sono facoltative: se mancano la riga mostra i chip tratteggiati "+ quantità" / "+ scadenza", solo indicazioni.
+**Drag fra le card** (`hooks/usePantryDrag.js`, solo mouse: `(hover: hover) and (pointer: fine)`, quindi niente drag su iPad): oltre 5px di movimento
+la pressione diventa un drag; la riga resta nella lista attenuata e una copia segue il puntatore in un portal a posizione fissa (le card con `layout`
+e i gruppi richiudibili di «Per categoria» hanno transform/`overflow: hidden` che taglierebbero la riga). La copia trema (`@keyframes wobble`
+sul figlio interno, mai sull'elemento posizionato; ferma con `prefers-reduced-motion`). Il bersaglio è la card `[data-section]` sotto il puntatore
+(una card senza altre sotto arriva fino al fondo della finestra; con la sezione espansa valgono le anteprime): si evidenzia con «Rilascia per spostare
+in …». Il rilascio chiama `onDropMove` → `PantryTab.handleDropMove` (`moveItem` + toast «… spostato in … · Annulla»); stessa card o Esc = nessuno
+spostamento; il click che segue il rilascio viene ignorato.
 Sopra il titolo, su desktop, `PageHeader` mostra il riepilogo ("16 prodotti · 6 da usare presto").
 Le card sono gli stessi elementi in tutti i layout e Motion (`layout`, FLIP a molla) le anima tra griglia ed espansione; il contenuto del corpo
 cambia con un crossfade (`AnimatePresence mode="popLayout"`, chiave = modalità), le righe entrano/escono con `layout="position"`. I figli di una card
