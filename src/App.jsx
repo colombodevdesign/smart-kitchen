@@ -18,8 +18,11 @@ import { BottomNav } from './components/BottomNav.jsx'
 import { AddFlow } from './components/AddFlow.jsx'
 import { useToast } from './components/ui/Toast.jsx'
 import { useForegroundPush } from './hooks/useNotifications.js'
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts.js'
+import { ShortcutsHelp } from './components/ShortcutsHelp.jsx'
 import { OfflineBanner } from './components/ui/OfflineBanner.jsx'
 import { todayStr } from './utils/date.js'
+import { hasApiKey } from './utils/apiKey.js'
 import { TABS } from './nav/tabs.js'
 import styles from './App.module.css'
 
@@ -101,6 +104,27 @@ export default function App() {
     ricette.fetchRicette()
   }, [nav.go, ricette.fetchRicette])
 
+  // Keyboard shortcuts (desktop). Voice and receipt import need the Gemini key, like their buttons.
+  const [helpOpen, setHelpOpen] = useState(false)
+  const [pantrySearch, setPantrySearch] = useState(false)
+  const clearPantrySearch = useCallback(() => setPantrySearch(false), [])
+
+  const needsKey = (fn) => () => {
+    if (hasApiKey()) fn()
+    else toast.show({ message: 'Serve la chiave Gemini', actionLabel: 'Impostala', onAction: handleGoApiKey })
+  }
+
+  useKeyboardShortcuts({
+    ...Object.fromEntries(TABS.map((t, i) => [String(i + 1), () => handleTabChange(t.id)])),
+    n: () => openAdd('sheet'),
+    v: needsKey(() => openAdd('voice')),
+    s: needsKey(() => openAdd('receipt')),
+    c: () => (ricette.loading ? handleTabChange('cucina') : handleCook()),
+    '/': () => { handleTabChange('dispensa'); setPantrySearch(true) },
+    '?': () => setHelpOpen(true),
+    Escape: () => { if (nav.detail) nav.closeDetail() },
+  }, !!user)
+
   // user === undefined → Firebase still initializing
   if (user === undefined) {
     return (
@@ -140,7 +164,12 @@ export default function App() {
         </header>
 
         {/* Desktop: fixed sidebar (hidden on ≤1023px via CSS) */}
-        <Sidebar activeTab={nav.tab} onTabChange={handleTabChange} onAdd={() => openAdd('sheet')} />
+        <Sidebar
+          activeTab={nav.tab}
+          onTabChange={handleTabChange}
+          onAdd={() => openAdd('sheet')}
+          onShortcuts={() => setHelpOpen(true)}
+        />
 
         <main ref={mainRef} className={styles.main}>
           {!online && <OfflineBanner />}
@@ -167,6 +196,8 @@ export default function App() {
               onMove={moveItem}
               onOpenAdd={openAdd}
               onGoApiKey={handleGoApiKey}
+              searchRequested={pantrySearch}
+              onSearchHandled={clearPantrySearch}
             />
           )}
 
@@ -222,6 +253,8 @@ export default function App() {
           onAddBatch={addBatch}
           onGoApiKey={handleGoApiKey}
         />
+
+        <ShortcutsHelp open={helpOpen} onClose={() => setHelpOpen(false)} />
 
         {/* Mobile: bottom nav (hidden on ≥601px via CSS, and in detail views) */}
         {!nav.detail && <BottomNav activeTab={nav.tab} onTabChange={handleTabChange} />}

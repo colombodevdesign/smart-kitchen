@@ -32,6 +32,7 @@ src/
   firebase.js               # app, auth, db, messagingPromise, callFunction (import dinamico di firebase/functions)
   App.jsx                   # auth guard + orchestrazione stato + 5 destinazioni + AddFlow
   nav/tabs.js               # TABS (oggi, dispensa, cucina, spesa, tu) e sotto-sezioni
+  nav/shortcuts.js          # SHORTCUT_GROUPS: elenco mostrato in ShortcutsHelp (i binding veri stanno in App.jsx)
   ai/
     model.js                # MODEL_NAME (unico punto dove cambiare modello)
     prompts.js              # prompt ricette/spesa, PROMPT_VERSION (entra nell'hash della cache)
@@ -49,13 +50,14 @@ src/
     useReceiptScan.js       # scontrino → item dispensa
     useBatchCandidates.js   # lista candidati editabile condivisa dai due import
     useNotifications.js     # preferenze + dispositivi push, enable/disable, notifica di prova; useForegroundPush
+    useKeyboardShortcuts.js # scorciatoie a tasto singolo (document keydown), vedi "Scorciatoie da tastiera"
     useOnline.js            # navigator.onLine + eventi
     useMediaQuery.js
   components/
     ui/                     # Icon, Segmented, StatusBadge, Chip, EmptyState, Toast(+useToast), PageHeader, OfflineBanner, RecipeCard
     TodayTab, PantryTab, ItemRow, CucinaTab, AITab, SavedRecipesTab, RecipeDetail, MealTrackerTab,
     SpesaTab, SavedShoppingTab, PantrySuggestionsModal, TuTab, ProfileTab, NotificationSettings,
-    AddFlow, AddSheet, VoiceBatchModal, ReceiptScanModal, BatchReview,
+    AddFlow, AddSheet, VoiceBatchModal, ReceiptScanModal, BatchReview, ShortcutsHelp,
     MealFormModal, MealDetailSheet, Modal, BottomNav, Sidebar, LoginScreen
   data/
     initialInventory.js     # SECTIONS, SECTION_LABELS
@@ -83,6 +85,16 @@ Cinque destinazioni: Oggi, Dispensa, Cucina (Ricette AI / Salvate / Pasti), Spes
 `useNavigation` tiene `{tab, sub, detail}`; le viste di dettaglio (ricetta, notifiche) aggiungono una voce
 alla history, quindi il tasto indietro del telefono le chiude. A ≥1024px Cucina e Spesa mostrano lo split a
 due colonne. `BottomNav` e il FAB si nascondono quando `nav.detail` è attivo (`data-detail`).
+
+## Scorciatoie da tastiera
+
+Solo tasti singoli, senza Ctrl/⌘/Alt: sono identici su Windows e Mac e non collidono con il browser.
+`useKeyboardShortcuts(bindings, enabled)` ascolta `keydown` su `document` e ignora l'evento se si sta
+scrivendo in un campo, se c'è un `[role="dialog"][aria-modal]` aperto o se c'è un modificatore.
+I binding sono in `App.jsx`: `1`–`5` destinazioni (ordine di `TABS`), `N` aggiungi, `S` scontrino, `V` voce
+(entrambi richiedono la chiave Gemini, altrimenti toast), `C` "Cosa cucino", `/` cerca in Dispensa
+(`searchRequested` → `PantryTab`), `?` aiuto, `Esc` chiude il dettaglio. **Se aggiungi o cambi un binding,
+aggiorna anche `nav/shortcuts.js`** (è la lista dell'aiuto). La sidebar mostra i tasti come `<kbd>`.
 
 ## Firebase — configurazione
 
