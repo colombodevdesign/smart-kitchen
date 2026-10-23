@@ -1,4 +1,5 @@
-import { Fragment, useMemo } from 'react'
+import { Fragment, useMemo, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { AnimatePresence, LazyMotion, MotionConfig, m } from 'motion/react'
 import { ItemRow } from './ItemRow.jsx'
 import { PantryComposer } from './PantryComposer.jsx'
@@ -8,6 +9,8 @@ import { Icon, SectionIcon } from './ui/Icon.jsx'
 import { StatusBadge } from './ui/StatusBadge.jsx'
 import { SECTIONS, SECTION_LABELS } from '../data/initialInventory.js'
 import { getUseSoonItems, itemBadge } from '../utils/pantry.js'
+import { useMediaQuery } from '../hooks/useMediaQuery.js'
+import { usePantryDrag } from '../hooks/usePantryDrag.js'
 import styles from './PantryColumns.module.css'
 
 // Desktop pantry: three columns, or one expanded section with the other two
@@ -17,19 +20,23 @@ import styles from './PantryColumns.module.css'
 //   mode 'column' → one of three columns
 //   mode 'focus'  → the expanded section (list + add form)
 //   mode 'rail'   → a folded section: preview card, click to expand
+//
+// With a mouse, a row can be dragged onto another card (usePantryDrag): the card
+// lights up and the drop moves the product there.
 const loadFeatures = () => import('../motionFeatures.js').then(mod => mod.default)
 const SPRING = { type: 'spring', stiffness: 340, damping: 38, mass: 0.9 }
 const FADE = { duration: 0.14 }
 const PREVIEW_ROWS = 3
 
-function Rows({ pairs, rowProps, variant }) {
+function Rows({ pairs, rowProps, variant, dragProps }) {
   return (
     <AnimatePresence mode="popLayout" initial={false}>
       {pairs.map(({ item, itemSection }) => (
         <m.div
           key={item.id}
           layout="position"
-          className={styles.rowWrap}
+          className={`${styles.rowWrap} ${dragProps.draggingId === item.id ? styles.dragSource : ''}`}
+          onPointerDown={e => dragProps.onRowPointerDown(e, item, itemSection)}
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0 }}
@@ -65,7 +72,7 @@ function Preview({ pairs }) {
 const RADIUS = { column: 24, focus: 28, rail: 24 }
 const ICON_SIZE = { column: 22, focus: 26, rail: 20 }
 
-function SectionCard({ section, mode, pairs, groupPairs, collapsedGroups, onToggleGroup, soonCount, onExpand, onCollapse, rowProps, composerProps }) {
+function SectionCard({ section, mode, pairs, groupPairs, collapsedGroups, onToggleGroup, soonCount, onExpand, onCollapse, rowProps, composerProps, dragProps, isDropTarget }) {
   const label = SECTION_LABELS[section]
   const countText = pairs.length === 1 ? '1 prodotto' : `${pairs.length} prodotti`
   const placement = mode === 'focus'
@@ -76,7 +83,8 @@ function SectionCard({ section, mode, pairs, groupPairs, collapsedGroups, onTogg
     <m.section
       layout
       aria-label={label}
-      className={`${styles.card} ${styles[mode]}`}
+      data-section={section}
+      className={`${styles.card} ${styles[mode]} ${isDropTarget ? styles.dropTarget : ''}`}
       // Set through `style` so Motion keeps the radius round while the box scales.
       style={{ borderRadius: RADIUS[mode], ...placement }}
     >
@@ -126,7 +134,7 @@ function SectionCard({ section, mode, pairs, groupPairs, collapsedGroups, onTogg
               {mode === 'focus' && <PantryComposer section={section} {...composerProps} />}
               {mode === 'focus' && pairs.length > 0 && (
                 <div className={styles.tableHead} aria-hidden="true">
-                  <span>Prodotto</span><span>Quantità</span><span>Scadenza</span><span />
+                  <span>Prodotto</span><span>Quantità</span><span>Scadenza</span>
                 </div>
               )}
               {pairs.length === 0
@@ -147,18 +155,22 @@ function SectionCard({ section, mode, pairs, groupPairs, collapsedGroups, onTogg
                               onToggle={() => onToggleGroup(g.key)}
                             />
                             <Collapsible open={open} className={styles.group}>
-                              <Rows pairs={g.pairs} rowProps={rowProps} variant={mode === 'focus' ? 'table' : 'flat'} />
+                              <Rows pairs={g.pairs} rowProps={rowProps} dragProps={dragProps} variant={mode === 'focus' ? 'table' : 'flat'} />
                             </Collapsible>
                           </Fragment>
                         )
                       })
-                      : <Rows pairs={pairs} rowProps={rowProps} variant={mode === 'focus' ? 'table' : 'flat'} />}
+                      : <Rows pairs={pairs} rowProps={rowProps} dragProps={dragProps} variant={mode === 'focus' ? 'table' : 'flat'} />}
                   </div>
                 )}
             </>
           )}
         </m.div>
       </AnimatePresence>
+
+      {isDropTarget && (
+        <span className={styles.dropHint} aria-hidden="true">Rilascia per spostare in {label.toLowerCase()}</span>
+      )}
 
       {mode === 'rail' && (
         <button
@@ -174,7 +186,8 @@ function SectionCard({ section, mode, pairs, groupPairs, collapsedGroups, onTogg
 
 // groupPairs: optional (pairs, section) => [{ key, label, urgent?, pairs }], a foldable heading per group
 // ("Per categoria"); collapsedGroups (Set of keys) and onToggleGroup drive the folding.
-export function PantryColumns({ inventory, getPairs, groupPairs, collapsedGroups, onToggleGroup, expanded, onExpand, rowProps, onAdd, onOpenAdd, onGoApiKey }) {
+// onDropMove(fromSection, id, toSection): a row dropped on another card.
+export function PantryColumns({ inventory, getPairs, groupPairs, collapsedGroups, onToggleGroup, expanded, onExpand, rowProps, onDropMove, onAdd, onOpenAdd, onGoApiKey }) {
   const soon = useMemo(() => Object.fromEntries(SECTIONS.map(s => {
     const only = { credenza: [], frigo: [], freezer: [], [s]: inventory[s] }
     return [s, getUseSoonItems(only).length]
@@ -182,10 +195,24 @@ export function PantryColumns({ inventory, getPairs, groupPairs, collapsedGroups
 
   const composerProps = { onAdd, onOpenAdd, onGoApiKey }
 
+  const columnsRef = useRef(null)
+  const finePointer = useMediaQuery('(hover: hover) and (pointer: fine)')
+  const { drag, target, ghostRef, onRowPointerDown, onClickCapture } = usePantryDrag({
+    containerRef: columnsRef,
+    enabled: finePointer && !!onDropMove,
+    onDrop: onDropMove,
+  })
+  const dragProps = { draggingId: drag?.id ?? null, onRowPointerDown }
+
   return (
     <LazyMotion features={loadFeatures} strict>
       <MotionConfig reducedMotion="user" transition={SPRING}>
-        <div className={styles.columns} data-focus={expanded ? '' : undefined}>
+        <div
+          ref={columnsRef}
+          className={styles.columns}
+          data-focus={expanded ? '' : undefined}
+          onClickCapture={onClickCapture}
+        >
           {SECTIONS.map(s => (
             <SectionCard
               key={s}
@@ -200,9 +227,19 @@ export function PantryColumns({ inventory, getPairs, groupPairs, collapsedGroups
               onCollapse={() => onExpand(null)}
               rowProps={rowProps}
               composerProps={composerProps}
+              dragProps={dragProps}
+              isDropTarget={target === s}
             />
           ))}
         </div>
+        {drag && createPortal(
+          <div ref={ghostRef} className={styles.ghost} style={{ width: drag.width }} aria-hidden="true" inert="">
+            <div className={styles.ghostInner}>
+              <ItemRow item={drag.item} section={drag.section} variant="flat" showSection={false} searchQuery="" />
+            </div>
+          </div>,
+          document.body,
+        )}
       </MotionConfig>
     </LazyMotion>
   )

@@ -23,7 +23,7 @@
   transition: border-color 0.12s;
 }
 .focus {
-  --table-cols: minmax(0, 1fr) 96px 120px 132px;
+  --table-cols: minmax(0, 1fr) 120px 140px;
   z-index: 1; /* while the cards travel, the folded previews slide under it */
   padding: 24px;
 }
@@ -105,7 +105,7 @@
 /* Rows are separated by hairlines. */
 .list { display: flex; flex-direction: column; }
 .list > .rowWrap + .rowWrap { border-top: 1px solid var(--surface-hover); }
-.rowWrap { display: flow-root; }
+.rowWrap { display: flow-root; user-select: none; }
 /* Rows inside a foldable group (ui/Collapsible). */
 .group { display: flex; flex-direction: column; }
 .group > .rowWrap + .rowWrap { border-top: 1px solid var(--surface-hover); }
@@ -181,3 +181,63 @@
   border-radius: var(--radius-lg);
 }
 .railHit:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ── Drag of a row onto another card (usePantryDrag) ── */
+/* The row being dragged stays in its list, faded (on the child: Motion owns the
+   wrapper's opacity); a copy follows the pointer. */
+.dragSource > * { opacity: 0.35; }
+
+.card.dropTarget {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+  background: var(--accent-light);
+}
+.dropHint {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 3;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--surface);
+  border: 1.5px dashed var(--accent);
+  border-radius: var(--radius-md);
+  pointer-events: none;
+}
+/* Columns can be taller than the window: the hint sits under the header. */
+.column .dropHint { top: 76px; bottom: auto; }
+
+.ghost {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: var(--z-popover);
+  pointer-events: none;
+  will-change: transform;
+}
+.ghostInner {
+  padding: 0 8px;
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  transform: rotate(-1.5deg) scale(1.03);
+}
+/* Wobble while dragging: on the inner box, so it never fights the position transform. */
+@media (prefers-reduced-motion: no-preference) {
+  .ghostInner { animation: wobble 0.22s ease-in-out infinite alternate; }
+}
+@keyframes wobble {
+  from { transform: rotate(-1.5deg) scale(1.03); }
+  to { transform: rotate(1.5deg) scale(1.03); }
+}
+
+:global(body[data-dragging]),
+:global(body[data-dragging] *) { cursor: grabbing !important; user-select: none; }
