@@ -5,6 +5,7 @@ import { Icon } from './ui/Icon.jsx'
 import { EmptyState } from './ui/EmptyState.jsx'
 import { getPantryCandidates } from '../utils/pantry.js'
 import { SECTION_LABELS } from '../data/initialInventory.js'
+import { toDateStr } from '../utils/date.js'
 import styles from './SavedShoppingTab.module.css'
 
 const SECTION_OPTIONS = [
@@ -12,6 +13,18 @@ const SECTION_OPTIONS = [
   { id: 'credenza', label: 'Credenza' },
   { id: 'freezer',  label: 'Freezer' },
 ]
+
+// The "stanno per scadere" banner can be hidden; it comes back the next day.
+const BANNER_DISMISS_KEY = 'sk-expiring-banner-dismissed'
+
+function todayKey() {
+  const d = new Date()
+  return toDateStr(d.getFullYear(), d.getMonth(), d.getDate())
+}
+
+function readDismissed() {
+  try { return localStorage.getItem(BANNER_DISMISS_KEY) === todayKey() } catch { return false }
+}
 
 const FREEZER_RE = /freezer|surgelat|congelat/i
 const FRIGO_RE   = /frigo|latticin|freschi|ortofrutta|verdura|frutta|carne|pesce|salumi|formagg|uova|banco|yogurt|affettat/i
@@ -124,6 +137,7 @@ export function SavedShoppingTab({
   const [customCategoryMode, setCustomCategoryMode] = useState(false)
   const [customCategory, setCustomCategory] = useState('')
   const [suggestOpen, setSuggestOpen] = useState(false)
+  const [bannerDismissed, setBannerDismissed] = useState(readDismissed)
   const [sectionPickerOpen, setSectionPickerOpen] = useState(false)
   const [itemSections, setItemSections] = useState({})
   const nameInputRef = useRef(null)
@@ -184,6 +198,11 @@ export function SavedShoppingTab({
     })))
   }
 
+  function dismissBanner() {
+    setBannerDismissed(true)
+    try { localStorage.setItem(BANNER_DISMISS_KEY, todayKey()) } catch { /* private mode: hidden until reload */ }
+  }
+
   function openMovePicker() {
     const initial = {}
     items.filter(i => i.checked).forEach(item => { initial[item.id] = guessSection(item.category) })
@@ -195,18 +214,21 @@ export function SavedShoppingTab({
     <div className={styles.wrap}>
       {items.length > 0 && <p className={styles.summary}>{remaining} {remaining === 1 ? 'rimanente' : 'rimanenti'}</p>}
 
-      {candidates.length > 0 && (
+      {candidates.length > 0 && !bannerDismissed && (
         <section className={styles.suggest} aria-label="Prodotti che stanno per scadere">
           <div className={styles.suggestText}>
             <strong>
               {candidates.length === 1 ? '1 prodotto sta' : `${candidates.length} prodotti stanno`} per scadere
             </strong>
-            <span>{candidates.slice(0, 3).map(c => c.name).join(', ')}{candidates.length > 3 ? '…' : ''}</span>
+            <span className={styles.suggestNames}>{candidates.slice(0, 3).map(c => c.name).join(', ')}{candidates.length > 3 ? '…' : ''}</span>
+            <div className={styles.suggestActions}>
+              <button type="button" className={styles.suggestAdd} onClick={addAllCandidates}>Aggiungi tutti</button>
+              <button type="button" className={styles.suggestPick} onClick={() => setSuggestOpen(true)}>Scegli</button>
+            </div>
           </div>
-          <div className={styles.suggestActions}>
-            <button type="button" className={styles.suggestAdd} onClick={addAllCandidates}>Aggiungi</button>
-            <button type="button" className={styles.suggestPick} onClick={() => setSuggestOpen(true)}>Scegli</button>
-          </div>
+          <button type="button" className={styles.suggestClose} onClick={dismissBanner} aria-label="Nascondi suggerimento">
+            <Icon name="close" size={18} strokeWidth={2} />
+          </button>
         </section>
       )}
 
