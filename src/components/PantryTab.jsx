@@ -141,7 +141,7 @@ export function PantryTab({
     return `${total === 1 ? '1 prodotto' : `${total} prodotti`}${soon > 0 ? ` · ${soon} da usare presto` : ''}`
   }, [inventory])
 
-  const sectionOptions = SECTIONS.map(s => ({ value: s, label: SECTION_LABELS[s], count: inventory[s].length }))
+  const sectionOptions = SECTIONS.map(s => ({ value: s, label: SECTION_LABELS[s] }))
   const keyOk = hasApiKey()
 
   function renderRows(list, { showSection, query }) {
@@ -232,7 +232,7 @@ export function PantryTab({
           <p className={styles.empty}>Nessun risultato per "{search.trim()}"</p>
         ) : (
           <EmptyState
-            icon="pantry"
+            art="shapes"
             title={EMPTY_TITLE[section]}
             text="Aggiungi quello che hai: fotografa uno scontrino, detta la spesa o scrivi un prodotto."
           >

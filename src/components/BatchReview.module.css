@@ -13,96 +13,106 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
 }
 
 .row {
   display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 10px 10px;
-  border: 0.5px solid var(--border);
-  border-radius: var(--radius-sm);
-  transition: background 0.12s, border-color 0.12s;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  transition: opacity 0.12s;
 }
-.rowOn {
-  background: var(--accent-light);
-  border-color: var(--accent);
+.rowOff { opacity: 0.55; }
+
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* The checkbox is labelled by the original receipt line (or "Includi"). */
+.include {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 28px;
+  cursor: pointer;
 }
 
 .check {
-  width: 18px;
-  height: 18px;
-  margin-top: 8px;
+  width: 22px;
+  height: 22px;
   accent-color: var(--accent);
   flex-shrink: 0;
   cursor: pointer;
 }
 
-.fields {
-  flex: 1;
-  min-width: 0;
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  grid-template-areas:
-    "hint hint"
-    "name qty"
-    "seg  seg";
-  gap: 6px 8px;
-  align-items: center;
-}
-
 /* Original receipt line, so the user can check the AI's reading. */
 .hint {
-  grid-area: hint;
-  margin: 0;
-  font-size: 11px;
-  color: var(--text-hint);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+.fields { display: flex; gap: 10px; }
+
 .nameInput,
 .qtyInput {
-  padding: 6px 8px;
-  border: 0.5px solid var(--border);
+  height: 48px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text);
-  font-size: 13px;
+  font-size: 16px;
   outline: none;
   min-width: 0;
   transition: border-color 0.12s;
 }
-.nameInput { grid-area: name; font-weight: 500; }
-.qtyInput { grid-area: qty; }
+.nameInput { flex: 1; }
+.qtyInput { flex: 0 0 96px; }
 .nameInput:focus,
-.qtyInput:focus { border-color: var(--accent); }
+.qtyInput:focus { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 
 .segmented {
-  grid-area: seg;
   display: flex;
   gap: 4px;
+  padding: 3px;
+  background: var(--surface-hover);
+  border-radius: var(--radius-sm);
 }
 
 .segBtn {
   flex: 1;
-  padding: 6px 4px;
-  font-size: 16px;
-  line-height: 1;
-  background: var(--surface);
-  border: 0.5px solid var(--border);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: all 0.12s;
+  min-height: 38px;
+  padding: 0 4px;
+  font-size: 14px;
+  font-weight: 500;
   color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
 }
-.segBtn:hover { border-color: var(--accent); }
+.segBtn:hover { color: var(--text); }
 .segOn {
-  background: var(--accent-light);
-  border-color: var(--accent);
+  font-weight: 700;
+  color: var(--text);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
 }
 
 .removeBtn {
@@ -115,6 +125,7 @@
   cursor: pointer;
   width: var(--tap);
   height: var(--tap);
+  margin: -8px -10px -8px 0;
   border-radius: var(--radius-sm);
   flex-shrink: 0;
   transition: background 0.12s, color 0.12s;
@@ -126,13 +137,15 @@
 
 /* ── Footer buttons ── */
 .btnPrimary {
-  font-size: 13px;
-  font-weight: 600;
-  padding: 8px 14px;
+  flex: 1;
+  min-height: var(--tap-lg);
+  font-size: 16px;
+  font-weight: 700;
+  padding: 0 20px;
   background: var(--accent);
   color: var(--on-accent);
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   cursor: pointer;
   transition: background 0.15s, opacity 0.12s;
 }
@@ -144,13 +157,14 @@
 }
 
 .btnSecondary {
-  font-size: 13px;
-  font-weight: 500;
-  padding: 8px 14px;
+  min-height: var(--tap-lg);
+  font-size: 16px;
+  font-weight: 700;
+  padding: 0 20px;
   background: transparent;
-  color: var(--text-muted);
-  border: 0.5px solid var(--border);
-  border-radius: var(--radius-sm);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
   cursor: pointer;
   transition: all 0.12s;
 }

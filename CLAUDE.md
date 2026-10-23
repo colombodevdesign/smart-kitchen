@@ -104,6 +104,10 @@ Cinque destinazioni: Oggi, Dispensa, Cucina (Ricette AI / Salvate / Pasti), Spes
 alla history, quindi il tasto indietro del telefono le chiude. A ≥1024px Cucina e Spesa mostrano lo split a
 due colonne. `BottomNav` e il FAB si nascondono quando `nav.detail` è attivo (`data-detail`).
 
+Dispensa su mobile/tablet: segmented senza conteggi, righe `ItemRow` (variante `card`, con swipe) dentro **un solo contenitore** arrotondato con filetti
+(`.list` in `PantryTab.module.css`), stato vuoto illustrato (`EmptyState art="shapes"`); la schermata di verifica degli import (`BatchReview`) è una card per
+prodotto con riga originale/checkbox, nome + quantità e segmented con i nomi delle sezioni. Il menu "⋯" di riga è rimasto (il canvas mobile mostra solo lo swipe).
+
 Dispensa su desktop (≥1024px, `PantryColumns`): tre colonne (Credenza / Frigo / Freezer) oppure una sezione **espansa**
 (pulsante "Espandi" nell'intestazione, "Riduci" per tornare) con le altre due ripiegate in schede-anteprima a destra (clic = espandi quella).
 La sezione espansa ospita `PantryComposer`: l'aggiunta di un prodotto è contestuale (niente selettore sezione), Invio aggiunge e
