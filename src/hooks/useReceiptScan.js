@@ -10,8 +10,13 @@ const GEMINI_API_KEY_STORAGE = 'gemini-api-key'
 const MAX_EDGE = 1600
 const JPEG_QUALITY = 0.85
 const MAX_FILE_BYTES = 20 * 1024 * 1024
+// PDFs go to the model as-is. The request is capped at ~20 MB and base64 adds a third.
+const MAX_PDF_BYTES = 14 * 1024 * 1024
+const PDF_MIME = 'application/pdf'
 
-const PROMPT = `Sei un assistente per gestire una dispensa italiana. L'immagine è la foto di uno scontrino della spesa. Estrai i prodotti acquistati in un elenco strutturato.
+const isPdf = (file) => file.type === PDF_MIME || /\.pdf$/i.test(file.name || '')
+
+const PROMPT = `Sei un assistente per gestire una dispensa italiana. Il file allegato è uno scontrino della spesa: una foto oppure un documento PDF (scontrino elettronico, ricevuta o riepilogo di un ordine di spesa online, anche su più pagine). Estrai i prodotti acquistati in un elenco strutturato.
 
 Regole:
 - Un oggetto per riga di prodotto. Se la riga indica più unità ("2 x LATTE", "3 PZ"), produci UN solo oggetto con qty pari alla quantità ("2", "3 pz").
@@ -24,7 +29,7 @@ Regole:
 - raw: copia testuale della riga dello scontrino così com'è scritta, senza il prezzo.
 - IGNORA tutto ciò che non è cibo o bevanda: detersivi, prodotti per la casa e per l'igiene, sacchetti, articoli non alimentari.
 - IGNORA righe che non sono prodotti: intestazione e indirizzo del negozio, totale, subtotale, sconti, resto, contante/carta, IVA, punti fedeltà, data, numero scontrino, codici a barre.
-- Se la foto non è uno scontrino o non riesci a leggere nessun prodotto, restituisci [].
+- Se il file non è uno scontrino o non riesci a leggere nessun prodotto, restituisci [].
 Restituisci SOLO JSON conforme allo schema.`
 
 const RESPONSE_SCHEMA = {
@@ -44,7 +49,7 @@ const RESPONSE_SCHEMA = {
 function readAsDataURL(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
-    reader.onerror = () => reject(new Error('Errore lettura immagine'))
+    reader.onerror = () => reject(new Error('Errore lettura del file'))
     reader.onload = () => resolve(String(reader.result || ''))
     reader.readAsDataURL(file)
   })
@@ -93,26 +98,33 @@ async function prepareImage(file) {
   return { mimeType: 'image/jpeg', data: stripDataUrl(out), preview: out }
 }
 
+function readAsBase64(file) {
+  return readAsDataURL(file).then(stripDataUrl)
+}
+
 function parseApiError(err) {
   const { code, message } = classifyError(err)
   if (code !== 'unknown') return message
   const msg = err?.message || ''
   if (msg.toLowerCase().includes('unsupported') || msg.includes('400'))
-    return 'Il modello non ha accettato l\'immagine. Prova con una foto più nitida.'
+    return 'Il modello non ha accettato il file. Prova con una foto più nitida o un altro PDF.'
   return message || 'Errore di connessione con Gemini.'
 }
 
 /**
- * Receipt photo → pantry items, via Gemini vision.
+ * Receipt photo or PDF → pantry items, via Gemini.
  * State machine: 'idle' → 'processing' → 'ready' | 'error' → (reset) → 'idle'
  * - When status === 'ready', `items` holds the parsed candidates.
- * - `preview` is the data URL of the processed photo (set as soon as it's read).
+ * - `preview` is the data URL of the processed photo (set as soon as it's read);
+ *   it stays null for PDFs, which the UI shows through `source` instead.
+ * - `source` is `{ kind: 'image' | 'pdf', name }` for the file being processed.
  */
 export function useReceiptScan() {
   const [status, setStatus] = useState('idle')
   const [error, setError] = useState(null)
   const [items, setItems] = useState([])
   const [preview, setPreview] = useState(null)
+  const [source, setSource] = useState(null)
 
   // Bumped on every scan/reset: results from a superseded run are discarded.
   const runRef = useRef(0)
@@ -122,18 +134,22 @@ export function useReceiptScan() {
     setError(null)
     setItems([])
     setPreview(null)
+    setSource(null)
 
     if (!file) {
       setStatus('idle')
       return
     }
-    if (!file.type?.startsWith('image/')) {
-      setError({ message: 'Seleziona un\'immagine dello scontrino.' })
+    const pdf = isPdf(file)
+    if (!pdf && !file.type?.startsWith('image/')) {
+      setError({ message: 'Seleziona una foto o un PDF dello scontrino.' })
       setStatus('error')
       return
     }
-    if (file.size > MAX_FILE_BYTES) {
-      setError({ message: 'Immagine troppo grande. Riprova con una foto più leggera.' })
+    if (pdf ? file.size > MAX_PDF_BYTES : file.size > MAX_FILE_BYTES) {
+      setError({ message: pdf
+        ? 'PDF troppo grande (massimo 14 MB). Prova con un file più leggero.'
+        : 'Immagine troppo grande. Riprova con una foto più leggera.' })
       setStatus('error')
       return
     }
@@ -144,11 +160,20 @@ export function useReceiptScan() {
       return
     }
 
+    setSource({ kind: pdf ? 'pdf' : 'image', name: file.name || '' })
     setStatus('processing')
     try {
-      const { mimeType, data, preview: previewUrl } = await prepareImage(file)
+      let mimeType, data
+      if (pdf) {
+        mimeType = PDF_MIME
+        data = await readAsBase64(file)
+      } else {
+        const prepared = await prepareImage(file)
+        ;({ mimeType, data } = prepared)
+        if (runRef.current !== run) return
+        setPreview(prepared.preview)
+      }
       if (runRef.current !== run) return
-      setPreview(previewUrl)
 
       const ai = new GoogleGenAI({ apiKey })
       const res = await ai.models.generateContent({
@@ -193,7 +218,8 @@ export function useReceiptScan() {
     setError(null)
     setItems([])
     setPreview(null)
+    setSource(null)
   }, [])
 
-  return { status, error, items, preview, scan, reset }
+  return { status, error, items, preview, source, scan, reset }
 }
