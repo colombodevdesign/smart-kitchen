@@ -1,8 +1,29 @@
-# smart-kitchen
+<p align="center">
+  <img src="public/icon-512.png" alt="Logo smart kitchen" width="128">
+</p>
 
-Gestione dispensa personale con sincronizzazione real-time tra dispositivi e suggerimenti AI stagionali.
+<h1 align="center">smart kitchen</h1>
+
+<p align="center">
+  Gestione dispensa personale con sincronizzazione real-time tra dispositivi e suggerimenti AI stagionali.
+</p>
 
 Stack: React 18 + Vite 5 + Firebase (Auth + Firestore) + Gemini AI.
+
+## Screenshot
+
+<p align="center">
+  <img src="screenshots/Screenshot%202026-10-23%20at%2022.00.31.png" alt="Oggi" width="49%">
+  <img src="screenshots/Screenshot%202026-10-23%20at%2022.00.35.png" alt="Dispensa" width="49%">
+  <img src="screenshots/Screenshot%202026-10-23%20at%2022.00.41.png" alt="Dispensa, sezione espansa" width="49%">
+  <img src="screenshots/Screenshot%202026-10-23%20at%2022.00.48.png" alt="Ricette" width="49%">
+  <img src="screenshots/Screenshot%202026-10-23%20at%2022.01.00.png" alt="Pasti" width="49%">
+  <img src="screenshots/Screenshot%202026-10-23%20at%2022.03.25.png" alt="Spesa" width="49%">
+  <img src="screenshots/Screenshot%202026-10-23%20at%2022.05.08.png" alt="Ricetta" width="49%">
+  <img src="screenshots/Screenshot%202026-10-23%20at%2022.05.46.png" alt="Ricetta con ingredienti mancanti" width="49%">
+  <img src="screenshots/Screenshot%202026-10-23%20at%2022.07.22.png" alt="Profilo" width="49%">
+  <img src="screenshots/Screenshot%202026-10-23%20at%2022.07.41.png" alt="Notifiche" width="49%">
+</p>
 
 ## Prerequisiti
 
