@@ -145,7 +145,7 @@ Solo tasti singoli, senza Ctrl/⌘/Alt: sono identici su Windows e Mac e non col
 `useKeyboardShortcuts(bindings, enabled)` ascolta `keydown` su `document` e ignora l'evento se si sta
 scrivendo in un campo, se c'è un `[role="dialog"][aria-modal]` aperto o se c'è un modificatore.
 I binding sono in `App.jsx`: `1`–`5` destinazioni (ordine di `TABS`), `N` aggiungi, `S` scontrino, `V` voce
-(entrambi richiedono la chiave Gemini, altrimenti toast), `C` "Cosa cucino", `P` aggiungi un pasto (apre Cucina › Pasti e il form sul giorno selezionato, via `mealRequested` → `MealTrackerTab`), `/` cerca in Dispensa
+(entrambi richiedono la chiave Gemini, altrimenti toast), `C` "Cosa cucino", `P` aggiungi un pasto (apre Cucina › Pasti e il form sul giorno selezionato, via `mealRequested` → `MealTrackerTab`), `\` cerca in Dispensa
 (`searchRequested` → `PantryTab`), `?` aiuto, `Esc` chiude il dettaglio. `N`, `S`, `V` e il pulsante «Aggiungi prodotti» della sidebar aggiungono nella sezione che si sta guardando in Dispensa
 (sezione espansa su desktop, segmented su tablet; `PantryTab` la comunica con `onViewChange` → `pantryView` in `App`); altrove, in
 ricerca o con le tre colonne, il default è Frigo. **Se aggiungi o cambi un binding,

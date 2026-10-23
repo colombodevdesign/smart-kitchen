@@ -142,7 +142,7 @@ export function PantryTab({
     if (searchOpen) searchRef.current?.focus()
   }, [searchOpen])
 
-  // "/" shortcut from anywhere: open the search bar (or refocus it if already open).
+  // "\" shortcut from anywhere: open the search bar (or refocus it if already open).
   useEffect(() => {
     if (!searchRequested) return
     setSearchOpen(true)
