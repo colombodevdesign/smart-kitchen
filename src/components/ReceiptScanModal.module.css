@@ -66,6 +66,38 @@
 }
 .previewPlaceholder { background: var(--surface-hover); }
 
+.pdfTile,
+.pdfTileCompact {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  background: var(--surface-hover);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.pdfTile {
+  flex-direction: column;
+  gap: 8px;
+  width: 120px;
+  height: 150px;
+  padding: 10px;
+}
+.pdfTileCompact {
+  align-self: center;
+  gap: 8px;
+  max-width: 100%;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+.pdfName {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
 .spinner {
   width: 32px;
   height: 32px;

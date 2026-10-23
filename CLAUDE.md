@@ -309,7 +309,7 @@ Due flussi paralleli, stessa struttura e stessa schermata di verifica:
 |---|---|---|
 | Hook | `useVoiceBatch.js` | `useReceiptScan.js` |
 | Modale | `VoiceBatchModal.jsx` | `ReceiptScanModal.jsx` |
-| Input | `MediaRecorder`, max 60s | `<input type="file" capture="environment">` |
+| Input | `MediaRecorder`, max 60s | `<input type="file" capture="environment">` (foto) o file scelto (immagine o PDF) |
 | Stati | `idle → recording → processing → ready \| error` | `idle → processing → ready \| error` |
 
 - Entrambi chiamano `generateContent` (non streaming) con `responseMimeType: 'application/json'`
@@ -317,6 +317,8 @@ Due flussi paralleli, stessa struttura e stessa schermata di verifica:
   (riga originale) mostrato come hint sopra al nome nella verifica.
 - La foto viene ridimensionata a 1600px lato lungo e ricodificata in JPEG su canvas prima
   dell'invio; l'immagine processata resta come anteprima nella modale.
+  I **PDF** (anche multipagina, max 14 MB) vanno al modello così come sono (`inlineData` `application/pdf`), senza canvas né
+  anteprima: la modale mostra una tessera con il nome del file (`source` di `useReceiptScan`).
 - Il prompt scontrino espande le abbreviazioni ("PNE CASER" → "pane casereccio") e scarta
   righe non alimentari, totali, sconti e intestazioni.
 - `BatchReview.jsx` è la schermata di verifica condivisa (checkbox, nome, quantità,

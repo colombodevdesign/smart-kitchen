@@ -46,7 +46,7 @@ export function AddSheet({ open, section, onClose, onSwitch, onSubmit, onGoApiKe
             <Icon name="receipt" size={28} />
             <span className={styles.tileText}>
               <strong>Scontrino</strong>
-              <span>Fotografalo e l'AI legge i prodotti</span>
+              <span>Foto o PDF: l'AI legge i prodotti</span>
             </span>
           </button>
           <button type="button" className={`${styles.tile} ${styles.tileVoice}`} onClick={() => onSwitch('voice')} disabled={!keyOk}>

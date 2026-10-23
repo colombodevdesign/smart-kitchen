@@ -10,7 +10,7 @@ export const SHORTCUT_GROUPS = [
     title: 'Azioni',
     items: [
       { keys: ['N'], label: 'Aggiungi un prodotto' },
-      { keys: ['S'], label: 'Aggiungi da scontrino' },
+      { keys: ['S'], label: 'Aggiungi da scontrino (foto o PDF)' },
       { keys: ['V'], label: 'Aggiungi a voce' },
       { keys: ['C'], label: 'Cosa cucino stasera?' },
       { keys: ['P'], label: 'Aggiungi un pasto' },
