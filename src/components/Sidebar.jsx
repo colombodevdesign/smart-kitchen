@@ -3,10 +3,13 @@ import { TABS } from '../nav/tabs.js'
 import styles from './Sidebar.module.css'
 
 export function Sidebar({ activeTab, onTabChange, onAdd, onShortcuts }) {
+  const index = Math.max(TABS.findIndex(t => t.id === activeTab), 0)
   return (
     <aside className={styles.sidebar}>
       <div className={styles.logo}>smart kitchen</div>
-      <nav className={styles.nav} aria-label="Navigazione principale">
+      <nav className={styles.nav} aria-label="Navigazione principale" style={{ '--i': index }}>
+        {/* One highlight that slides to the active item (same idea as Segmented). */}
+        <span className={styles.thumb} aria-hidden="true" />
         {TABS.map(({ id, label, icon }, i) => (
           <button
             key={id}
