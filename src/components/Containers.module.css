@@ -25,3 +25,13 @@
   max-width: 880px;
   margin: 0 auto;
 }
+
+/* Sub-views (segmented sections) stay mounted and are shown with `hidden`, so
+   the entrance replays each time one is un-hidden. */
+.view {
+  animation: viewIn 0.4s var(--ease-ios) backwards;
+}
+
+@keyframes viewIn {
+  from { opacity: 0; transform: translate3d(0, 10px, 0); }
+}

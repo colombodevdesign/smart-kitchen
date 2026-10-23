@@ -208,6 +208,8 @@ export default function App() {
           {MOCK_MODE && <MockBanner />}
           {!online && <OfflineBanner />}
 
+          {/* No box of its own: only carries the direction of the last navigation for the entrance animation (App.module.css). */}
+          <div className={styles.page} data-motion={nav.motion}>
           {nav.tab === 'oggi' && (
             <TodayTab
               inventory={inventory}
@@ -287,6 +289,7 @@ export default function App() {
               onSaveApiKey={saveApiKey}
             />
           )}
+          </div>
         </main>
 
         <SeasonalRecipesModal

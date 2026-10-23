@@ -123,7 +123,7 @@ export function RecipeDetail({ recipe, inventory, onBack, onRemove, onCookTonigh
         )}
       </section>
 
-      <div className={styles.bar}>
+      <div className={styles.bar} data-fixed>
         <button type="button" className={styles.planBtn} onClick={onPlan} aria-label="Pianifica nei pasti">
           <Icon name="calendar" size={22} />
         </button>

@@ -335,6 +335,7 @@ export function PantryTab({
       <button
         type="button"
         className={`${styles.fab} ${toast.visible ? styles.fabHidden : ''}`}
+        data-fixed
         onClick={() => onOpenAdd('sheet', section)}
         aria-label="Aggiungi prodotto"
       >

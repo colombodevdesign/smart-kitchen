@@ -7,7 +7,21 @@
   align-items: center;
   justify-content: center;
   padding: 16px;
-  animation: fadeIn 0.15s ease-out;
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* While the exit plays the dialog is still in the DOM: let taps through to what is behind. */
+.overlay[data-closing] {
+  pointer-events: none;
+  animation: fadeOut 0.24s ease-in forwards;
+}
+
+/* On-screen keyboard (set from Modal.jsx): the overlay shrinks to the part of the screen still visible. */
+.overlay[data-keyboard] {
+  --safe-b: 0px;
+  top: var(--vv-top);
+  bottom: auto;
+  height: var(--vv-h);
 }
 
 .dialog {
@@ -22,7 +36,10 @@
   flex-direction: column;
   overflow: hidden;
   box-shadow: var(--shadow-lg);
-  animation: scaleIn 0.18s ease-out;
+  animation: scaleIn 0.28s var(--ease-ios);
+}
+.overlay[data-closing] .dialog {
+  animation: scaleOut 0.2s ease-in forwards;
 }
 
 .header {
@@ -84,6 +101,15 @@
   from { transform: translateY(100%); }
   to   { transform: translateY(0); }
 }
+@keyframes fadeOut {
+  to { opacity: 0; }
+}
+@keyframes scaleOut {
+  to { opacity: 0; transform: scale(0.96); }
+}
+@keyframes slideDown {
+  to { transform: translateY(100%); }
+}
 
 /* Mobile: bottom-sheet */
 @media (max-width: 600px) {
@@ -96,7 +122,13 @@
     width: 100%;
     border-radius: 28px 28px 0 0;
     max-height: 90vh;
-    animation: slideUp 0.22s ease-out;
+    animation: slideUp 0.5s var(--ease-ios);
+  }
+  .overlay[data-closing] .dialog {
+    animation: slideDown 0.24s cubic-bezier(0.5, 0, 0.75, 0) forwards;
+  }
+  .overlay[data-keyboard] .dialog {
+    max-height: calc(var(--vv-h) - 8px);
   }
   .header {
     padding: 16px 12px 12px 20px;
