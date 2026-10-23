@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Icon } from './ui/Icon.jsx'
 import { getUseSoonItems, itemBadge } from '../utils/pantry.js'
 import { todayStr } from '../utils/date.js'
+import { isPlanned, mealTime } from '../utils/meals.js'
 import { getSeasonal, getMonthName } from '../data/seasonal.js'
 import { ExpiringList } from './ExpiringList.jsx'
 import styles from './TodayTab.module.css'
@@ -95,6 +96,7 @@ function Today({ inventory, meals, onOpenExpiring, onCook, onSeasonal, onPlan, o
             <div className={styles.cardHead}>
               <h2 id="today-dinner" className={styles.cardTitle}>Stasera · Cena</h2>
               {!dinner && <span className={styles.muted}>non pianificata</span>}
+              {isPlanned(dinner) && <span className={styles.muted}>in programma · {mealTime(dinner)}</span>}
             </div>
             {dinner ? (
               <p className={styles.dinner}>{dinner.text}</p>

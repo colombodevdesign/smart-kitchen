@@ -42,6 +42,13 @@ export function useMealTracker(uid) {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(meals)) } catch {}
   }, [meals, uid])
 
+  const save = useCallback((next) => {
+    if (uidRef.current) setDoc(firestoreRef(uidRef.current), next).catch(console.error)
+    return next
+  }, [])
+
+  // `planned: true` = a meal still to eat (Cucina › Pasti as a planner), with an
+  // optional `time` and `reminder`; without it the meal is in the log.
   const addMeal = useCallback((dateStr, payload) => {
     const text = (payload?.text ?? '').trim()
     if (!text) return
@@ -52,13 +59,11 @@ export function useMealTracker(uid) {
       recipeId:    payload.recipeId    ?? null,
       recipeTitle: payload.recipeTitle ?? null,
       createdAt: Date.now(),
+      ...planFields(payload),
     }
-    setMeals(prev => {
-      const next = { ...prev, [dateStr]: [...(prev[dateStr] ?? []), meal] }
-      if (uidRef.current) setDoc(firestoreRef(uidRef.current), next).catch(console.error)
-      return next
-    })
-  }, [])
+    const clean = withoutEmpty(meal)
+    setMeals(prev => save({ ...prev, [dateStr]: [...(prev[dateStr] ?? []), clean] }))
+  }, [save])
 
   const removeMeal = useCallback((dateStr, id) => {
     setMeals(prev => {
@@ -66,19 +71,49 @@ export function useMealTracker(uid) {
       const next = { ...prev }
       if (updated.length === 0) delete next[dateStr]
       else next[dateStr] = updated
-      if (uidRef.current) setDoc(firestoreRef(uidRef.current), next).catch(console.error)
-      return next
+      return save(next)
     })
-  }, [])
+  }, [save])
 
-  const updateMeal = useCallback((dateStr, id, patch) => {
+  // Edits a meal; with `toDate` it also moves it to that day (same id).
+  const updateMeal = useCallback((dateStr, id, patch, toDate = dateStr) => {
     setMeals(prev => {
-      const list = (prev[dateStr] ?? []).map(m => m.id === id ? { ...m, ...patch } : m)
-      const next = { ...prev, [dateStr]: list }
-      if (uidRef.current) setDoc(firestoreRef(uidRef.current), next).catch(console.error)
-      return next
+      const meal = (prev[dateStr] ?? []).find(m => m.id === id)
+      if (!meal) return prev
+      const merged = { ...meal, ...patch }
+      const updated = withoutEmpty({ ...merged, ...planFields(merged) })
+      const next = { ...prev }
+      if (toDate === dateStr) {
+        next[dateStr] = prev[dateStr].map(m => (m.id === id ? updated : m))
+      } else {
+        const rest = prev[dateStr].filter(m => m.id !== id)
+        if (rest.length === 0) delete next[dateStr]
+        else next[dateStr] = rest
+        next[toDate] = [...(prev[toDate] ?? []), updated]
+      }
+      return save(next)
     })
-  }, [])
+  }, [save])
 
-  return { meals, addMeal, removeMeal, updateMeal }
+  // A planned meal was eaten: it goes in the log and its reminder is dropped.
+  const markEaten = useCallback((dateStr, id) => {
+    updateMeal(dateStr, id, { planned: false })
+  }, [updateMeal])
+
+  return { meals, addMeal, removeMeal, updateMeal, markEaten }
+}
+
+// Planner fields are stored only on planned meals, so logged ones keep the old shape.
+function planFields(payload) {
+  if (payload?.planned !== true) return { planned: undefined, time: undefined, reminder: undefined }
+  return {
+    planned: true,
+    time: /^\d{2}:\d{2}$/.test(payload.time ?? '') ? payload.time : null,
+    reminder: payload.reminder?.lead ? { lead: payload.reminder.lead } : null,
+  }
+}
+
+// Firestore rejects `undefined` values.
+function withoutEmpty(obj) {
+  return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined))
 }

@@ -3,6 +3,8 @@ import { Icon } from './ui/Icon.jsx'
 import { Chip } from './ui/Chip.jsx'
 import { StatusBadge } from './ui/StatusBadge.jsx'
 import { useNotifications } from '../hooks/useNotifications.js'
+import { useMealPrefs } from '../hooks/useMealPrefs.js'
+import { REMINDER_LEADS } from '../data/mealCategories.js'
 import styles from './NotificationSettings.module.css'
 
 const PRESET_HOURS = [7, 8, 9, 12, 18, 20]
@@ -41,9 +43,13 @@ function deviceDetail(d, mine) {
   return text.charAt(0).toUpperCase() + text.slice(1)
 }
 
-export function NotificationSettings({ user, online = true, onBack }) {
+export function NotificationSettings({ user, online = true, onBack, onOpenMealReminders }) {
   const n = useNotifications(user?.uid)
   const { prefs } = n
+  const { prefs: mealPrefs } = useMealPrefs(user?.uid ?? null)
+  const mealSummary = mealPrefs.enabled
+    ? `Attivi · ${REMINDER_LEADS.find(l => l.value === mealPrefs.lead)?.label.toLowerCase() ?? ''}${mealPrefs.dinnerNudge ? ' · cena alle 17:00' : ''}`
+    : 'Spenti'
   const [customOpen, setCustomOpen] = useState(false)
   const [tipFor, setTipFor] = useState(null)
   const [confirmFor, setConfirmFor] = useState(null)
@@ -86,7 +92,7 @@ export function NotificationSettings({ user, online = true, onBack }) {
     }
   } else if (activeHere) {
     banner = {
-      tone: 'ok', title: 'Avvisi attivi',
+      tone: 'ok', title: 'Avvisi di scadenza attivi',
       text: `Ogni giorno alle ${timeStr(prefs.hour, prefs.minute)} su questo dispositivo.`,
     }
   } else if (prefs.enabled) {
@@ -96,7 +102,7 @@ export function NotificationSettings({ user, online = true, onBack }) {
       action: 'Attiva su questo dispositivo',
     }
   } else {
-    banner = { tone: 'off', title: 'Avvisi disattivi', text: 'Attivali per ricevere una notifica quando un prodotto sta per scadere.' }
+    banner = { tone: 'off', title: 'Avvisi di scadenza disattivi', text: 'Attivali per ricevere una notifica quando un prodotto sta per scadere.' }
   }
   const canSwitch = n.supported && n.thisDevice !== 'blocked'
 
@@ -179,6 +185,17 @@ export function NotificationSettings({ user, online = true, onBack }) {
           Riceverai un solo avviso al giorno con i prodotti che scadono {dayText(prefs.daysBefore)}.
         </p>
       </section>
+
+      {onOpenMealReminders && (
+        <button type="button" className={styles.linkRow} onClick={onOpenMealReminders}>
+          <span className={styles.deviceIcon} aria-hidden="true"><Icon name="bowl" size={22} /></span>
+          <span className={styles.deviceText}>
+            <strong>Promemoria dei pasti</strong>
+            <span>{mealSummary}</span>
+          </span>
+          <Icon name="chevR" size={20} strokeWidth={2} />
+        </button>
+      )}
 
       <section className={styles.group} aria-labelledby="notif-devices">
         <h2 id="notif-devices" className={styles.legend}>Dispositivi</h2>

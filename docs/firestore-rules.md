@@ -4,7 +4,11 @@ Le regole si applicano a mano da Firebase Console → Firestore Database → Rul
 `firestore.rules`). **Vanno pubblicate prima di deployare le Functions e il client**: senza le regole per
 `notificationPrefs` e `pushTokens` le notifiche mostrano "Regole Firestore non aggiornate".
 
-Ordine di deploy consigliato: **Functions → client → regole**. Il vecchio doc `pushToken/data` (dispositivo
+Ordine di deploy consigliato: **Functions → client → regole**. Eccezione per i **promemoria dei pasti**
+(`meals` in `notificationPrefs`): le regole nuove accettano anche i documenti vecchi, quindi pubblicale
+**prima** del client, altrimenti salvare le impostazioni dei promemoria dà "Regole Firestore non aggiornate".
+`mealReminders/data` (pasti già ricordati) lo scrive e legge solo la Function: nessuna regola, il client non
+ci accede. Il vecchio doc `pushToken/data` (dispositivo
 singolo) non è più usato: la sua regola va tolta solo dopo il deploy del client, perché quello precedente lo
 scrive ancora. Il doc rimasto su Firestore si può cancellare a mano dalla Console.
 
@@ -84,14 +88,26 @@ service cloud.firestore {
   }
 
   function isValidPrefs(data) {
-    return data.keys().hasOnly(['enabled', 'hour', 'minute', 'tz', 'daysBefore', 'updatedAt', 'lastRunDay'])
+    return data.keys().hasOnly(['enabled', 'hour', 'minute', 'tz', 'daysBefore', 'updatedAt', 'lastRunDay', 'meals'])
         && data.get('enabled', false) is bool
         && data.get('hour', 9) is int
         && data.get('hour', 9) >= 0 && data.get('hour', 9) <= 23
         && data.get('minute', 0) in [0, 15, 30, 45]
         && data.get('tz', 'Europe/Rome') is string
         && data.get('daysBefore', [1]) is list
-        && data.get('daysBefore', [1]).size() <= 8;
+        && data.get('daysBefore', [1]).size() <= 8
+        && isValidMealPrefs(data.get('meals', {}));
+  }
+
+  // Promemoria dei pasti (notificationPrefs/data.meals).
+  function isValidMealPrefs(meals) {
+    return meals is map
+        && meals.keys().hasOnly(['enabled', 'lead', 'times', 'dinnerNudge'])
+        && meals.get('enabled', false) is bool
+        && meals.get('lead', '30') in ['30', '60', 'am', 'at']
+        && meals.get('times', {}) is map
+        && meals.get('times', {}).keys().hasOnly(['colazione', 'pranzo', 'cena', 'spuntino'])
+        && meals.get('dinnerNudge', false) is bool;
   }
 
   function isValidDevice(data) {

@@ -9,7 +9,7 @@ const DEVICE_ID_KEY = 'sk-device-id'
 const OFF_HERE_KEY = 'sk-notif-off-here'
 const SEEN_EVERY_MS = 12 * 3600 * 1000
 const OPEN_PARAM = 'apri'
-const OPEN_TARGETS = ['scadenze']
+const OPEN_TARGETS = ['scadenze', 'pasti']
 
 export const DEFAULT_PREFS = { enabled: false, hour: 9, minute: 0, daysBefore: [1] }
 
@@ -105,6 +105,8 @@ export function useNotifications(uid) {
 
   const loading = prefsDoc === undefined || devices === undefined
   const prefs = { ...DEFAULT_PREFS, ...(prefsDoc ?? {}) }
+  // Expiry alerts or meal reminders: either one needs this device registered.
+  const anyOn = prefs.enabled || prefs.meals?.enabled === true
 
   // Two docs with the same token are one device: show it once (this device's doc wins).
   const visibleDevices = (devices ?? []).filter((d, i, all) =>
@@ -135,7 +137,7 @@ export function useNotifications(uid) {
   // last opened, so old devices can be told apart in the list. Skipped where the
   // user removed this device.
   useEffect(() => {
-    if (!uid || loading || !supported || permission !== 'granted' || !prefs.enabled || healed.current || offHere()) return
+    if (!uid || loading || !supported || permission !== 'granted' || !anyOn || healed.current || offHere()) return
     healed.current = true
     fetchToken().then(token => {
       if (!mine || mine.token !== token || mine.status !== 'active') return writeDevice(token)
@@ -143,13 +145,13 @@ export function useNotifications(uid) {
         return setDoc(doc(db, 'users', uid, 'pushTokens', myId), { lastSeenAt: Date.now() }, { merge: true })
       }
     }).catch(() => {})
-  }, [uid, loading, supported, permission, prefs.enabled]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [uid, loading, supported, permission, anyOn]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Keep the time zone current when the user travels.
   useEffect(() => {
-    if (!uid || loading || !prefs.enabled || prefsDoc?.tz === deviceTz()) return
+    if (!uid || loading || !anyOn || prefsDoc?.tz === deviceTz()) return
     setDoc(prefsRef(), { tz: deviceTz() }, { merge: true }).catch(() => {})
-  }, [uid, loading, prefs.enabled, prefsDoc?.tz, prefsRef])
+  }, [uid, loading, anyOn, prefsDoc?.tz, prefsRef])
 
   const run = useCallback(async (fn) => {
     setBusy(true)
@@ -157,20 +159,35 @@ export function useNotifications(uid) {
     try { return await fn() } catch (e) { setError(readableError(e)) } finally { setBusy(false) }
   }, [])
 
-  // Registers this device and switches the alerts on.
-  const enable = useCallback(() => run(async () => {
-    if (!uid || !supported) return
+  // Asks for the permission and registers this device; false if it was refused.
+  async function registerHere() {
     const result = await Notification.requestPermission()
     setPermission(result)
     if (result !== 'granted') {
       setError('Permesso negato. Consenti le notifiche dalle impostazioni del browser e riprova.')
-      return
+      return false
     }
     setOffHere(false)
     await writeDevice(await fetchToken())
     healed.current = true
+    return true
+  }
+
+  // Registers this device and switches the alerts on.
+  const enable = useCallback(() => run(async () => {
+    if (!uid || !supported) return
+    if (!(await registerHere())) return
     await setDoc(prefsRef(), { ...prefs, enabled: true, tz: deviceTz(), updatedAt: Date.now() }, { merge: true })
   }), [uid, supported, run, prefsRef, prefs.hour, prefs.minute, prefs.daysBefore.join()]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Meal reminders on (Promemoria dei pasti): same device registration, without
+  // touching the expiry alerts. `meals` = the full meal settings to store.
+  const enableMeals = useCallback((meals) => run(async () => {
+    if (!uid || !supported) return false
+    if (!(await registerHere())) return false
+    await setDoc(prefsRef(), { meals: { ...meals, enabled: true }, tz: deviceTz(), updatedAt: Date.now() }, { merge: true })
+    return true
+  }), [uid, supported, run, prefsRef]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Switches the alerts off for every device; tokens are kept so turning them
   // back on is a single tap.
@@ -220,7 +237,7 @@ export function useNotifications(uid) {
   return {
     supported, permission, loading, busy, error,
     prefs, devices: visibleDevices, myId, thisDevice,
-    enable, disable, setSchedule, sendTest, removeDevice,
+    enable, disable, enableMeals, setSchedule, sendTest, removeDevice,
   }
 }
 

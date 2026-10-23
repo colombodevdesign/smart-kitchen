@@ -4,7 +4,7 @@ Reference rapido per sessioni future. Aggiorna quando cambia l'architettura.
 
 ## Progetto
 
-App React single-page per gestione dispensa con suggerimenti AI stagionali.
+App React single-page per gestione dispensa con suggerimenti AI stagionali e pasti (registro + planner con promemoria).
 Stack: React 18 + Vite 5 + CSS Modules + Firebase (Auth + Firestore) + Motion (`motion/react`, solo per la Dispensa desktop).
 Autenticazione Google obbligatoria. Dispensa, pasti, ricette salvate e lista
 spesa vivono su Firestore, sincronizzati in real-time tra dispositivi. Nessun backend
@@ -46,7 +46,8 @@ src/
     useNavigation.js        # {tab, sub, detail} + history.pushState/popstate (nessun router)
     useInventory.js         # CRUD dispensa + CSV + Firestore sync (fallback localStorage), restoreItem, applyAnalysis, setCategory
     usePantryAnalysis.js    # analisi AI in background dei prodotti senza item.ai valido
-    useMealTracker.js       # pasti + sync
+    useMealTracker.js       # pasti (registro + planner) + sync: addMeal, updateMeal (anche cambio giorno), markEaten
+    useMealPrefs.js         # impostazioni dei promemoria dei pasti: notificationPrefs/data.meals (senza account: localStorage)
     useSavedRecipes.js      # ricette salvate + sync + estrazione ingredienti in background
     useSavedShopping.js     # lista spesa + sync
     useApiKeySync.js        # chiave Gemini: localStorage ↔ users/{uid}/settings/gemini
@@ -54,7 +55,7 @@ src/
     useVoiceBatch.js        # voce → item dispensa
     useReceiptScan.js       # scontrino → item dispensa
     useBatchCandidates.js   # lista candidati editabile condivisa dai due import
-    useNotifications.js     # preferenze + dispositivi push, enable/disable, notifica di prova; useForegroundPush
+    useNotifications.js     # preferenze + dispositivi push, enable/disable/enableMeals, notifica di prova; useForegroundPush
     useKeyboardShortcuts.js # scorciatoie a tasto singolo (document keydown), vedi "Scorciatoie da tastiera"
     usePantryDrag.js        # Dispensa desktop: drag di una riga su un'altra card (copia in portal, hit-test su [data-section])
     useOnline.js            # navigator.onLine + eventi
@@ -65,11 +66,11 @@ src/
     TodayTab, ExpiringList, SeasonalRecipesModal, PantryTab, PantryColumns, PantryComposer, ItemRow, CucinaTab, AITab, SavedRecipesTab, RecipeDetail, MealTrackerTab,
     SpesaTab, SavedShoppingTab, PantrySuggestionsModal, TuTab, ProfileTab, NotificationSettings,
     AddFlow, AddSheet, VoiceBatchModal, ReceiptScanModal, BatchReview, ShortcutsHelp,
-    MealFormModal, MealDetailSheet, Modal, BottomNav, Sidebar, LoginScreen
+    MealFormModal, MealDetailSheet, MealReminderSettings, Modal, BottomNav, Sidebar, LoginScreen
   data/
     initialInventory.js     # SECTIONS, SECTION_LABELS
     seasonal.js             # produce stagionale per mese (Lombardia)
-    mealCategories.js       # categorie pasti {id, label, icon}; i colori sono token --cat-*
+    mealCategories.js       # categorie pasti {id, label, icon} (colori: token --cat-*), DEFAULT_MEAL_TIMES, REMINDER_LEADS, MORNING_TIME
     foodCategories.js       # categorie alimentari dell'analisi AI, FOOD_GROUPS (i gruppi di "Per categoria") e ordine per sezione, FALLBACK_OPEN_DAYS
   utils/
     date.js                 # SOON_DAYS, daysUntil (giorni di calendario), toDateStr, formatExpiry, expiryStatus
@@ -77,11 +78,14 @@ src/
     markdown.js             # md(): escape HTML poi #/##→h3, ###→h4, **bold**, liste
     parsers.js              # parseRecipes (split su "## "), parseShoppingItems, extractQty
     ingredientMatch.js      # "Hai X ingredienti su Y": matching per radici (puro)
+    meals.js                # pasti in programma: mealTime, reminderTime (stessa regola di functions/lib/meals.js), upcomingPlanned
     apiKey.js, theme.js
 functions/
-  index.js                  # sendExpiryNotifications (ogni 15 min) + callable sendTestNotification
+  index.js                  # sendExpiryNotifications (ogni 15 min: scadenze + promemoria pasti) + callable sendTestNotification
   lib/schedule.js           # ora locale / finestre di giorno con Intl (DST-safe), shouldSendNow
   lib/notify.js             # raggruppamento messaggi, invio, token stale (funzioni pure con db/messaging iniettati)
+  lib/meals.js              # promemoria dei pasti in programma e «pianifica la cena» delle 17:00 (puro)
+  test/meals.test.js        # `cd functions && npm test` (node --test): finestre, fusi, cambio d'ora, invio con fake
 docs/
   design-brief.md, ui-implementation-notes.md   # design e note di implementazione
   firestore-rules.md                            # regole Firestore da applicare a mano
@@ -97,7 +101,7 @@ Per testare le feature sulle preview di Vercel senza login Google e senza autori
 - `useAuth` restituisce un utente finto **senza `uid`**: tutti gli hook dati (`useInventory`, `useMealTracker`, `useSavedRecipes`,
   `useSavedShopping`) restano sul ramo localStorage e Firestore non viene mai toccato. `firebase.js` non inizializza Firebase
   (`auth`/`db` sono `null`, `messagingPromise` è `null`), quindi le preview non richiedono variabili `VITE_FIREBASE_*`.
-- `main.jsx` chiama `seedMockData()`: scrive i dati di esempio (scadenze relative a oggi) nelle chiavi localStorage di fallback,
+- `main.jsx` chiama `seedMockData()`: scrive i dati di esempio (anche pasti in programma e `sk-meal-prefs` con i promemoria attivi) (scadenze relative a oggi) nelle chiavi localStorage di fallback,
   una volta per scheda (un ricarico mantiene le modifiche, una scheda nuova riparte da zero). Banner "Modalità demo" con "Ripristina dati"
   (stessa azione del pulsante "Esci" in Tu). Per cambiare i dati di esempio si modifica solo `src/mock/data.js`.
 - Limiti: niente notifiche push né sync tra dispositivi; la chiave Gemini va inserita in Tu (resta in localStorage di quel dominio).
@@ -106,7 +110,8 @@ Per testare le feature sulle preview di Vercel senza login Google e senza autori
 
 Cinque destinazioni: Oggi, Dispensa, Cucina (Ricette AI / Salvate / Pasti), Spesa (Lista / Idee AI), Tu.
 `useNavigation` tiene `{tab, sub, detail}`; le viste di dettaglio (ricetta, notifiche, "In scadenza" su Oggi) aggiungono una voce
-alla history, quindi il tasto indietro del telefono le chiude. A ≥1024px Cucina e Spesa mostrano lo split a
+alla history, quindi il tasto indietro del telefono le chiude. Un dettaglio aperto da un altro (Notifiche › Promemoria dei pasti,
+`{type:'promemoria-pasti'}`) ricorda quello sotto: indietro torna lì (`parentsRef`, svuotato da `go`/`setSubView`). A ≥1024px Cucina e Spesa mostrano lo split a
 due colonne. `BottomNav` e il FAB si nascondono quando `nav.detail` è attivo (`data-detail`).
 
 Transizioni (solo CSS, nessuna libreria): `useNavigation` espone `motion` (`tab` cambiando destinazione, `detail` aprendo/chiudendo un dettaglio,
@@ -154,7 +159,7 @@ Solo tasti singoli, senza Ctrl/⌘/Alt: sono identici su Windows e Mac e non col
 `useKeyboardShortcuts(bindings, enabled)` ascolta `keydown` su `document` e ignora l'evento se si sta
 scrivendo in un campo, se c'è un `[role="dialog"][aria-modal]` aperto o se c'è un modificatore.
 I binding sono in `App.jsx`: `1`–`5` destinazioni (ordine di `TABS`), `N` aggiungi, `S` scontrino, `V` voce
-(entrambi richiedono la chiave Gemini, altrimenti toast), `C` "Cosa cucino", `P` aggiungi un pasto (apre Cucina › Pasti e il form sul giorno selezionato, via `mealRequested` → `MealTrackerTab`), `\` cerca in Dispensa
+(entrambi richiedono la chiave Gemini, altrimenti toast), `C` "Cosa cucino", `P` aggiungi o pianifica un pasto (apre Cucina › Pasti e il form sul giorno selezionato, via `mealRequested` → `MealTrackerTab`; «Pianifica» di una ricetta salvata usa lo stesso canale con `{ recipeId }`), `\` cerca in Dispensa
 (`searchRequested` → `PantryTab`), `?` aiuto, `Esc` chiude il dettaglio. `N`, `S`, `V` e il pulsante «Aggiungi prodotti» della sidebar aggiungono nella sezione che si sta guardando in Dispensa
 (sezione espansa su desktop, segmented su tablet; `PantryTab` la comunica con `onViewChange` → `pantryView` in `App`); altrove, in
 ricerca o con le tre colonne, il default è Frigo. **Se aggiungi o cambi un binding,
@@ -192,7 +197,9 @@ L'unico provider è Google (Firebase Console → Authentication → Sign-in meth
 /users/{uid}/savedRecipes/data         →  { items: SavedRecipe[] }
 /users/{uid}/savedShopping/data        →  { items: ShoppingItem[] }
 /users/{uid}/settings/gemini          →  { apiKey, updatedAt }   (apiKey '' = rimossa)
-/users/{uid}/notificationPrefs/data    →  { enabled, hour, minute, tz, daysBefore: number[], lastRunDay, updatedAt }
+/users/{uid}/notificationPrefs/data    →  { enabled, hour, minute, tz, daysBefore: number[], lastRunDay, updatedAt,
+                                           meals?: { enabled, lead: '30'|'60'|'am'|'at', times: {colazione,pranzo,cena,spuntino: 'HH:MM'}, dinnerNudge } }
+/users/{uid}/mealReminders/data        →  { sent: { "<mealId>@<ms>": ms }, nudgeDay }   (solo Functions: promemoria già inviati)
 /users/{uid}/pushTokens/{deviceId}     →  { token, label, platform, status: 'active'|'stale', lastOkAt, lastSeenAt, staleSince, updatedAt }
 ```
 
@@ -215,6 +222,7 @@ si può cancellare dalla Console.
 | `sk-notif-off-here` | `'1'` se l'utente ha rimosso questo dispositivo: l'auto-riparazione non lo ri-registra |
 | `sk-pantry-sort` | ordinamento scelto in Dispensa (assente = «Da usare prima», il default) |
 | `sk-pantry-collapsed` | chiavi (`<sezione>:<gruppo>`) dei gruppi ripiegati in Dispensa › Per categoria |
+| `sk-meal-prefs` | impostazioni dei promemoria dei pasti senza account (demo); con account stanno in `notificationPrefs/data.meals` |
 | `sk-expiring-banner-dismissed` | data (`YYYY-MM-DD`) in cui è stato chiuso il banner «stanno per scadere» di Spesa; riappare il giorno dopo |
 | `cucina-ai-cache-v1` | cache risposte AI (l'hash include `PROMPT_VERSION`) |
 | `cucina-session-ricette-v1` | sessione chat ricette |
@@ -304,8 +312,20 @@ modifica continua a offrire le 17 categorie). Le intestazioni (`ui/GroupHeader`)
   recipeId: string | null,        // riferimento opzionale a SavedRecipe
   recipeTitle: string | null,     // denormalizzato: sopravvive alla cancellazione
   createdAt: number,
+  // Solo sui pasti in programma (planner); assenti = mangiato (registro):
+  planned?: true,
+  time?: 'HH:MM' | null,          // null = orario della categoria (notificationPrefs.meals.times)
+  reminder?: { lead: '30' | '60' | 'am' | 'at' } | null,  // 'am' = alle 09:00 (1 ora prima se il pasto è entro le 10)
 }
 ```
+
+Pasti come **registro + planner** (`MealTrackerTab`): pallino pieno = mangiato, vuoto = in programma; il pasto in programma è una
+card tratteggiata con orario, «Promemoria alle …» e «Mangiato» (`markEaten` toglie `planned`/`time`/`reminder`); sotto, «In programma»
+nei prossimi 7 giorni. `MealFormModal`: giorno futuro = solo «Pianifica», passato = solo «Registra», oggi segmented «Da mangiare / Già
+mangiato» (default dall'orario della categoria), anteprima «Ti avviso alle …»; in modifica anche il giorno. `MealDetailSheet` dei pasti in
+programma: «Hai X ingredienti su Y» della ricetta collegata (`recipeAvailability`) + «Aggiungi i mancanti alla spesa» (`handleAddMissing`
+di App), interruttore del promemoria, «Segna come mangiato». «Cucino stasera» crea una cena in programma (con promemoria se attivi).
+La regola dell'orario del promemoria è in `utils/meals.js` e, duplicata, in `functions/lib/meals.js`: cambiarle insieme.
 
 I pasti vecchi privi di `category` vengono renderizzati con dot grigio neutro;
 NON viene fatta migrazione automatica per evitare scritture silenziose multi-device.
@@ -421,6 +441,12 @@ accetta solo token `active` dal client (`stale` lo imposta la Function).
   messaggio `sk-open` del service worker (app già aperta).
 - `sendTest()` chiama la callable `sendTestNotification` e mostra l'esito per dispositivo.
 
+**Promemoria dei pasti** — Tu › Notifiche › «Promemoria dei pasti» (`MealReminderSettings`, dati da `useMealPrefs`): interruttore
+generale, anticipo predefinito, orari dei pasti, «Ricordami di pianificare la cena» (17:00 se oggi non c'è una cena). Indipendenti dagli
+avvisi di scadenza: attivarli registra il dispositivo (`enableMeals`) senza toccare `enabled`; l'auto-riparazione del token vale se
+almeno uno dei due è attivo. Push con `tag: sk-pasto-<id>` / `sk-cena` e `data.open = 'pasti'` (apre Cucina › Pasti; `OPEN_TARGETS` in
+`useNotifications.js` e nel template del SW).
+
 **Functions** (`functions/`, Node 22, CommonJS):
 - `sendExpiryNotifications`: schedule `*/15 * * * *`. Per ogni utente con `notificationPrefs.enabled`
   controlla se l'ora locale (`tz`) è nella finestra `[hour:minute, +30 min)` (minuti arrotondati al quarto
@@ -433,6 +459,10 @@ accetta solo token `active` dal client (`stale` lo imposta la Function).
   `status:'stale'` (eliminati dopo 30 giorni).
   La lista utenti arriva da `listDocuments()` + `getAll` delle prefs a blocchi di 100: nessun indice
   necessario, ma costa una lettura per utente a ogni tick (valutare un `collectionGroup` se gli utenti crescono).
+- Nello stesso tick, per chi ha `meals.enabled` (`processMeals` in `lib/meals.js`): legge `meals/data` e `mealReminders/data`, invia i
+  promemoria dei pasti in programma il cui orario (nel `tz` dell'utente) è passato da meno di 20 minuti e non ancora inviati (chiave
+  id + istante, così un pasto spostato viene ricordato di nuovo), più il promemoria della cena; scrive `mealReminders/data`. Testo:
+  «Cena alle 19:30» / nome del pasto. I token si caricano una volta per utente e tick (`userSender`), condivisi con le scadenze.
 - `sendTestNotification` (callable, richiede auth): invia a tutti i dispositivi (anche stale) e restituisce
   `{ results: [{ deviceId, label, status: 'ok'|'stale'|'error' }] }`.
 - `lib/schedule.js` e `lib/notify.js` sono pure (db/messaging iniettati), provabili con `node`.
@@ -449,7 +479,8 @@ fuoco l'app e le manda `sk-open`, oppure la apre su `/?apri=<vista>`.
 2. Piano **Blaze** (Cloud Functions schedulate). 96 esecuzioni al giorno: ricontrollare il free tier.
 3. `cd functions && npm install && cd .. && firebase deploy --only functions` (aggiorna il job esistente
    `sendExpiryNotifications` e la callable `sendTestNotification`).
-4. Poi deploy del client, poi le regole di `docs/firestore-rules.md`. Ordine: **Functions → client → regole**.
+4. Poi deploy del client, poi le regole di `docs/firestore-rules.md`. Ordine: **Functions → client → regole**
+   (per i promemoria dei pasti le regole vanno pubblicate prima del client: vedi `docs/firestore-rules.md`).
 5. iOS: le push web funzionano solo con la PWA aggiunta alla Home (iOS 16.4+).
 
 ## Branch di sviluppo

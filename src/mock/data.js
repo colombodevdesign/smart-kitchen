@@ -16,6 +16,7 @@ const KEYS = {
   meals: 'cucina-pasti-v1',
   recipes: 'cucina-ricette-salvate-v1',
   shopping: 'cucina-spesa-salvata-v1',
+  mealPrefs: 'sk-meal-prefs',
 }
 const SEEDED_FLAG = 'sk-mock-seeded'
 
@@ -93,14 +94,20 @@ function buildInventory() {
   }
 }
 
+// `plan(time, lead)`: a meal still to eat (Pasti as a planner), with its reminder.
 function buildMeals() {
   const meal = (id, text, category, extra = {}) => ({
     id, text, category, recipeId: null, recipeTitle: null, createdAt: Date.now(), ...extra,
   })
+  const plan = (time, lead = null) => ({ planned: true, time, reminder: lead ? { lead } : null })
+  const recipe = (id, title) => ({ recipeId: id, recipeTitle: title })
   return {
     [dateStr(0)]: [
       meal('m-today-1', 'Yogurt greco e miele', 'colazione'),
       meal('m-today-2', 'Pasta al pomodoro', 'pranzo'),
+      meal('m-today-3', 'Pasta con zucchine e mozzarella', 'cena', {
+        ...recipe('mock-r1', 'Pasta con zucchine e mozzarella'), ...plan('19:30', '30'),
+      }),
     ],
     [dateStr(-1)]: [
       meal('m-y-1', 'Risotto alla zucca', 'cena', { recipeId: 'mock-r2', recipeTitle: 'Risotto alla zucca' }),
@@ -111,9 +118,21 @@ function buildMeals() {
       meal('m-2-2', 'Minestrone', 'cena'),
     ],
     [dateStr(1)]: [
-      meal('m-t-1', 'Frittata di zucchine', 'cena'),
+      meal('m-t-1', 'Zuppa di ceci', 'pranzo', plan('12:30', '30')),
+    ],
+    [dateStr(3)]: [
+      meal('m-3-1', 'Frittata di spinaci', 'cena', { ...recipe('mock-r3', 'Frittata di spinaci'), ...plan('20:00', '60') }),
+    ],
+    [dateStr(4)]: [
+      meal('m-4-1', 'Lasagne', 'pranzo', plan('13:00')),
     ],
   }
+}
+
+// Meal reminders on, so the planner shows its reminder times (no push in the demo).
+const MEAL_PREFS = {
+  enabled: true, lead: '30', dinnerNudge: false,
+  times: { colazione: '08:00', pranzo: '12:30', spuntino: '16:30', cena: '19:30' },
 }
 
 const RECIPE_PASTA_ZUCCHINE = `## Pasta con zucchine e mozzarella
@@ -211,6 +230,7 @@ export function seedMockData({ force = false } = {}) {
   write(KEYS.meals, buildMeals())
   write(KEYS.recipes, buildRecipes())
   write(KEYS.shopping, buildShopping())
+  write(KEYS.mealPrefs, MEAL_PREFS)
 }
 
 export function resetMockData() {

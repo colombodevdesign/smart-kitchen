@@ -75,6 +75,24 @@
   border-radius: var(--radius-md);
 }
 .dimmed { opacity: 0.55; }
+
+/* Link to Promemoria dei pasti */
+.linkRow {
+  width: 100%;
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  font: inherit;
+  text-align: left;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+.linkRow:hover { border-color: var(--border-strong); }
 .legend {
   padding: 0;
   font-size: 13px;

@@ -19,6 +19,8 @@ export function useNavigation(initialTab = 'oggi') {
   // Latest values for the callbacks below, so they keep a stable identity.
   const tabRef = useRef(tab)
   const detailRef = useRef(detail)
+  // Details opened from a detail (Notifiche › Promemoria dei pasti): Back goes to the one below.
+  const parentsRef = useRef([])
   tabRef.current = tab
   detailRef.current = detail
 
@@ -33,13 +35,14 @@ export function useNavigation(initialTab = 'oggi') {
   useEffect(() => {
     const onPop = () => {
       if (detailRef.current) animate('detail')
-      setDetail(null)
+      setDetail(parentsRef.current.pop() ?? null)
     }
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
   }, [animate])
 
   const openDetail = useCallback((d) => {
+    parentsRef.current.push(detailRef.current)
     window.history.pushState({ detail: true }, '')
     animate('detail')
     setDetail(d)
@@ -49,7 +52,7 @@ export function useNavigation(initialTab = 'oggi') {
     if (window.history.state?.detail) window.history.back()
     else {
       if (detailRef.current) animate('detail')
-      setDetail(null)
+      setDetail(parentsRef.current.pop() ?? null)
     }
   }, [animate])
 
@@ -58,6 +61,7 @@ export function useNavigation(initialTab = 'oggi') {
     const from = tabRef.current
     if (nextTab !== from) animate('tab')
     else if (detailRef.current) animate('detail')
+    parentsRef.current = []
     setDetail(null)
     setTab(nextTab)
     if (nextSub) setSub(prev => ({ ...prev, [nextTab]: nextSub }))
@@ -65,6 +69,7 @@ export function useNavigation(initialTab = 'oggi') {
 
   const setSubView = useCallback((forTab, value) => {
     if (detailRef.current) animate('detail')
+    parentsRef.current = []
     setDetail(null)
     setSub(prev => ({ ...prev, [forTab]: value }))
   }, [animate])
