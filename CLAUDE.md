@@ -106,7 +106,9 @@ due colonne. `BottomNav` e il FAB si nascondono quando `nav.detail` è attivo (`
 
 Dispensa su mobile/tablet: segmented senza conteggi, righe `ItemRow` (variante `card`, con swipe) dentro **un solo contenitore** arrotondato con filetti
 (`.list` in `PantryTab.module.css`), stato vuoto illustrato (`EmptyState art="shapes"`); la schermata di verifica degli import (`BatchReview`) è una card per
-prodotto con riga originale/checkbox, nome + quantità e segmented con i nomi delle sezioni. Il menu "⋯" di riga è rimasto (il canvas mobile mostra solo lo swipe).
+prodotto con riga originale/checkbox, nome + quantità e segmented con i nomi delle sezioni. Ogni riga (`ItemRow` variante `card`) è **un solo bersaglio** (≥64px) che apre `ItemEditSheet` (nome, quantità, scadenza con scorciatoie
+Nessuna/Domani/+3 giorni/+1 sett., interruttore «Aperto», «Sposta in», Elimina/Salva; stato `editing` in `PantryTab`); i chip «+ quantità» / «+ scadenza» sono solo indicazioni.
+Lo swipe (Aperto/Elimina) resta; il menu «⋯» non c'è più su mobile. `Modal` accetta `autoFocus={false}` (la scheda non apre la tastiera da sola).
 
 Dispensa su desktop (≥1024px, `PantryColumns`): tre colonne (Credenza / Frigo / Freezer) oppure una sezione **espansa**
 (pulsante "Espandi" nell'intestazione, "Riduci" per tornare) con le altre due ripiegate in schede-anteprima a destra (clic = espandi quella).

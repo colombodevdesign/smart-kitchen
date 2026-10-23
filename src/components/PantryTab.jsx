@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { ItemEditSheet } from './ItemEditSheet.jsx'
 import { ItemRow } from './ItemRow.jsx'
 import { PantryColumns } from './PantryColumns.jsx'
 import { Icon } from './ui/Icon.jsx'
@@ -70,6 +71,7 @@ export function PantryTab({
   const [section, setSection] = useState('frigo')
   const [sortMode, setSortMode] = useState('priority')
   const [expanded, setExpanded] = useState(null) // desktop: section shown full-width, or null
+  const [editing, setEditing] = useState(null)   // { section, id }: product open in the edit sheet
   const [search, setSearch] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
   const searchRef = useRef(null)
@@ -86,6 +88,14 @@ export function PantryTab({
         onAction: () => onRestore?.(itemSection, item),
       })
     }
+  }
+
+  const editItem = editing ? inventory[editing.section]?.find(i => i.id === editing.id) : null
+
+  function handleSave({ section: target, ...fields }) {
+    onUpdate(editing.section, editing.id, fields)
+    if (target !== editing.section) onMove(editing.section, editing.id, target)
+    setEditing(null)
   }
 
   // Add from the expanded section's form: same confirmation as the add sheet.
@@ -154,6 +164,7 @@ export function PantryTab({
         searchQuery={query}
         onToggleUrgent={onToggleUrgent}
         onUpdate={onUpdate}
+        onEdit={(s, id) => setEditing({ section: s, id })}
         onRemove={handleRemove}
         onMove={onMove}
       />
@@ -280,6 +291,15 @@ export function PantryTab({
           </div>
         </>
       )}
+
+      <ItemEditSheet
+        open={!!editItem}
+        item={editItem}
+        section={editing?.section}
+        onClose={() => setEditing(null)}
+        onSave={handleSave}
+        onRemove={() => { handleRemove(editing.section, editing.id); setEditing(null) }}
+      />
 
       <button
         type="button"

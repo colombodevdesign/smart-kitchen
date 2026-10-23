@@ -11,6 +11,7 @@
 }
 
 .dialog {
+  outline: none;
   background: var(--surface);
   color: var(--text);
   border-radius: var(--radius-lg);

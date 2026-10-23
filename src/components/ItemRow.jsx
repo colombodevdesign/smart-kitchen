@@ -41,9 +41,9 @@ function applyOffset(card, actions, px, animate) {
   else setTimeout(() => { if (!card.style.transform) actions.style.visibility = '' }, animate && !reduce ? 240 : 0)
 }
 
-// variant: 'card' (default: swipeable card), 'flat' (row inside a desktop section card)
+// variant: 'card' (default: swipeable row, one big tap target that opens the edit sheet), 'flat' (row inside a desktop section card)
 // or 'table' (row of the expanded desktop section, with the actions always visible).
-export function ItemRow({ item, section, showSection, searchQuery, variant = 'card', onToggleUrgent, onUpdate, onRemove, onMove }) {
+export function ItemRow({ item, section, showSection, searchQuery, variant = 'card', onEdit, onToggleUrgent, onUpdate, onRemove, onMove }) {
   const swipe = variant === 'card'
   const table = variant === 'table'
   const [editingField, setEditingField] = useState(null)
@@ -281,7 +281,33 @@ export function ItemRow({ item, section, showSection, searchQuery, variant = 'ca
         onTouchCancel={swipe ? onTouchCancel : undefined}
         onClickCapture={swipe ? onCardClickCapture : undefined}
       >
-        {table ? (
+        {swipe ? (
+          <button
+            type="button"
+            className={styles.rowBtn}
+            onClick={() => onEdit?.(section, item.id)}
+            aria-label={`Modifica ${item.name}`}
+          >
+            <span className={styles.main}>
+              <span className={styles.nameRow}>
+                <span className={styles.nameText}>{searchQuery ? highlight(item.name, searchQuery) : item.name}</span>
+                {urgentBadge && <StatusBadge tone="open">Aperto</StatusBadge>}
+                {showSection && (
+                  <span className={styles.sectionBadge}>
+                    <SectionIcon section={section} size={12} /> {SECTION_LABELS[section]}
+                  </span>
+                )}
+              </span>
+              {item.qty
+                ? <span className={styles.qtyText}>{item.qty}</span>
+                : <span className={`${styles.qtyEmpty} ${styles.hintChip}`}>+ quantità</span>}
+            </span>
+            {badge
+              ? <StatusBadge tone={badge.tone}>{badge.label}</StatusBadge>
+              : <span className={`${styles.expiryAdd} ${styles.hintChip}`}>+ scadenza</span>}
+            <Icon name="chevR" size={20} className={styles.chev} />
+          </button>
+        ) : table ? (
           <div className={styles.tableRow}>
             <div className={styles.tableName}>
               {nameNode}
@@ -356,7 +382,7 @@ export function ItemRow({ item, section, showSection, searchQuery, variant = 'ca
           </div>
         )}
 
-        {expanded && (
+        {expanded && !swipe && (
           <div className={styles.actionStrip}>
             <div className={styles.moveGroup}>
               <span className={styles.stripLabel}>Sposta in</span>

@@ -9,7 +9,8 @@ let prevBodyOverflow = ''
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
-export function Modal({ open, onClose, title, children, footer }) {
+// `autoFocus={false}`: focus the dialog itself instead of its first field (no keyboard popping up on touch).
+export function Modal({ open, onClose, title, children, footer, autoFocus = true }) {
   const id = useId()
   const titleId = `${id}-title`
   const dialogRef = useRef(null)
@@ -45,9 +46,9 @@ export function Modal({ open, onClose, title, children, footer }) {
 
     // Skip auto-focus if an element inside the dialog (e.g. an autoFocus input) already has focus.
     if (!dialogRef.current?.contains(document.activeElement)) {
-      const focusTarget = dialogRef.current?.querySelector(
-        'input, textarea, select, [data-autofocus]'
-      ) || dialogRef.current?.querySelector('button')
+      const focusTarget = autoFocus
+        ? dialogRef.current?.querySelector('input, textarea, select, [data-autofocus]') || dialogRef.current?.querySelector('button')
+        : dialogRef.current
       focusTarget?.focus()
     }
 
@@ -59,7 +60,7 @@ export function Modal({ open, onClose, title, children, footer }) {
       const prev = previouslyFocusedRef.current
       if (prev && typeof prev.focus === 'function') prev.focus()
     }
-  }, [open, id])
+  }, [open, id, autoFocus])
 
   if (!open) return null
 
@@ -70,6 +71,7 @@ export function Modal({ open, onClose, title, children, footer }) {
         className={styles.dialog}
         role="dialog"
         aria-modal="true"
+        tabIndex={-1}
         aria-labelledby={title ? titleId : undefined}
         onClick={e => e.stopPropagation()}
       >
