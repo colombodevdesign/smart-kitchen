@@ -21,7 +21,7 @@ export const SHORTCUT_GROUPS = [
     title: 'Generale',
     items: [
       { keys: ['?'], label: 'Mostra le scorciatoie' },
-      { keys: ['Esc'], label: 'Chiudi finestra, ricerca o dettaglio' },
+      { keys: ['Esc'], label: 'Chiudi finestra, ricerca o dettaglio; riduci la sezione espansa' },
     ],
   },
 ]

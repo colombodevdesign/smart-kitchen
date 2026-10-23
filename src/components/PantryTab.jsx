@@ -176,6 +176,21 @@ export function PantryTab({
   const isDesktop = useMediaQuery('(min-width: 1024px)')
   const showColumns = isDesktop && !searchActive
 
+  // Esc collapses the expanded section (same as "Riduci"). Skipped while typing, with a dialog open,
+  // or mid-drag (usePantryDrag swallows that Esc in the capture phase).
+  const collapsible = showColumns && expanded !== null
+  useEffect(() => {
+    if (!collapsible) return
+    const onKey = (e) => {
+      if (e.key !== 'Escape' || e.isComposing || e.ctrlKey || e.metaKey || e.altKey) return
+      if (e.target instanceof Element && e.target.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"]')) return
+      if (document.querySelector('[role="dialog"][aria-modal="true"]')) return
+      setExpanded(null)
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [collapsible])
+
   // Tell the app which section is on screen, so the add shortcuts and the sidebar button target it.
   // (Not while searching: results span every section.)
   const viewSection = searchActive ? null : showColumns ? expanded : section
@@ -227,10 +242,16 @@ export function PantryTab({
             <Icon name="search" size={20} />
           </button>
           <div
-            className={`${styles.iconBtn} ${styles.sortWrap} ${sortMode !== DEFAULT_SORT ? styles.sortActive : ''}`}
+            className={[
+              styles.iconBtn,
+              styles.sortWrap,
+              sortMode !== DEFAULT_SORT && styles.sortActive,
+              isDesktop && styles.sortLabeled,
+            ].filter(Boolean).join(' ')}
             title={SORT_LABELS[sortMode]}
           >
             <Icon name="sort" size={20} />
+            {isDesktop && <span className={styles.sortLabel}>{SORT_LABELS[sortMode]}</span>}
             <select
               className={styles.sortOverlay}
               value={sortMode}
