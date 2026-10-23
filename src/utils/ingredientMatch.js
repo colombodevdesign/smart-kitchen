@@ -2,6 +2,7 @@
 // helpers, so it can be exercised with plain node.
 import { SOON_DAYS, expiryStatus } from './date.js'
 import { USE_SOON_DAYS, estimateRemaining, isFood } from './pantry.js'
+import { STAPLES } from '../data/staples.js'
 
 const STOPWORDS = new Set([
   'di', 'del', 'della', 'dello', 'dei', 'degli', 'delle', 'al', 'alla', 'allo', 'ai', 'alle',
@@ -43,6 +44,8 @@ export function stems(name) {
   return new Set(stemList(name))
 }
 
+const STAPLE_HEADS = new Set(STAPLES.map(s => stemList(s)[0]))
+
 function isSubset(small, big) {
   if (small.size === 0) return false
   for (const t of small) if (!big.has(t)) return false
@@ -51,7 +54,9 @@ function isSubset(small, big) {
 
 // ingredients: [{ name, qty, qb? }]; inventory: { credenza: [], frigo: [], freezer: [] }
 // Returns { rows: [{ ingredient, state, item, section }], have, total } where state is
-// 'qb' | 'have' | 'soon' | 'expired' | 'open' | 'missing'.
+// 'staple' | 'qb' | 'have' | 'soon' | 'expired' | 'open' | 'missing'.
+// Staples (data/staples.js: salt, pepper, oil, water...) are always assumed at home and, like 'qb',
+// are left out of the have/total count.
 // Matching is approximate (name stems, no quantities): "latte" also matches "latte di soia".
 // A product matches by its own name or by the generic name from the AI analysis
 // (item.ai.name: "fagioli" for "Fagioli alla Bud Spencer"); non-food is skipped.
@@ -69,10 +74,13 @@ export function matchIngredients(ingredients, inventory, now = Date.now()) {
   }
 
   const rows = (ingredients ?? []).map(ingredient => {
+    const wantList = stemList(ingredient.name)
+    if (STAPLE_HEADS.has(wantList[0])) {
+      return { ingredient, state: 'staple', item: null, section: null }
+    }
     if (ingredient.qb || QB_RE.test(ingredient.qty ?? '')) {
       return { ingredient, state: 'qb', item: null, section: null }
     }
-    const wantList = stemList(ingredient.name)
     const want = new Set(wantList)
     // Same head noun AND every word of the ingredient present in the product:
     // "pasta" matches "pasta penne", but "pomodori" does not match
@@ -90,7 +98,7 @@ export function matchIngredients(ingredients, inventory, now = Date.now()) {
     return { ingredient, state, item: found.item, section: found.section }
   })
 
-  const counted = rows.filter(r => r.state !== 'qb')
+  const counted = rows.filter(r => r.state !== 'qb' && r.state !== 'staple')
   const have = counted.filter(r => r.state !== 'missing').length
   return { rows, have, total: counted.length }
 }
