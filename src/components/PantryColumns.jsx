@@ -2,6 +2,7 @@ import { Fragment, useMemo } from 'react'
 import { AnimatePresence, LazyMotion, MotionConfig, m } from 'motion/react'
 import { ItemRow } from './ItemRow.jsx'
 import { PantryComposer } from './PantryComposer.jsx'
+import { GroupHeader } from './ui/GroupHeader.jsx'
 import { Icon, SectionIcon } from './ui/Icon.jsx'
 import { StatusBadge } from './ui/StatusBadge.jsx'
 import { SECTIONS, SECTION_LABELS } from '../data/initialInventory.js'
@@ -63,7 +64,7 @@ function Preview({ pairs }) {
 const RADIUS = { column: 24, focus: 28, rail: 24 }
 const ICON_SIZE = { column: 22, focus: 26, rail: 20 }
 
-function SectionCard({ section, mode, pairs, groupPairs, soonCount, onExpand, onCollapse, rowProps, composerProps }) {
+function SectionCard({ section, mode, pairs, groupPairs, collapsedGroups, onToggleGroup, soonCount, onExpand, onCollapse, rowProps, composerProps }) {
   const label = SECTION_LABELS[section]
   const countText = pairs.length === 1 ? '1 prodotto' : `${pairs.length} prodotti`
   const placement = mode === 'focus'
@@ -132,14 +133,21 @@ function SectionCard({ section, mode, pairs, groupPairs, soonCount, onExpand, on
                 : (
                   <div className={styles.list}>
                     {groupPairs
-                      ? groupPairs(pairs).map(g => (
-                        <Fragment key={g.id || 'unsorted'}>
-                          <h3 className={styles.groupTitle}>
-                            {g.label} <span className={styles.groupCount}>{g.pairs.length}</span>
-                          </h3>
-                          <Rows pairs={g.pairs} rowProps={rowProps} variant={mode === 'focus' ? 'table' : 'flat'} />
-                        </Fragment>
-                      ))
+                      ? groupPairs(pairs, section).map(g => {
+                        const open = !collapsedGroups.has(g.key)
+                        return (
+                          <Fragment key={g.key}>
+                            <GroupHeader
+                              label={g.label}
+                              pairs={g.pairs}
+                              urgent={g.urgent}
+                              open={open}
+                              onToggle={() => onToggleGroup(g.key)}
+                            />
+                            {open && <Rows pairs={g.pairs} rowProps={rowProps} variant={mode === 'focus' ? 'table' : 'flat'} />}
+                          </Fragment>
+                        )
+                      })
                       : <Rows pairs={pairs} rowProps={rowProps} variant={mode === 'focus' ? 'table' : 'flat'} />}
                   </div>
                 )}
@@ -160,8 +168,9 @@ function SectionCard({ section, mode, pairs, groupPairs, soonCount, onExpand, on
   )
 }
 
-// groupPairs: optional (pairs) => [{ id, label, pairs }], a heading per group ("Per categoria").
-export function PantryColumns({ inventory, getPairs, groupPairs, expanded, onExpand, rowProps, onAdd, onOpenAdd, onGoApiKey }) {
+// groupPairs: optional (pairs, section) => [{ key, label, urgent?, pairs }], a foldable heading per group
+// ("Per categoria"); collapsedGroups (Set of keys) and onToggleGroup drive the folding.
+export function PantryColumns({ inventory, getPairs, groupPairs, collapsedGroups, onToggleGroup, expanded, onExpand, rowProps, onAdd, onOpenAdd, onGoApiKey }) {
   const soon = useMemo(() => Object.fromEntries(SECTIONS.map(s => {
     const only = { credenza: [], frigo: [], freezer: [], [s]: inventory[s] }
     return [s, getUseSoonItems(only).length]
@@ -180,6 +189,8 @@ export function PantryColumns({ inventory, getPairs, groupPairs, expanded, onExp
               mode={!expanded ? 'column' : expanded === s ? 'focus' : 'rail'}
               pairs={getPairs(s)}
               groupPairs={groupPairs}
+              collapsedGroups={collapsedGroups}
+              onToggleGroup={onToggleGroup}
               soonCount={soon[s]}
               onExpand={onExpand}
               onCollapse={() => onExpand(null)}

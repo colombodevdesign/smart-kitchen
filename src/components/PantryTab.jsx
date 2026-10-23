@@ -2,15 +2,16 @@ import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { ItemEditSheet } from './ItemEditSheet.jsx'
 import { ItemRow } from './ItemRow.jsx'
 import { PantryColumns } from './PantryColumns.jsx'
+import { GroupHeader } from './ui/GroupHeader.jsx'
 import { Icon } from './ui/Icon.jsx'
 import { PageHeader } from './ui/PageHeader.jsx'
 import { Segmented } from './ui/Segmented.jsx'
 import { EmptyState } from './ui/EmptyState.jsx'
 import { useToast } from './ui/Toast.jsx'
 import { SECTIONS, SECTION_LABELS } from '../data/initialInventory.js'
-import { FOOD_CATEGORIES } from '../data/foodCategories.js'
+import { useCollapsedGroups } from '../hooks/useCollapsedGroups.js'
 import { useMediaQuery } from '../hooks/useMediaQuery.js'
-import { comparePriority, getUseSoonItems, priorityInfo } from '../utils/pantry.js'
+import { comparePriority, getUseSoonItems, groupByCategory, priorityInfo } from '../utils/pantry.js'
 import { hasApiKey } from '../utils/apiKey.js'
 import styles from './PantryTab.module.css'
 
@@ -94,17 +95,6 @@ function sortPairs(pairs, sortMode) {
   }
 }
 
-// "Per categoria": groups in FOOD_CATEGORIES order, products the AI has not
-// analysed yet at the end. Each group keeps the priority order.
-const UNSORTED = { id: '', label: 'Da analizzare' }
-
-function groupByCategory(pairs) {
-  const groups = [...FOOD_CATEGORIES, UNSORTED].map(c => ({ ...c, pairs: [] }))
-  const byId = Object.fromEntries(groups.map(g => [g.id, g]))
-  for (const p of pairs) (byId[p.item.ai?.category] ?? byId['']).pairs.push(p)
-  return groups.filter(g => g.pairs.length > 0)
-}
-
 export function PantryTab({
   inventory, onAdd, onToggleUrgent, onUpdate, onRemove, onRestore, onMove, onSetCategory, onOpenAdd, onGoApiKey,
   searchRequested, onSearchHandled, onViewChange,
@@ -116,6 +106,7 @@ export function PantryTab({
   const [search, setSearch] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
   const searchRef = useRef(null)
+  const { collapsed, toggle: toggleGroup } = useCollapsedGroups()
   const toast = useToast()
 
   // Deleting from the list keeps the product around for a few seconds so it can be undone.
@@ -277,6 +268,8 @@ export function PantryTab({
           onExpand={setExpanded}
           rowProps={{ onToggleUrgent, onUpdate, onRemove: handleRemove, onMove }}
           groupPairs={sortMode === 'category' ? groupByCategory : null}
+          collapsedGroups={collapsed}
+          onToggleGroup={toggleGroup}
           onAdd={handleAdd}
           onOpenAdd={onOpenAdd}
           onGoApiKey={onGoApiKey}
@@ -332,14 +325,21 @@ export function PantryTab({
           <div className={styles.list}>
             {searchActive || sortMode !== 'category'
               ? renderRows(displayItems, { showSection: searchActive, query: searchActive ? searchQuery : '' })
-              : groupByCategory(displayItems).map(g => (
-                <Fragment key={g.id || 'unsorted'}>
-                  <h3 className={styles.groupTitle}>
-                    {g.label} <span className={styles.groupCount}>{g.pairs.length}</span>
-                  </h3>
-                  {renderRows(g.pairs, { showSection: false, query: '' })}
-                </Fragment>
-              ))}
+              : groupByCategory(displayItems, section).map(g => {
+                const open = !collapsed.has(g.key)
+                return (
+                  <Fragment key={g.key}>
+                    <GroupHeader
+                      label={g.label}
+                      pairs={g.pairs}
+                      urgent={g.urgent}
+                      open={open}
+                      onToggle={() => toggleGroup(g.key)}
+                    />
+                    {open && renderRows(g.pairs, { showSection: false, query: '' })}
+                  </Fragment>
+                )
+              })}
           </div>
         </>
       )}
