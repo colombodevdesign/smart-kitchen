@@ -41,7 +41,11 @@ function applyOffset(card, actions, px, animate) {
   else setTimeout(() => { if (!card.style.transform) actions.style.visibility = '' }, animate && !reduce ? 240 : 0)
 }
 
-export function ItemRow({ item, section, showSection, searchQuery, onToggleUrgent, onUpdate, onRemove, onMove }) {
+// variant: 'card' (default: swipeable row, one big tap target that opens the edit sheet), 'flat' (row inside a desktop section card)
+// or 'table' (row of the expanded desktop section, with the actions always visible).
+export function ItemRow({ item, section, showSection, searchQuery, variant = 'card', onEdit, onToggleUrgent, onUpdate, onRemove, onMove }) {
+  const swipe = variant === 'card'
+  const table = variant === 'table'
   const [editingField, setEditingField] = useState(null)
   const [draft, setDraft] = useState('')
   const [expanded, setExpanded] = useState(false)
@@ -170,132 +174,215 @@ export function ItemRow({ item, section, showSection, searchQuery, onToggleUrgen
   // ────────────────────────────────────────────────────────────────
 
   const badge = itemBadge(item)
+  const urgentBadge = item.urgent && badge?.tone !== 'open'
+
+  const nameNode = editingField === 'name' ? (
+    <input
+      ref={inputRef}
+      className={styles.nameInput}
+      value={draft}
+      onChange={e => setDraft(e.target.value)}
+      onKeyDown={onKeyDown}
+      onBlur={() => setTimeout(cancel, 120)}
+    />
+  ) : (
+    <button type="button" className={styles.name} onClick={() => startEdit('name')}>
+      {searchQuery ? highlight(item.name, searchQuery) : item.name}
+    </button>
+  )
+
+  const qtyNode = editingField === 'qty' ? (
+    <input
+      ref={inputRef}
+      className={styles.qtyInput}
+      value={draft}
+      placeholder="es. 300g"
+      onChange={e => setDraft(e.target.value)}
+      onKeyDown={onKeyDown}
+      onBlur={() => setTimeout(confirm, 120)}
+    />
+  ) : item.qty ? (
+    <button type="button" className={styles.qty} onClick={() => startEdit('qty')}>{item.qty}</button>
+  ) : (
+    <button type="button" className={styles.qtyEmpty} onClick={() => startEdit('qty')}>+ quantità</button>
+  )
+
+  const expiryNode = editingField === 'expiresAt' ? (
+    <input
+      ref={inputRef}
+      type="date"
+      className={styles.expiryInput}
+      value={draft}
+      aria-label="Data di scadenza"
+      onChange={e => {
+        const val = e.target.value
+        setDraft(val)
+        const ts = val ? new Date(val + 'T23:59:59').getTime() : null
+        onUpdate(section, item.id, { expiresAt: ts })
+      }}
+      onKeyDown={e => { if (e.key === 'Escape') cancel() }}
+      onBlur={() => setTimeout(() => setEditingField(null), 120)}
+    />
+  ) : badge ? (
+    <button
+      type="button"
+      className={styles.badgeBtn}
+      onClick={() => startEdit('expiresAt')}
+      aria-label={`${badge.label}: modifica scadenza`}
+    >
+      <StatusBadge tone={badge.tone}>{badge.label}</StatusBadge>
+    </button>
+  ) : (
+    <button type="button" className={styles.expiryAdd} onClick={() => startEdit('expiresAt')}>+ scadenza</button>
+  )
+
+  const confirmBtn = (
+    <button type="button" className={`${styles.iconBtn} ${styles.confirm}`} onClick={confirm} aria-label="Salva">
+      <Icon name="check" size={18} strokeWidth={2.2} />
+    </button>
+  )
+
+  const flagLabel = item.urgent ? 'Rimuovi flag aperto' : 'Segna come aperto'
 
   return (
-    <div className={styles.swipeWrapper}>
+    <div className={`${styles.swipeWrapper} ${swipe ? '' : styles.plainWrapper}`}>
       {/* Actions revealed by swiping the card to the left */}
-      <div ref={actionsRef} className={styles.swipeActions} aria-hidden={!revealed}>
-        <button
-          type="button"
-          className={`${styles.swipeBtn} ${styles.swipeOpen}`}
-          tabIndex={revealed ? 0 : -1}
-          onClick={() => { onToggleUrgent(section, item.id); closer.current() }}
-          aria-label={item.urgent ? 'Rimuovi flag aperto' : 'Segna come aperto'}
-        >
-          <Icon name="flag" size={22} />
-          <span>{item.urgent ? 'Rimuovi' : 'Aperto'}</span>
-        </button>
-        <button
-          type="button"
-          className={`${styles.swipeBtn} ${styles.swipeDelete}`}
-          tabIndex={revealed ? 0 : -1}
-          onClick={() => onRemove(section, item.id)}
-          aria-label="Elimina prodotto"
-        >
-          <Icon name="trash" size={22} />
-          <span>Elimina</span>
-        </button>
-      </div>
+      {swipe && (
+        <div ref={actionsRef} className={styles.swipeActions} aria-hidden={!revealed}>
+          <button
+            type="button"
+            className={`${styles.swipeBtn} ${styles.swipeOpen}`}
+            tabIndex={revealed ? 0 : -1}
+            onClick={() => { onToggleUrgent(section, item.id); closer.current() }}
+            aria-label={flagLabel}
+          >
+            <Icon name="flag" size={22} />
+            <span>{item.urgent ? 'Rimuovi' : 'Aperto'}</span>
+          </button>
+          <button
+            type="button"
+            className={`${styles.swipeBtn} ${styles.swipeDelete}`}
+            tabIndex={revealed ? 0 : -1}
+            onClick={() => onRemove(section, item.id)}
+            aria-label="Elimina prodotto"
+          >
+            <Icon name="trash" size={22} />
+            <span>Elimina</span>
+          </button>
+        </div>
+      )}
 
       <div
         ref={cardRef}
-        className={`${styles.card} ${editingField ? styles.editing : ''} ${expanded ? styles.cardExpanded : ''}`}
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
-        onTouchCancel={onTouchCancel}
-        onClickCapture={onCardClickCapture}
+        className={`${styles.card} ${swipe ? '' : styles.cardFlat} ${editingField ? styles.editing : ''} ${expanded ? styles.cardExpanded : ''}`}
+        onTouchStart={swipe ? onTouchStart : undefined}
+        onTouchMove={swipe ? onTouchMove : undefined}
+        onTouchEnd={swipe ? onTouchEnd : undefined}
+        onTouchCancel={swipe ? onTouchCancel : undefined}
+        onClickCapture={swipe ? onCardClickCapture : undefined}
       >
-        <div className={styles.row}>
-          <div className={styles.main}>
-            <div className={styles.nameRow}>
-              {editingField === 'name' ? (
-                <input
-                  ref={inputRef}
-                  className={styles.nameInput}
-                  value={draft}
-                  onChange={e => setDraft(e.target.value)}
-                  onKeyDown={onKeyDown}
-                  onBlur={() => setTimeout(cancel, 120)}
-                />
-              ) : (
-                <button type="button" className={styles.name} onClick={() => startEdit('name')}>
-                  {searchQuery ? highlight(item.name, searchQuery) : item.name}
-                </button>
-              )}
-              {item.urgent && badge?.tone !== 'open' && <StatusBadge tone="open">Aperto</StatusBadge>}
-              {showSection && (
-                <span className={styles.sectionBadge}>
-                  <SectionIcon section={section} size={12} /> {SECTION_LABELS[section]}
-                </span>
-              )}
+        {swipe ? (
+          <button
+            type="button"
+            className={styles.rowBtn}
+            onClick={() => onEdit?.(section, item.id)}
+            aria-label={`Modifica ${item.name}`}
+          >
+            <span className={styles.main}>
+              <span className={styles.nameRow}>
+                <span className={styles.nameText}>{searchQuery ? highlight(item.name, searchQuery) : item.name}</span>
+                {urgentBadge && <StatusBadge tone="open">Aperto</StatusBadge>}
+                {showSection && (
+                  <span className={styles.sectionBadge}>
+                    <SectionIcon section={section} size={12} /> {SECTION_LABELS[section]}
+                  </span>
+                )}
+              </span>
+              {item.qty
+                ? <span className={styles.qtyText}>{item.qty}</span>
+                : <span className={`${styles.qtyEmpty} ${styles.hintChip}`}>+ quantità</span>}
+            </span>
+            {badge
+              ? <StatusBadge tone={badge.tone}>{badge.label}</StatusBadge>
+              : <span className={`${styles.expiryAdd} ${styles.hintChip}`}>+ scadenza</span>}
+            <Icon name="chevR" size={20} className={styles.chev} />
+          </button>
+        ) : table ? (
+          <div className={styles.tableRow}>
+            <div className={styles.tableName}>
+              {nameNode}
+              {urgentBadge && <StatusBadge tone="open">Aperto</StatusBadge>}
             </div>
-            <div className={styles.meta}>
-              {editingField === 'qty' ? (
-                <input
-                  ref={inputRef}
-                  className={styles.qtyInput}
-                  value={draft}
-                  placeholder="es. 300g"
-                  onChange={e => setDraft(e.target.value)}
-                  onKeyDown={onKeyDown}
-                  onBlur={() => setTimeout(confirm, 120)}
-                />
-              ) : item.qty ? (
-                <button type="button" className={styles.qty} onClick={() => startEdit('qty')}>{item.qty}</button>
-              ) : (
-                <button type="button" className={styles.qtyEmpty} onClick={() => startEdit('qty')}>+ quantità</button>
+            <div className={styles.tableCell}>{qtyNode}</div>
+            <div className={styles.tableCell}>{expiryNode}</div>
+            <div className={styles.tableActions}>
+              {editingField ? confirmBtn : (
+                <>
+                  <button
+                    type="button"
+                    className={`${styles.tableBtn} ${item.urgent ? styles.tableBtnOn : ''}`}
+                    onClick={() => onToggleUrgent(section, item.id)}
+                    aria-label={`${flagLabel}: ${item.name}`}
+                    aria-pressed={!!item.urgent}
+                    title={flagLabel}
+                  >
+                    <Icon name="flag" size={20} />
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.tableBtn} ${expanded ? styles.tableBtnOn : ''}`}
+                    onClick={() => setExpanded(v => !v)}
+                    aria-label={`Sposta in un'altra sezione: ${item.name}`}
+                    aria-expanded={expanded}
+                    title="Sposta in un'altra sezione"
+                  >
+                    <Icon name="swap" size={20} />
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.tableBtn} ${styles.tableDelete}`}
+                    onClick={() => onRemove(section, item.id)}
+                    aria-label={`Elimina: ${item.name}`}
+                    title="Elimina"
+                  >
+                    <Icon name="trash" size={20} />
+                  </button>
+                </>
               )}
             </div>
           </div>
+        ) : (
+          <div className={styles.row}>
+            <div className={styles.main}>
+              <div className={styles.nameRow}>
+                {nameNode}
+                {urgentBadge && <StatusBadge tone="open">Aperto</StatusBadge>}
+                {showSection && (
+                  <span className={styles.sectionBadge}>
+                    <SectionIcon section={section} size={12} /> {SECTION_LABELS[section]}
+                  </span>
+                )}
+              </div>
+              <div className={styles.meta}>{qtyNode}</div>
+            </div>
 
-          {editingField === 'expiresAt' ? (
-            <input
-              ref={inputRef}
-              type="date"
-              className={styles.expiryInput}
-              value={draft}
-              aria-label="Data di scadenza"
-              onChange={e => {
-                const val = e.target.value
-                setDraft(val)
-                const ts = val ? new Date(val + 'T23:59:59').getTime() : null
-                onUpdate(section, item.id, { expiresAt: ts })
-              }}
-              onKeyDown={e => { if (e.key === 'Escape') cancel() }}
-              onBlur={() => setTimeout(() => setEditingField(null), 120)}
-            />
-          ) : badge ? (
-            <button
-              type="button"
-              className={styles.badgeBtn}
-              onClick={() => startEdit('expiresAt')}
-              aria-label={`${badge.label}: modifica scadenza`}
-            >
-              <StatusBadge tone={badge.tone}>{badge.label}</StatusBadge>
-            </button>
-          ) : (
-            <button type="button" className={styles.expiryAdd} onClick={() => startEdit('expiresAt')}>+ scadenza</button>
-          )}
+            {expiryNode}
 
-          {editingField ? (
-            <button type="button" className={`${styles.iconBtn} ${styles.confirm}`} onClick={confirm} aria-label="Salva">
-              <Icon name="check" size={18} strokeWidth={2.2} />
-            </button>
-          ) : (
-            <button
-              type="button"
-              className={`${styles.moreBtn} ${expanded ? styles.moreBtnActive : ''}`}
-              onClick={() => setExpanded(v => !v)}
-              aria-label={expanded ? 'Chiudi azioni' : 'Azioni'}
-              aria-expanded={expanded}
-            >
-              <Icon name="more" size={20} fill="currentColor" strokeWidth={0} />
-            </button>
-          )}
-        </div>
+            {editingField ? confirmBtn : (
+              <button
+                type="button"
+                className={`${styles.moreBtn} ${expanded ? styles.moreBtnActive : ''}`}
+                onClick={() => setExpanded(v => !v)}
+                aria-label={expanded ? 'Chiudi azioni' : 'Azioni'}
+                aria-expanded={expanded}
+              >
+                <Icon name="more" size={20} fill="currentColor" strokeWidth={0} />
+              </button>
+            )}
+          </div>
+        )}
 
-        {expanded && (
+        {expanded && !swipe && (
           <div className={styles.actionStrip}>
             <div className={styles.moveGroup}>
               <span className={styles.stripLabel}>Sposta in</span>
@@ -310,19 +397,23 @@ export function ItemRow({ item, section, showSection, searchQuery, onToggleUrgen
                 </button>
               ))}
             </div>
-            <button
-              type="button"
-              className={`${styles.openedBtn} ${item.urgent ? styles.openedBtnOn : ''}`}
-              onClick={() => onToggleUrgent(section, item.id)}
-              aria-label={item.urgent ? 'Rimuovi flag aperto' : 'Segna come aperto'}
-              aria-pressed={!!item.urgent}
-              title={item.urgent ? 'Rimuovi flag aperto' : 'Segna come aperto'}
-            >
-              <Icon name="flag" size={18} />
-            </button>
-            <button type="button" className={styles.deleteBtn} onClick={() => onRemove(section, item.id)}>
-              Elimina
-            </button>
+            {!table && (
+              <>
+                <button
+                  type="button"
+                  className={`${styles.openedBtn} ${item.urgent ? styles.openedBtnOn : ''}`}
+                  onClick={() => onToggleUrgent(section, item.id)}
+                  aria-label={flagLabel}
+                  aria-pressed={!!item.urgent}
+                  title={flagLabel}
+                >
+                  <Icon name="flag" size={18} />
+                </button>
+                <button type="button" className={styles.deleteBtn} onClick={() => onRemove(section, item.id)}>
+                  Elimina
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>

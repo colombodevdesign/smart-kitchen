@@ -1,0 +1,98 @@
+.composer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.hint { font-size: 13px; color: var(--text-muted); }
+
+.fields { display: flex; gap: 12px; align-items: flex-end; }
+
+.field {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.fieldQty  { flex: 0 0 112px; }
+.fieldDate { flex: 0 0 168px; }
+
+.input {
+  height: 48px;
+  padding: 0 14px;
+  font-size: 16px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  outline: none;
+  min-width: 0;
+}
+.input:focus { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+
+.actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.or { font-size: 13px; color: var(--text-muted); }
+.spacer { flex: 1; }
+
+.import,
+.submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: var(--tap);
+  padding: 0 16px;
+  font-size: 15px;
+  font-weight: 700;
+  border: none;
+  border-radius: var(--radius-sm);
+}
+.import:disabled,
+.submit:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.receipt { color: var(--on-hero); background: var(--hero); }
+.voice   { color: var(--highlight-ink); background: var(--highlight); }
+
+.submit { min-height: 48px; padding: 0 22px; font-size: 16px; color: var(--on-accent); background: var(--accent); }
+.submit:hover:not(:disabled) { background: var(--accent-hover); }
+
+.keyHint {
+  align-self: flex-start;
+  min-height: var(--tap);
+  padding: 0;
+  font-size: 14px;
+  color: var(--accent);
+  background: transparent;
+  border: none;
+  text-decoration: underline;
+}
