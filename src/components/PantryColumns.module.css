@@ -106,6 +106,9 @@
 .list { display: flex; flex-direction: column; }
 .list > .rowWrap + .rowWrap { border-top: 1px solid var(--surface-hover); }
 .rowWrap { display: flow-root; }
+/* Rows inside a foldable group (ui/Collapsible). */
+.group { display: flex; flex-direction: column; }
+.group > .rowWrap + .rowWrap { border-top: 1px solid var(--surface-hover); }
 
 /* Column labels of the expanded section's table. */
 .tableHead {

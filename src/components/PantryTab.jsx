@@ -2,6 +2,7 @@ import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { ItemEditSheet } from './ItemEditSheet.jsx'
 import { ItemRow } from './ItemRow.jsx'
 import { PantryColumns } from './PantryColumns.jsx'
+import { Collapsible } from './ui/Collapsible.jsx'
 import { GroupHeader } from './ui/GroupHeader.jsx'
 import { Icon } from './ui/Icon.jsx'
 import { PageHeader } from './ui/PageHeader.jsx'
@@ -336,7 +337,9 @@ export function PantryTab({
                       open={open}
                       onToggle={() => toggleGroup(g.key)}
                     />
-                    {open && renderRows(g.pairs, { showSection: false, query: '' })}
+                    <Collapsible open={open} className={styles.group}>
+                      {renderRows(g.pairs, { showSection: false, query: '' })}
+                    </Collapsible>
                   </Fragment>
                 )
               })}

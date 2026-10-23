@@ -2,6 +2,7 @@ import { Fragment, useMemo } from 'react'
 import { AnimatePresence, LazyMotion, MotionConfig, m } from 'motion/react'
 import { ItemRow } from './ItemRow.jsx'
 import { PantryComposer } from './PantryComposer.jsx'
+import { Collapsible } from './ui/Collapsible.jsx'
 import { GroupHeader } from './ui/GroupHeader.jsx'
 import { Icon, SectionIcon } from './ui/Icon.jsx'
 import { StatusBadge } from './ui/StatusBadge.jsx'
@@ -145,7 +146,9 @@ function SectionCard({ section, mode, pairs, groupPairs, collapsedGroups, onTogg
                               open={open}
                               onToggle={() => onToggleGroup(g.key)}
                             />
-                            {open && <Rows pairs={g.pairs} rowProps={rowProps} variant={mode === 'focus' ? 'table' : 'flat'} />}
+                            <Collapsible open={open} className={styles.group}>
+                              <Rows pairs={g.pairs} rowProps={rowProps} variant={mode === 'focus' ? 'table' : 'flat'} />
+                            </Collapsible>
                           </Fragment>
                         )
                       })

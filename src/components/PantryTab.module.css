@@ -127,7 +127,9 @@
   border-radius: var(--radius-lg);
   overflow: hidden;
 }
-.list > * + * { border-top: 1px solid var(--surface-hover); }
+.list > * + *:not([data-collapsible]) { border-top: 1px solid var(--surface-hover); }
+/* Rows of a foldable group (ui/Collapsible): every one has its hairline (the first separates it from the heading). */
+.group > * { border-top: 1px solid var(--surface-hover); }
 
 /* Desktop, search results across sections: a comfortable reading width. */
 @media (min-width: 1024px) {
