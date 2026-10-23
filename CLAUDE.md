@@ -29,9 +29,11 @@ public/
   manifest.json, icon-*.png # PWA: monogramma SK con forchetta/coltello, S crema + K giallo su verde #1E5A43
 src/
   main.jsx                  # entry: ToastProvider + watchSystemTheme
+  mock/                     # modalità demo: mode.js (flag di build), data.js (utente finto, dati di esempio, seed/reset)
   firebase.js               # app, auth, db, messagingPromise, callFunction (import dinamico di firebase/functions)
   App.jsx                   # auth guard + orchestrazione stato + 5 destinazioni + AddFlow
   nav/tabs.js               # TABS (oggi, dispensa, cucina, spesa, tu) e sotto-sezioni
+  nav/shortcuts.js          # SHORTCUT_GROUPS: elenco mostrato in ShortcutsHelp (i binding veri stanno in App.jsx)
   ai/
     model.js                # MODEL_NAME (Lite) + MODEL_PRO e PRO_CONFIG (unico punto dove cambiare modelli)
     prompts.js              # prompt ricette/spesa/stagione, PROMPT_VERSION (entra nell'hash della cache)
@@ -51,13 +53,14 @@ src/
     useReceiptScan.js       # scontrino → item dispensa
     useBatchCandidates.js   # lista candidati editabile condivisa dai due import
     useNotifications.js     # preferenze + dispositivi push, enable/disable, notifica di prova; useForegroundPush
+    useKeyboardShortcuts.js # scorciatoie a tasto singolo (document keydown), vedi "Scorciatoie da tastiera"
     useOnline.js            # navigator.onLine + eventi
     useMediaQuery.js
   components/
     ui/                     # Icon, Segmented, StatusBadge, Chip, EmptyState, Toast(+useToast), PageHeader, OfflineBanner, RecipeCard
     TodayTab, ExpiringList, SeasonalRecipesModal, PantryTab, PantryColumns, PantryComposer, ItemRow, CucinaTab, AITab, SavedRecipesTab, RecipeDetail, MealTrackerTab,
     SpesaTab, SavedShoppingTab, PantrySuggestionsModal, TuTab, ProfileTab, NotificationSettings,
-    AddFlow, AddSheet, VoiceBatchModal, ReceiptScanModal, BatchReview,
+    AddFlow, AddSheet, VoiceBatchModal, ReceiptScanModal, BatchReview, ShortcutsHelp,
     MealFormModal, MealDetailSheet, Modal, BottomNav, Sidebar, LoginScreen
   data/
     initialInventory.js     # SECTIONS, SECTION_LABELS
@@ -79,6 +82,21 @@ docs/
   firestore-rules.md                            # regole Firestore da applicare a mano
 ```
 
+## Modalità demo (deploy non di produzione)
+
+Per testare le feature sulle preview di Vercel senza login Google e senza autorizzare ogni dominio in Firebase:
+`vite.config.js` (`resolveMockMode`) imposta la costante di build `import.meta.env.VITE_MOCK_MODE` (letta da `src/mock/mode.js`).
+- **Attiva** se `VERCEL_GIT_COMMIT_REF` è un branch diverso da `master` (costante `PRODUCTION_BRANCH`), oppure con `VITE_MOCK_MODE=true` nel `.env` locale.
+- **Mai attiva** se `VERCEL_ENV === 'production'`, anche se `VITE_MOCK_MODE=true` fosse impostata su Vercel. `VITE_MOCK_MODE=false` la disattiva su un branch non-master.
+- Nel bundle di produzione il codice mock è eliminato (costante `false`): verificabile con `grep "Utente demo" dist/assets/*.js`.
+- `useAuth` restituisce un utente finto **senza `uid`**: tutti gli hook dati (`useInventory`, `useMealTracker`, `useSavedRecipes`,
+  `useSavedShopping`) restano sul ramo localStorage e Firestore non viene mai toccato. `firebase.js` non inizializza Firebase
+  (`auth`/`db` sono `null`, `messagingPromise` è `null`), quindi le preview non richiedono variabili `VITE_FIREBASE_*`.
+- `main.jsx` chiama `seedMockData()`: scrive i dati di esempio (scadenze relative a oggi) nelle chiavi localStorage di fallback,
+  una volta per scheda (un ricarico mantiene le modifiche, una scheda nuova riparte da zero). Banner "Modalità demo" con "Ripristina dati"
+  (stessa azione del pulsante "Esci" in Tu). Per cambiare i dati di esempio si modifica solo `src/mock/data.js`.
+- Limiti: niente notifiche push né sync tra dispositivi; la chiave Gemini va inserita in Tu (resta in localStorage di quel dominio).
+
 ## Navigazione
 
 Cinque destinazioni: Oggi, Dispensa, Cucina (Ricette AI / Salvate / Pasti), Spesa (Lista / Idee AI), Tu.
@@ -95,6 +113,16 @@ Le card sono gli stessi elementi in tutti i layout e Motion (`layout`, FLIP a mo
 cambia con un crossfade (`AnimatePresence mode="popLayout"`, chiave = modalità), le righe entrano/escono con `layout="position"`. I figli di una card
 con `layout` devono avere a loro volta `layout="position"`, altrimenti il testo si deforma durante la transizione. `LazyMotion` carica `domMax` (serve per i layout animation) da `src/motionFeatures.js`, un chunk a parte: se non si carica (offline) le card
 si vedono senza animazione. `MotionConfig reducedMotion="user"` sta dentro `PantryColumns`; mobile e tablet non usano Motion.
+
+## Scorciatoie da tastiera
+
+Solo tasti singoli, senza Ctrl/⌘/Alt: sono identici su Windows e Mac e non collidono con il browser.
+`useKeyboardShortcuts(bindings, enabled)` ascolta `keydown` su `document` e ignora l'evento se si sta
+scrivendo in un campo, se c'è un `[role="dialog"][aria-modal]` aperto o se c'è un modificatore.
+I binding sono in `App.jsx`: `1`–`5` destinazioni (ordine di `TABS`), `N` aggiungi, `S` scontrino, `V` voce
+(entrambi richiedono la chiave Gemini, altrimenti toast), `C` "Cosa cucino", `/` cerca in Dispensa
+(`searchRequested` → `PantryTab`), `?` aiuto, `Esc` chiude il dettaglio. **Se aggiungi o cambi un binding,
+aggiorna anche `nav/shortcuts.js`** (è la lista dell'aiuto). La sidebar ha il link «Scorciatoie da tastiera» (con badge `?`, piccolo) sopra «Aggiungi prodotti»; nessun altro badge.
 
 Layout mobile (≤600px): `.app` è una colonna flex con la bottom nav **in flusso** (non fixed), quindi l'area
 scrollabile `.main` finisce già sopra la nav. Conseguenze: le barre `position: sticky` dentro `.main` usano

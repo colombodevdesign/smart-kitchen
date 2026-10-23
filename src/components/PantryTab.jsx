@@ -65,6 +65,7 @@ function sortPairs(pairs, sortMode) {
 
 export function PantryTab({
   inventory, onAdd, onToggleUrgent, onUpdate, onRemove, onRestore, onMove, onOpenAdd, onGoApiKey,
+  searchRequested, onSearchHandled,
 }) {
   const [section, setSection] = useState('frigo')
   const [sortMode, setSortMode] = useState('priority')
@@ -96,6 +97,14 @@ export function PantryTab({
   useEffect(() => {
     if (searchOpen) searchRef.current?.focus()
   }, [searchOpen])
+
+  // "/" shortcut from anywhere: open the search bar (or refocus it if already open).
+  useEffect(() => {
+    if (!searchRequested) return
+    setSearchOpen(true)
+    searchRef.current?.focus()
+    onSearchHandled?.()
+  }, [searchRequested, onSearchHandled])
 
   function closeSearch() { setSearch(''); setSearchOpen(false) }
 
@@ -171,6 +180,7 @@ export function PantryTab({
               className={styles.searchBarInput}
               value={search}
               onChange={e => setSearch(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Escape') closeSearch() }}
               placeholder="Cerca prodotti…"
               aria-label="Cerca prodotti"
             />
