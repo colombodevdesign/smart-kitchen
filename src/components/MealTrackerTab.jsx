@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { MealFormModal } from './MealFormModal.jsx'
 import { MealDetailSheet } from './MealDetailSheet.jsx'
 import { Icon } from './ui/Icon.jsx'
@@ -39,7 +39,7 @@ function longLabel(dateStr, isToday) {
   return isToday ? `Oggi, ${base}` : base.charAt(0).toUpperCase() + base.slice(1)
 }
 
-export function MealTrackerTab({ meals, onAdd, onRemove, savedRecipes = [], onOpenSavedRecipes }) {
+export function MealTrackerTab({ meals, onAdd, onRemove, savedRecipes = [], onOpenSavedRecipes, addRequested, onAddHandled }) {
   const today = new Date()
   const todayStr = toDateStr(today.getFullYear(), today.getMonth(), today.getDate())
 
@@ -54,6 +54,13 @@ export function MealTrackerTab({ meals, onAdd, onRemove, savedRecipes = [], onOp
   function openAdd(dateStr, defaultCategory = null) { setModalState({ mode: 'add', dateStr, defaultCategory }) }
   function openDetail(dateStr, meal)               { setModalState({ mode: 'detail', dateStr, meal }) }
   function closeModal()                            { setModalState({ mode: 'closed' }) }
+
+  // "P" shortcut from anywhere: add a meal on the selected day.
+  useEffect(() => {
+    if (!addRequested) return
+    openAdd(selected)
+    onAddHandled?.()
+  }, [addRequested]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleSubmit(payload) {
     if (modalState.mode !== 'add') return

@@ -13,6 +13,7 @@ import styles from './Containers.module.css'
 export function CucinaTab({
   sub, onSubChange, ricette, savedRecipes, mealTracker, inventory, onGoApiKey,
   detailId, onOpenRecipe, onCloseDetail, onCookTonight, onAddMissing,
+  mealRequested, onMealHandled,
 }) {
   const isDesktop = useMediaQuery('(min-width: 1024px)')
   const view = isDesktop && sub === 'salvate' ? 'ricette' : sub
@@ -89,6 +90,8 @@ export function CucinaTab({
           onAdd={mealTracker.addMeal}
           onRemove={mealTracker.removeMeal}
           savedRecipes={savedRecipes.recipes}
+          addRequested={mealRequested}
+          onAddHandled={onMealHandled}
           onOpenSavedRecipes={(id) => (id && savedRecipes.recipes.some(r => r.id === id) ? onOpenRecipe(id) : onSubChange('salvate'))}
         />
       </div>
