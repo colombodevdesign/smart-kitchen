@@ -83,7 +83,7 @@
 .page[data-motion='tab']    { --from-scale: 0.97; --dur: 0.38s; }
 .page[data-motion='detail'] { --from-scale: 0.95; --dur: 0.42s; }
 
-.page:not([data-motion='none']) > * > :not([data-fixed]) {
+.page:not([data-motion='none']) > * > :not([data-fixed], [data-view]) {
   animation: pageIn var(--dur) var(--ease-ios) backwards;
   transform-origin: 50% 20%;
   will-change: transform, opacity;

@@ -310,6 +310,23 @@
 .addQty:focus,
 .addCategory:focus { border-color: var(--accent); }
 
+/* iOS draws a native <select> shorter than its siblings and ignores min-height:
+   drop the native look, fix the height and paint the chevron ourselves. */
+select.addCategory {
+  appearance: none;
+  -webkit-appearance: none;
+  height: var(--tap);
+  align-self: stretch;
+  padding-right: 32px;
+  text-overflow: ellipsis;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--text-muted) 50%),
+    linear-gradient(135deg, var(--text-muted) 50%, transparent 50%);
+  background-position: calc(100% - 17px) 50%, calc(100% - 12px) 50%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+
 .addBtn {
   font-size: 15px;
   font-weight: 700;
