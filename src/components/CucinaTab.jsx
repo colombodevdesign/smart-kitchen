@@ -53,7 +53,7 @@ export function CucinaTab({
       <Segmented options={options} value={view} onChange={onSubChange} ariaLabel="Sezione di Cucina" />
 
       <div className={`${styles.split} ${isDesktop && view === 'ricette' ? styles.splitBoth : ''}`}>
-        <div className={styles.view} hidden={!showAI}>
+        <div className={styles.view} data-view hidden={!showAI}>
           <AITab
             variant="cards"
             buttonLabel="Cosa cucino stasera?"
@@ -72,7 +72,7 @@ export function CucinaTab({
             onSaveItems={savedRecipes.addRecipes}
           />
         </div>
-        <div className={styles.view} hidden={!showSaved}>
+        <div className={styles.view} data-view hidden={!showSaved}>
           <SavedRecipesTab
             recipes={savedRecipes.recipes}
             inventory={inventory}
@@ -84,7 +84,7 @@ export function CucinaTab({
         </div>
       </div>
 
-      <div className={styles.view} hidden={view !== 'pasti'}>
+      <div className={styles.view} data-view hidden={view !== 'pasti'}>
         <MealTrackerTab
           meals={mealTracker.meals}
           onAdd={mealTracker.addMeal}

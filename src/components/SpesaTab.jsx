@@ -23,7 +23,7 @@ export function SpesaTab({ sub, onSubChange, spesa, savedShopping, inventory, on
       )}
 
       <div className={`${styles.split} ${styles.splitBoth}`}>
-        <div className={styles.view} hidden={!isDesktop && sub !== 'lista'}>
+        <div className={styles.view} data-view hidden={!isDesktop && sub !== 'lista'}>
           <SavedShoppingTab
             items={savedShopping.items}
             onToggle={savedShopping.toggleChecked}
@@ -36,7 +36,7 @@ export function SpesaTab({ sub, onSubChange, spesa, savedShopping, inventory, on
             inventory={inventory}
           />
         </div>
-        <div className={styles.view} hidden={!isDesktop && sub !== 'idee'}>
+        <div className={styles.view} data-view hidden={!isDesktop && sub !== 'idee'}>
           <AITab
             variant="list"
             buttonLabel="Genera la lista della spesa"

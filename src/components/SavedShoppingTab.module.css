@@ -2,30 +2,54 @@
 
 .summary { font-size: 14px; color: var(--text-muted); }
 
-/* "Stanno per scadere" suggestion */
+/* "Stanno per scadere" suggestion: quiet card, text actions, dismissible */
 .suggest {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
-  padding: 12px 12px 12px 16px;
-  color: var(--warn-text);
-  background: var(--warn-light);
+  gap: 8px;
+  padding: 10px 4px 4px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--warn-text);
   border-radius: var(--radius-md);
 }
-.suggestText { display: flex; flex-direction: column; min-width: 0; font-size: 13px; }
-.suggestText strong { font-size: 15px; }
-.suggestActions { display: flex; gap: 6px; flex: none; }
+.suggestText { display: flex; flex-direction: column; min-width: 0; padding-top: 2px; font-size: 13px; }
+.suggestText strong { font-size: 15px; color: var(--text); }
+.suggestNames {
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.suggestActions { display: flex; gap: 4px; margin: 2px 0 0 -10px; }
 .suggestAdd,
 .suggestPick {
   min-height: var(--tap);
-  padding: 0 14px;
-  font-size: 15px;
+  padding: 0 10px;
+  font-size: 14px;
   font-weight: 700;
+  background: none;
+  border: none;
   border-radius: var(--radius-sm);
 }
-.suggestAdd { color: var(--surface); background: var(--warn-text); border: none; }
-.suggestPick { color: var(--warn-text); background: transparent; border: 1px solid var(--warn-text); }
+.suggestAdd { color: var(--accent); }
+.suggestPick { color: var(--text-muted); }
+.suggestAdd:hover,
+.suggestPick:hover { background: var(--surface-hover); }
+.suggestClose {
+  flex: none;
+  width: var(--tap);
+  height: var(--tap);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  border-radius: 50%;
+}
+.suggestClose:hover { color: var(--text); background: var(--surface-hover); }
 
 /* Bar shown while products are ticked */
 .actionBar {
@@ -309,6 +333,23 @@
 .addName:focus,
 .addQty:focus,
 .addCategory:focus { border-color: var(--accent); }
+
+/* iOS draws a native <select> shorter than its siblings and ignores min-height:
+   drop the native look, fix the height and paint the chevron ourselves. */
+select.addCategory {
+  appearance: none;
+  -webkit-appearance: none;
+  height: var(--tap);
+  align-self: stretch;
+  padding-right: 32px;
+  text-overflow: ellipsis;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--text-muted) 50%),
+    linear-gradient(135deg, var(--text-muted) 50%, transparent 50%);
+  background-position: calc(100% - 17px) 50%, calc(100% - 12px) 50%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
 
 .addBtn {
   font-size: 15px;

@@ -27,7 +27,10 @@
 }
 
 /* Sub-views (segmented sections) stay mounted and are shown with `hidden`, so
-   the entrance replays each time one is un-hidden. */
+   the entrance replays each time one is un-hidden. `data-view` keeps App's page
+   transition off these: it overrides `animation` while `data-motion` is set, so
+   when the window closed the name flipped back to viewIn and replayed it (the
+   "bounce" ~600 ms after landing). */
 .view {
   animation: viewIn 0.4s var(--ease-ios) backwards;
 }
