@@ -126,7 +126,9 @@ Solo tasti singoli, senza Ctrl/⌘/Alt: sono identici su Windows e Mac e non col
 scrivendo in un campo, se c'è un `[role="dialog"][aria-modal]` aperto o se c'è un modificatore.
 I binding sono in `App.jsx`: `1`–`5` destinazioni (ordine di `TABS`), `N` aggiungi, `S` scontrino, `V` voce
 (entrambi richiedono la chiave Gemini, altrimenti toast), `C` "Cosa cucino", `/` cerca in Dispensa
-(`searchRequested` → `PantryTab`), `?` aiuto, `Esc` chiude il dettaglio. **Se aggiungi o cambi un binding,
+(`searchRequested` → `PantryTab`), `?` aiuto, `Esc` chiude il dettaglio. `N`, `S`, `V` e il pulsante «Aggiungi prodotti» della sidebar aggiungono nella sezione che si sta guardando in Dispensa
+(sezione espansa su desktop, segmented su tablet; `PantryTab` la comunica con `onViewChange` → `pantryView` in `App`); altrove, in
+ricerca o con le tre colonne, il default è Frigo. **Se aggiungi o cambi un binding,
 aggiorna anche `nav/shortcuts.js`** (è la lista dell'aiuto). La sidebar ha il link «Scorciatoie da tastiera» (con badge `?`, piccolo) sopra «Aggiungi prodotti»; nessun altro badge.
 
 Layout mobile (≤600px): `.app` è una colonna flex con la bottom nav **in flusso** (non fixed), quindi l'area

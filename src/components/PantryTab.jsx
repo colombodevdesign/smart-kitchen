@@ -65,7 +65,7 @@ function sortPairs(pairs, sortMode) {
 
 export function PantryTab({
   inventory, onAdd, onToggleUrgent, onUpdate, onRemove, onRestore, onMove, onOpenAdd, onGoApiKey,
-  searchRequested, onSearchHandled,
+  searchRequested, onSearchHandled, onViewChange,
 }) {
   const [section, setSection] = useState('frigo')
   const [sortMode, setSortMode] = useState('priority')
@@ -115,6 +115,14 @@ export function PantryTab({
   // (a search always looks across all sections).
   const isDesktop = useMediaQuery('(min-width: 1024px)')
   const showColumns = isDesktop && !searchActive
+
+  // Tell the app which section is on screen, so the add shortcuts and the sidebar button target it.
+  // (Not while searching: results span every section.)
+  const viewSection = searchActive ? null : showColumns ? expanded : section
+  useEffect(() => {
+    onViewChange?.(viewSection)
+    return () => onViewChange?.(null)
+  }, [viewSection, onViewChange])
 
   const pairs = (s) => inventory[s].map(i => ({ item: i, itemSection: s }))
   const displayItems = searchActive
