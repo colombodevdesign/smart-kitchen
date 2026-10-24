@@ -1,6 +1,12 @@
 // Bump PROMPT_VERSION whenever a prompt changes: it is part of the cache hash,
 // so cached answers produced by an older prompt are not served again.
-export const PROMPT_VERSION = 'v3'
+import { STAPLES } from '../data/staples.js'
+
+export const PROMPT_VERSION = 'v4'
+
+// Staples are listed in the recipe but never count as missing or to buy.
+const STAPLES_NOTE =
+  `Dai per scontato che io abbia sempre in casa ${STAPLES.join(', ')} e le altre cose che ogni cucina ha (non contarli tra gli ingredienti da comprare né tra quelli mancanti).`
 
 const RECIPE_SYSTEM =
   'Sei un cuoco italiano pratico. Rispondi in italiano. Usa ## solo per il titolo di ogni ricetta, ### per le sezioni interne e - per le liste.'
@@ -19,7 +25,7 @@ export function ricettePrompts({ inventoryText, seasonal, month }) {
       `Dispensa:\n${inventoryText}\n\n` +
       'Legenda dei marcatori: [APERTO] = confezione aperta, da consumare presto; [presto] = prodotto fresco comprato da qualche giorno, da usare presto; [scad] = già scaduto (non usarlo, ricordami di controllarlo); [oggi] = scade oggi; [1gg], [2gg], [3gg] = scade tra 1, 2, 3 giorni. ' +
       'Dai priorità ai prodotti che scadono prima ([oggi], poi [1gg], [2gg], [3gg]) e poi a quelli [APERTO] o [presto].\n\n' +
-      `Suggerisci 3 ricette fattibili con questi ingredienti (${month}, Lombardia). Stagionale del mese: ${seasonal}.\n\n` +
+      `Suggerisci 3 ricette fattibili con questi ingredienti (${month}, Lombardia). Stagionale del mese: ${seasonal}. ${STAPLES_NOTE}\n\n` +
       RECIPE_FORMAT,
   }
 }
@@ -34,7 +40,7 @@ export function stagionePrompts({ ingredient, inventoryText, month, exclude = []
       `Dispensa:\n${inventoryText}\n\n` +
       `Suggerisci 3 ricette in cui ${ingredient} è protagonista, varie tra loro (es. primo, secondo o contorno, dolce se adatto). ` +
       'Usa il più possibile ciò che ho in dispensa, dando priorità a ciò che scade presto ([oggi], [1gg], [2gg], [3gg]), è [APERTO] o va usato [presto]; non usare ciò che è [scad]. ' +
-      'Puoi richiedere pochi ingredienti da comprare oltre all\'ingrediente di stagione.\n' +
+      `Puoi richiedere pochi ingredienti da comprare oltre all'ingrediente di stagione. ${STAPLES_NOTE}\n` +
       (exclude.length ? `Evita queste ricette, già proposte: ${exclude.join('; ')}.\n` : '') +
       '\n' + RECIPE_FORMAT,
   }
@@ -45,6 +51,6 @@ export function spesaPrompts({ inventoryText, seasonal, month }) {
     system:
       'Sei un esperto di spesa italiana stagionale. Rispondi in italiano. Usa ## per categorie e - per liste.',
     user:
-      `Dispensa:\n${inventoryText}\n\nCrea lista della spesa per 7 giorni (${month}, Lombardia). Non duplicare ciò che ho già. Stagionale del mese: ${seasonal}.\n\nOrganizza per categoria.`,
+      `Dispensa:\n${inventoryText}\n\nCrea lista della spesa per 7 giorni (${month}, Lombardia). Non duplicare ciò che ho già. ${STAPLES_NOTE} Stagionale del mese: ${seasonal}.\n\nOrganizza per categoria.`,
   }
 }

@@ -25,8 +25,8 @@ function splitRecipe(content) {
   return { intro: (sections.intro ?? []).join('\n').trim(), steps, hasSteps: steps.length > 0, sections }
 }
 
-const STATE_LABEL = { have: 'In dispensa', missing: 'Manca', qb: 'q.b.' }
-const STATE_TONE = { have: 'ok', soon: 'soon', expired: 'expired', open: 'open', missing: 'neutral', qb: 'neutral' }
+const STATE_LABEL = { have: 'In dispensa', missing: 'Manca', qb: 'q.b.', staple: 'Di base' }
+const STATE_TONE = { have: 'ok', soon: 'soon', expired: 'expired', open: 'open', missing: 'neutral', qb: 'neutral', staple: 'neutral' }
 
 export function RecipeDetail({ recipe, inventory, onBack, onRemove, onCookTonight, onPlan, onAddMissing, onAnalyze }) {
   const [analyzing, setAnalyzing] = useState(false)
