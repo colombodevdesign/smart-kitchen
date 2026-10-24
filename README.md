@@ -1,8 +1,32 @@
-# smart-kitchen
+<p align="center">
+  <img src="public/icon-512.png" alt="Logo smart kitchen" width="128">
+</p>
 
-Gestione dispensa personale con sincronizzazione real-time tra dispositivi e suggerimenti AI stagionali.
+<h1 align="center">smart kitchen</h1>
+
+<p align="center">
+  Gestione dispensa personale con sincronizzazione real-time tra dispositivi e suggerimenti AI stagionali.
+</p>
+
+È una **PWA** (Progressive Web App) ottimizzata sia per **desktop** che per **mobile**: si usa dal browser oppure si installa sul dispositivo (su iPhone con «Aggiungi a Home», su desktop e Android con «Installa app») e si apre a schermo intero come un'app nativa. Il layout si adatta allo schermo: sidebar e Dispensa a tre colonne su desktop, navigazione in basso e gesti di swipe su mobile. Funziona anche con le notifiche push di scadenza.
 
 Stack: React 18 + Vite 5 + Firebase (Auth + Firestore) + Gemini AI.
+
+## Screenshot
+
+<p align="center">
+  <img src="screens/desktop-oggi.png" alt="Oggi" width="49%">
+  <img src="screens/desktop-dispensa.png" alt="Dispensa" width="49%">
+  <img src="screens/desktop-dispensa-credenza.png" alt="Dispensa, sezione espansa" width="49%">
+  <img src="screens/desktop-cucina-ricette.png" alt="Ricette" width="49%">
+  <img src="screens/desktop-cucina-ricette-dettaglio.png" alt="Dettaglio ricetta" width="49%">
+  <img src="screens/desktop-cucina-pasti.png" alt="Pasti" width="49%">
+  <img src="screens/desktop-spesa.png" alt="Spesa" width="49%">
+  <img src="screens/desktop-profilo.png" alt="Profilo" width="49%">
+  <img src="screens/desktop-notifiche.png" alt="Notifiche" width="49%">
+</p>
+
+Guida alle funzionalità: [wiki](https://github.com/colombodevdesign/smart-kitchen/wiki) (le pagine sono in [`docs/wiki/`](docs/wiki)).
 
 ## Prerequisiti
 
@@ -73,7 +97,7 @@ service cloud.firestore {
 
 ## Funzionalità
 
-- **Autenticazione** — login con Google o Apple, dati isolati per utente
+- **Autenticazione** — login con Google, dati isolati per utente
 - **Sincronizzazione real-time** — dispensa aggiornata su tutti i dispositivi via Firestore
 - **Dispensa** — credenza / frigo / freezer con modifica inline di nome e quantità
 - **Data di aggiunta** mostrata sotto ogni prodotto
