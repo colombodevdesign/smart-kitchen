@@ -119,8 +119,8 @@ export function ProfileTab({ user, online, onExport, onImport, onClearInventory,
       <button type="button" className={styles.linkCard} onClick={onOpenNotifications}>
         <span className={styles.bell}><Icon name="bell" size={24} /></span>
         <span className={styles.linkText}>
-          <strong>Avvisi di scadenza</strong>
-          <span>{alertsOn ? `Ogni giorno alle ${pad(push.prefs.hour)}:${pad(push.prefs.minute)}` : push.prefs.enabled ? 'Da completare su questo dispositivo' : 'Disattivati'}</span>
+          <strong>Notifiche</strong>
+          <span>{alertsOn ? `Scadenze ogni giorno alle ${pad(push.prefs.hour)}:${pad(push.prefs.minute)}` : push.prefs.enabled ? 'Da completare su questo dispositivo' : 'Scadenze e promemoria dei pasti'}</span>
         </span>
         <StatusBadge tone={alertsOn ? 'ok' : push.prefs.enabled ? 'soon' : 'neutral'}>{alertsOn ? 'Attivi' : push.prefs.enabled ? 'Da attivare' : 'Disattivi'}</StatusBadge>
         <Icon name="chevR" size={20} className={styles.chev} />

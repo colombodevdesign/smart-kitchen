@@ -8,7 +8,7 @@ Gestione della dispensa con suggerimenti AI di stagione. È una PWA, ottimizzata
 - [[Aggiungere prodotti]] — a mano, a voce, da scontrino, da CSV
 - [[Cucina e ricette]] — ricette AI, ricette salvate, pasti
 - [[Spesa]] — lista della spesa e idee AI
-- [[Notifiche]] — avvisi di scadenza sul telefono e sul computer
+- [[Notifiche]] — avvisi di scadenza e promemoria dei pasti sul telefono e sul computer
 - [[Scorciatoie da tastiera]]
 - [[Installare l'app]]
 - [[Modalità demo]]
@@ -19,7 +19,7 @@ Gestione della dispensa con suggerimenti AI di stagione. È una PWA, ottimizzata
 |---|---|
 | **Oggi** | Cosa usare presto, il pasto di stasera, gli ingredienti di stagione |
 | **Dispensa** | Tutto quello che hai in casa, diviso in credenza, frigo e freezer |
-| **Cucina** | Ricette generate dall'AI, ricette salvate e calendario dei pasti |
+| **Cucina** | Ricette generate dall'AI, ricette salvate e pasti (registro e planner) |
 | **Spesa** | Lista della spesa, con idee generate dall'AI |
 | **Tu** | Profilo, tema, chiave Gemini, notifiche, export/import CSV |
 

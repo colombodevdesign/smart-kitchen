@@ -9,7 +9,7 @@ Solo tasti singoli, senza Ctrl/⌘/Alt: sono uguali su Windows e Mac. Non funzio
 | `S` | Aggiungi da scontrino (foto o PDF) |
 | `V` | Aggiungi a voce |
 | `C` | Cosa cucino stasera? |
-| `P` | Aggiungi un pasto |
+| `P` | Aggiungi o pianifica un pasto |
 | `\` | Cerca in dispensa |
 | `?` | Mostra le scorciatoie |
 | `Esc` | Chiudi finestra, ricerca o dettaglio; riduci la sezione espansa |

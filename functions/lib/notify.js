@@ -1,6 +1,7 @@
 // Expiry notifications: pure builders plus processUser/sendTest, which take the
 // Firestore and Messaging instances as arguments so they can be tested with fakes.
 const { DEFAULT_TZ, dayWindow, localDateStr, localParts, shouldSendNow } = require('./schedule')
+const { processMeals } = require('./meals')
 
 const SECTIONS = ['credenza', 'frigo', 'freezer']
 const STALE_CODES = [
@@ -151,8 +152,9 @@ function toMessage(token, { title, body }, { tag, open } = {}) {
   }
 }
 
-// One user at one tick. Returns what happened, for logging and tests.
-async function processUser({ db, messaging, uid, prefs, nowMs }) {
+// Daily expiry summary for one user, at their chosen time, once per local day.
+// `send(message, opts)` delivers to all of the user's devices and returns the ok count.
+async function processExpiry({ db, uid, prefs, nowMs, send }) {
   const tz = prefs.tz || DEFAULT_TZ
   if (!prefs.enabled || !shouldSendNow(prefs, nowMs)) return { sent: 0, skipped: 'not-now' }
   const today = localDateStr(nowMs, tz)
@@ -164,17 +166,42 @@ async function processUser({ db, messaging, uid, prefs, nowMs }) {
   const groups = inv.exists ? collectExpiring(inv.data(), prefs.daysBefore?.length ? prefs.daysBefore : [1], nowMs, tz) : []
   if (groups.length === 0) { await markRan(); return { sent: 0, skipped: 'nothing-expiring' } }
 
-  const entries = await loadTokens(db, uid, { nowMs })
-  if (entries.length === 0) { await markRan(); return { sent: 0, skipped: 'no-tokens' } }
-
   const message = buildMessage(groups)
-  const res = await messaging.sendEach(entries.map(e => toMessage(e.token, message, { tag: EXPIRY_TAG, open: 'scadenze' })))
-  const results = await applyResults(entries, res.responses, nowMs)
+  const sent = await send(message, { tag: EXPIRY_TAG, open: 'scadenze' })
   await markRan()
-  return { sent: results.filter(r => r.status === 'ok').length, results, message }
+  return { sent, message }
 }
 
-// Used by the scheduler: loads every user's prefs (batched) and processes the due ones.
+// Delivery to all of a user's active devices; tokens are loaded on the first push
+// of the tick and reused by the next ones (expiry summary, meal reminders).
+function userSender({ db, messaging, uid, nowMs }) {
+  let entries
+  return async (message, opts) => {
+    entries ??= await loadTokens(db, uid, { nowMs })
+    if (entries.length === 0) return 0
+    const res = await messaging.sendEach(entries.map(e => toMessage(e.token, message, opts)))
+    const results = await applyResults(entries, res.responses, nowMs)
+    // Tokens just marked stale are not tried again in this tick.
+    const ok = new Set(results.filter(r => r.status !== 'stale').map(r => r.deviceId))
+    entries = entries.filter(e => ok.has(e.id))
+    return results.filter(r => r.status === 'ok').length
+  }
+}
+
+// One user at one tick: expiry summary and meal reminders. Returns what happened,
+// for logging and tests.
+async function processUser({ db, messaging, uid, prefs, nowMs }) {
+  const send = userSender({ db, messaging, uid, nowMs })
+  const expiry = await processExpiry({ db, uid, prefs, nowMs, send })
+  const meals = await processMeals({ db, uid, prefs, nowMs, send }).catch(e => {
+    console.error('meal reminders failed for user', uid, e)
+    return { sent: 0, skipped: 'error' }
+  })
+  return { sent: expiry.sent + meals.sent, expiry, meals }
+}
+
+// Used by the scheduler: loads every user's prefs (batched) and processes the due
+// ones: expiry alerts at their time, meal reminders at every tick when switched on.
 async function runTick({ db, messaging, nowMs = Date.now() }) {
   const userRefs = await db.collection('users').listDocuments()
   const summary = { users: userRefs.length, due: 0, sent: 0 }
@@ -185,7 +212,9 @@ async function runTick({ db, messaging, nowMs = Date.now() }) {
     for (let j = 0; j < chunk.length; j++) {
       const uid = chunk[j].id
       const prefs = prefSnaps[j].exists ? prefSnaps[j].data() : null
-      if (!prefs || !prefs.enabled || !shouldSendNow(prefs, nowMs)) continue
+      if (!prefs) continue
+      const expiryDue = prefs.enabled && shouldSendNow(prefs, nowMs)
+      if (!expiryDue && prefs.meals?.enabled !== true) continue
       summary.due++
       try {
         const r = await processUser({ db, messaging, uid, prefs, nowMs })
@@ -211,5 +240,5 @@ async function sendTest({ db, messaging, uid, nowMs = Date.now() }) {
 }
 
 module.exports = {
-  collectExpiring, estimatedOffset, buildMessage, nameList, loadTokens, toMessage, processUser, runTick, sendTest,
+  collectExpiring, estimatedOffset, buildMessage, nameList, loadTokens, toMessage, processExpiry, processUser, runTick, sendTest,
 }

@@ -5,7 +5,7 @@ importScripts('https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js
 importScripts('https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js')
 
 // Views the app can open from a notification (`data.open` in the message).
-const OPEN_TARGETS = ['scadenze']
+const OPEN_TARGETS = ['scadenze', 'pasti']
 
 // Registered before firebase.messaging(), so it runs ahead of the SDK's own click
 // handler (which would open a new window) and stops it. A tap focuses the app if it

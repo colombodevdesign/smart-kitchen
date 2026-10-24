@@ -6,7 +6,9 @@
 
 .categoryRow {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  gap: 8px;
 }
 
 .categoryChip {
@@ -89,3 +91,131 @@
   background: var(--urgent);
   color: white;
 }
+
+.muted { font-size: 13px; color: var(--text-muted); }
+
+/* Pantry check of the linked recipe (planned meals) */
+.pantry {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.pantryHead { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.bar {
+  height: 6px;
+  overflow: hidden;
+  background: var(--surface-hover);
+  border-radius: 3px;
+}
+.bar span {
+  display: block;
+  height: 100%;
+  width: calc(var(--p, 0) * 100%);
+  background: var(--accent);
+  border-radius: 3px;
+}
+.addMissing {
+  min-height: var(--tap);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--accent);
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.addMissing:hover { background: var(--accent-light); border-color: var(--accent); }
+
+/* Reminder row */
+.reminder {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.reminderIcon {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  background: var(--accent-light);
+  border-radius: 50%;
+}
+.reminderText { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.reminderText strong { font-size: 15px; }
+.reminderText span { font-size: 13px; color: var(--text-muted); }
+.note { margin: 0; font-size: 13px; color: var(--warn-text); }
+
+.toggle {
+  position: relative;
+  flex: none;
+  width: 52px;
+  height: 32px;
+  padding: 0;
+  background: var(--border-strong);
+  border: none;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.toggle.on { background: var(--accent); }
+.thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 26px;
+  height: 26px;
+  background: var(--toggle-thumb);
+  border-radius: 50%;
+  transition: transform 0.15s;
+}
+.on .thumb { transform: translateX(20px); }
+
+/* Footer: "Segna come mangiato" full width, then Modifica / Elimina */
+.footer { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+.footerRow { display: flex; justify-content: flex-end; gap: 8px; }
+.btnPrimary,
+.btnSecondary {
+  min-height: var(--tap);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 9px 16px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.btnPrimary {
+  width: 100%;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--on-accent);
+  background: var(--accent);
+  border: none;
+}
+.btnPrimary:hover { background: var(--accent-hover); }
+.btnSecondary {
+  color: var(--text);
+  background: transparent;
+  border: 0.5px solid var(--border-strong);
+}
+.btnSecondary:hover { background: var(--surface-hover); }
+.footerRow .btnRemove { min-height: var(--tap); }

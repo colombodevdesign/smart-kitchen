@@ -13,7 +13,7 @@ import styles from './Containers.module.css'
 export function CucinaTab({
   sub, onSubChange, ricette, savedRecipes, mealTracker, inventory, onGoApiKey,
   detailId, onOpenRecipe, onCloseDetail, onCookTonight, onAddMissing,
-  mealRequested, onMealHandled,
+  mealRequested, onMealHandled, onPlanRecipe, mealPrefs,
 }) {
   const isDesktop = useMediaQuery('(min-width: 1024px)')
   const view = isDesktop && sub === 'salvate' ? 'ricette' : sub
@@ -43,7 +43,7 @@ export function CucinaTab({
         onBack={onCloseDetail}
         onRemove={(id) => { savedRecipes.removeRecipe(id); onCloseDetail() }}
         onCookTonight={onCookTonight}
-        onPlan={() => { onCloseDetail(); onSubChange('pasti') }}
+        onPlan={() => { onCloseDetail(); onSubChange('pasti'); onPlanRecipe?.(detailRecipe.id) }}
         onAddMissing={onAddMissing}
         onAnalyze={(r) => savedRecipes.analyzeIngredients([r])}
       />
@@ -89,7 +89,12 @@ export function CucinaTab({
           meals={mealTracker.meals}
           onAdd={mealTracker.addMeal}
           onRemove={mealTracker.removeMeal}
+          onUpdate={mealTracker.updateMeal}
+          onMarkEaten={mealTracker.markEaten}
           savedRecipes={savedRecipes.recipes}
+          inventory={inventory}
+          mealPrefs={mealPrefs}
+          onAddMissing={onAddMissing}
           addRequested={mealRequested}
           onAddHandled={onMealHandled}
           onOpenSavedRecipes={(id) => (id && savedRecipes.recipes.some(r => r.id === id) ? onOpenRecipe(id) : onSubChange('salvate'))}

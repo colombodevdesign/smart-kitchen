@@ -10,7 +10,7 @@ Su ogni ricetta trovi:
 - **Usa N prodotti in scadenza**;
 - per ogni ingrediente lo stato: *In dispensa*, *Scade tra N gg*, *Aperto da N gg* oppure *Manca*;
 - **Aggiungi i mancanti alla spesa**;
-- **Cucino stasera**, per registrare la ricetta tra i pasti.
+- **Cucino stasera**, per mettere la ricetta in programma per la cena di oggi; l'icona del calendario la pianifica in un altro giorno.
 
 Sale, pepe, olio, acqua e le altre basi sono considerate sempre in casa.
 
@@ -24,4 +24,9 @@ In «Oggi» i chip «Di stagione» mostrano la verdura e la frutta del mese. Toc
 
 ## Pasti
 
-Il calendario (settimana o mese) tiene traccia di colazione, pranzo, cena e spuntini, anche collegandoli a una ricetta salvata. `P` aggiunge un pasto al giorno selezionato.
+Il calendario (settimana o mese) è sia un registro sia un planner: tiene traccia di colazione, pranzo, cena e spuntini, anche collegandoli a una ricetta salvata. `P` aggiunge o pianifica un pasto nel giorno selezionato.
+
+- Pallino pieno = mangiato, pallino vuoto = in programma.
+- Un pasto in programma ha un orario e, se vuoi, un promemoria (vedi [[Notifiche]]); **Mangiato** lo sposta nel registro.
+- **In programma** elenca i pasti dei prossimi 7 giorni.
+- Nel dettaglio di un pasto in programma con ricetta collegata vedi «Hai X ingredienti su Y» e puoi aggiungere i mancanti alla spesa.

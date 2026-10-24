@@ -1,0 +1,73 @@
+/* Same page frame as Notifiche. */
+.wrap    { composes: wrap from './NotificationSettings.module.css'; }
+.top     { composes: top from './NotificationSettings.module.css'; }
+.back    { composes: back from './NotificationSettings.module.css'; }
+.title   { composes: title from './NotificationSettings.module.css'; }
+.group   { composes: group from './NotificationSettings.module.css'; }
+.legend  { composes: legend from './NotificationSettings.module.css'; }
+.chips   { composes: chips from './NotificationSettings.module.css'; }
+.hint    { composes: hint from './NotificationSettings.module.css'; }
+.error   { composes: error from './NotificationSettings.module.css'; }
+.toggle  { composes: toggle from './NotificationSettings.module.css'; }
+.on      { composes: on from './NotificationSettings.module.css'; }
+.thumb   { composes: thumb from './NotificationSettings.module.css'; }
+.bannerBtn { composes: bannerBtn from './NotificationSettings.module.css'; align-self: flex-start; margin-top: 0; }
+.dimmed  { opacity: 0.55; }
+
+.master {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.masterIcon {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  background: var(--accent-light);
+  border-radius: 50%;
+}
+.masterText { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; font-size: 14px; color: var(--text-muted); }
+.masterText strong { font-size: 16px; color: var(--text); }
+
+.warning {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 16px;
+  font-size: 14px;
+  color: var(--warn-text);
+  background: var(--warn-light);
+  border-radius: var(--radius-md);
+}
+
+.times { list-style: none; display: flex; flex-direction: column; }
+.times li + li { border-top: 1px solid var(--border); }
+.timeRow {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.timeLabel { display: inline-flex; align-items: center; gap: 10px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--cat); }
+.timeRow input {
+  min-height: var(--tap);
+  padding: 0 12px;
+  font: inherit;
+  font-weight: 500;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+}

@@ -8,7 +8,7 @@
   Gestione dispensa personale con sincronizzazione real-time tra dispositivi e suggerimenti AI stagionali.
 </p>
 
-È una **PWA** (Progressive Web App) ottimizzata sia per **desktop** che per **mobile**: si usa dal browser oppure si installa sul dispositivo (su iPhone con «Aggiungi a Home», su desktop e Android con «Installa app») e si apre a schermo intero come un'app nativa. Il layout si adatta allo schermo: sidebar e Dispensa a tre colonne su desktop, navigazione in basso e gesti di swipe su mobile. Funziona anche con le notifiche push di scadenza.
+È una **PWA** (Progressive Web App) ottimizzata sia per **desktop** che per **mobile**: si usa dal browser oppure si installa sul dispositivo (su iPhone con «Aggiungi a Home», su desktop e Android con «Installa app») e si apre a schermo intero come un'app nativa. Il layout si adatta allo schermo: sidebar e Dispensa a tre colonne su desktop, navigazione in basso e gesti di swipe su mobile. Funziona anche con le notifiche push: scadenze e promemoria dei pasti.
 
 Stack: React 18 + Vite 5 + CSS Modules + Firebase (Auth, Firestore, Cloud Messaging, Functions) + Gemini AI.
 
@@ -33,9 +33,9 @@ Stack: React 18 + Vite 5 + CSS Modules + Firebase (Auth, Firestore, Cloud Messag
 - **Dispensa** — credenza / frigo / freezer con quantità e scadenza facoltative, stato «aperto», ricerca, ordinamento per priorità o per categoria; su desktop tre colonne con drag fra le card
 - **Priorità intelligente** — stima dei giorni rimasti da scadenza, apertura e freschezza; l'analisi dei prodotti (categoria, durate di conservazione) gira in background con l'AI
 - **Aggiunta rapida** — a mano, a voce, da foto o PDF dello scontrino, da CSV; schermata di verifica prima di confermare
-- **Cucina** — ricette AI basate su dispensa e scadenze (con streaming), ricette salvate con «Hai X ingredienti su Y», calendario dei pasti
+- **Cucina** — ricette AI basate su dispensa e scadenze (con streaming), ricette salvate con «Hai X ingredienti su Y», pasti come registro e planner (pasti in programma con promemoria)
 - **Spesa** — lista della spesa e idee AI stagionali integrate con la dispensa
-- **Notifiche push** di scadenza (Cloud Functions), con orario e anticipo a scelta
+- **Notifiche push** (Cloud Functions): avviso di scadenza con orario e anticipo a scelta, promemoria dei pasti in programma e «pianifica la cena»
 - **Scorciatoie da tastiera**, tema chiaro/scuro, PWA installabile
 - **Modalità demo** per le preview, senza login né Firebase
 
@@ -82,7 +82,7 @@ cd functions && npm install && cd ..
 firebase deploy --only functions
 ```
 
-Poi pubblica il client e infine le regole Firestore.
+Poi pubblica il client e infine le regole Firestore. Eccezione: quando le regole aggiungono campi che il client nuovo scrive (come `meals` per i promemoria dei pasti), pubblicale prima del client; i dettagli sono in [`docs/firestore-rules.md`](docs/firestore-rules.md).
 
 ## Firestore Security Rules
 

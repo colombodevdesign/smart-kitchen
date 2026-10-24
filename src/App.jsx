@@ -6,6 +6,7 @@ import { useAI } from './hooks/useAI.js'
 import { useSavedRecipes } from './hooks/useSavedRecipes.js'
 import { useSavedShopping } from './hooks/useSavedShopping.js'
 import { useMealTracker } from './hooks/useMealTracker.js'
+import { useMealPrefs } from './hooks/useMealPrefs.js'
 import { useApiKeySync } from './hooks/useApiKeySync.js'
 import { useNavigation } from './hooks/useNavigation.js'
 import { useOnline } from './hooks/useOnline.js'
@@ -49,7 +50,11 @@ export default function App() {
   }, [showingExpiring, nav.go, nav.openDetail])
   const openFromNotification = useCallback((target) => {
     if (target === 'scadenze') openExpiring()
-  }, [openExpiring])
+    else if (target === 'pasti') {
+      nav.go('cucina', 'pasti')
+      if (mainRef.current) mainRef.current.scrollTop = 0
+    }
+  }, [openExpiring, nav.go])
   useForegroundPush(!!user && !MOCK_MODE, openFromNotification)
   useNotificationOpen(!!user && !MOCK_MODE, openFromNotification)
 
@@ -75,6 +80,7 @@ export default function App() {
   const savedRecipes   = useSavedRecipes(authUid)
   const savedShopping  = useSavedShopping(authUid)
   const mealTracker    = useMealTracker(authUid)
+  const { prefs: mealPrefs } = useMealPrefs(authUid)
 
   const handleMoveToPantry = useCallback((assignments) => {
     if (!assignments?.length) return
@@ -99,14 +105,15 @@ export default function App() {
     nav.go('tu')
   }, [closeAdd, nav.go])
 
-  // Saved recipes: put one on tonight's menu / push its missing ingredients to the shopping list.
+  // Saved recipes: plan one for tonight's dinner / push its missing ingredients to the shopping list.
   const handleCookTonight = useCallback((recipe) => {
     mealTracker.addMeal(todayStr(), {
       text: recipe.title, category: 'cena', recipeId: recipe.id, recipeTitle: recipe.title,
+      planned: true, time: mealPrefs.times.cena, reminder: mealPrefs.enabled ? { lead: mealPrefs.lead } : null,
     })
-    toast.show({ message: 'Aggiunta ai pasti di stasera', ms: 3000 })
+    toast.show({ message: 'In programma per stasera', ms: 3000 })
     nav.go('oggi')
-  }, [mealTracker.addMeal, toast.show, nav.go])
+  }, [mealTracker.addMeal, mealPrefs.times.cena, mealPrefs.enabled, mealPrefs.lead, toast.show, nav.go])
 
   const handleAddMissing = useCallback((ingredients) => {
     const already = new Set(savedShopping.items.filter(i => !i.checked).map(i => i.name.trim().toLowerCase()))
@@ -139,8 +146,10 @@ export default function App() {
   const [helpOpen, setHelpOpen] = useState(false)
   const [pantrySearch, setPantrySearch] = useState(false)
   const clearPantrySearch = useCallback(() => setPantrySearch(false), [])
+  // true ("P": a new meal) or { recipeId } ("Pianifica" on a saved recipe).
   const [mealRequested, setMealRequested] = useState(false)
   const clearMealRequested = useCallback(() => setMealRequested(false), [])
+  const planRecipe = useCallback((recipeId) => setMealRequested({ recipeId }), [])
 
   const needsKey = (fn) => () => {
     if (hasApiKey()) fn()
@@ -261,6 +270,8 @@ export default function App() {
               onAddMissing={handleAddMissing}
               mealRequested={mealRequested}
               onMealHandled={clearMealRequested}
+              onPlanRecipe={planRecipe}
+              mealPrefs={mealPrefs}
             />
           )}
 
@@ -282,6 +293,7 @@ export default function App() {
               online={online}
               detail={nav.detail}
               onOpenNotifications={() => nav.openDetail({ type: 'notifiche' })}
+              onOpenMealReminders={() => nav.openDetail({ type: 'promemoria-pasti' })}
               onCloseDetail={nav.closeDetail}
               onExport={exportCSV}
               onImport={importCSV}
