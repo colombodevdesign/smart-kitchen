@@ -1,0 +1,14 @@
+.logo {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.cream { fill: var(--brand-cream); }
+.yellow { fill: var(--brand-yellow); }
+
+.spark {
+  stroke-width: 6;
+  stroke-linecap: round;
+}

@@ -1,4 +1,4 @@
-import { startTransition, useCallback, useRef, useState } from 'react'
+import { startTransition, useCallback, useEffect, useRef, useState } from 'react'
 import { useAuth } from './hooks/useAuth.js'
 import { useInventory } from './hooks/useInventory.js'
 import { usePantryAnalysis } from './hooks/usePantryAnalysis.js'
@@ -13,6 +13,7 @@ import { useNotificationInbox } from './hooks/useNotificationInbox.js'
 import { useMediaQuery } from './hooks/useMediaQuery.js'
 import { useOnline } from './hooks/useOnline.js'
 import { LoginScreen } from './components/LoginScreen.jsx'
+import { SplashScreen } from './components/SplashScreen.jsx'
 import { TodayTab } from './components/TodayTab.jsx'
 import { PantryTab } from './components/PantryTab.jsx'
 import { CucinaTab } from './components/CucinaTab.jsx'
@@ -33,11 +34,33 @@ import { MockBanner } from './components/ui/MockBanner.jsx'
 import { MOCK_MODE } from './mock/mode.js'
 import { todayStr } from './utils/date.js'
 import { hasApiKey } from './utils/apiKey.js'
+import { shouldShowSplash, endSplash } from './utils/splash.js'
 import { TABS } from './nav/tabs.js'
 import styles from './App.module.css'
 
 export default function App() {
+  const [splash, setSplash] = useState(shouldShowSplash)
+  const [authResolved, setAuthResolved] = useState(false)
+  const closeSplash = useCallback(() => {
+    endSplash()
+    setSplash(false)
+  }, [])
+  const onAuthResolved = useCallback(() => setAuthResolved(true), [])
+
+  return (
+    <>
+      <AppContent onAuthResolved={onAuthResolved} />
+      {splash && <SplashScreen ready={authResolved} onDone={closeSplash} />}
+    </>
+  )
+}
+
+function AppContent({ onAuthResolved }) {
   const { user, signInWithGoogle, signOut } = useAuth()
+  // La splash di avvio aspetta che Firebase abbia deciso se c'è un utente.
+  useEffect(() => {
+    if (user !== undefined) onAuthResolved()
+  }, [user, onAuthResolved])
   const nav = useNavigation('oggi')
   const toast = useToast()
   const online = useOnline()

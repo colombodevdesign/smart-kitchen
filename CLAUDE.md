@@ -28,9 +28,9 @@ public/
   fonts/                    # Bricolage Grotesque + DM Sans (variabili, latin, self-hosted) + licenze
   manifest.json, icon-*.png # PWA: monogramma SK con forchetta/coltello, S crema + K giallo su verde #1E5A43
 src/
-  main.jsx                  # entry: ToastProvider + watchSystemTheme
+  main.jsx                  # entry: ToastProvider + watchSystemTheme + registrazione del service worker (solo build di produzione)
   mock/                     # modalità demo: mode.js (flag di build), data.js (utente finto, dati di esempio, seed/reset)
-  firebase.js               # app, auth, db, messagingPromise, callFunction (import dinamico di firebase/functions)
+  firebase.js               # app, auth, db (cache locale persistente su IndexedDB), messagingPromise, callFunction (import dinamico di firebase/functions)
   App.jsx                   # auth guard + orchestrazione stato + 5 destinazioni + AddFlow
   nav/tabs.js               # TABS (oggi, dispensa, cucina, spesa, tu) e sotto-sezioni
   nav/shortcuts.js          # SHORTCUT_GROUPS: elenco mostrato in ShortcutsHelp (i binding veri stanno in App.jsx)
@@ -63,10 +63,11 @@ src/
     useCollapsedGroups.js   # gruppi ripiegati di "Per categoria", ricordati in localStorage
     useMediaQuery.js
   components/
-    ui/                     # Icon, GroupHeader, Segmented, StatusBadge, Chip, EmptyState, Toast(+useToast), PageHeader, OfflineBanner, RecipeCard
+    ui/                     # Icon, GroupHeader, Segmented, StatusBadge, Chip, EmptyState, Toast(+useToast), PageHeader, OfflineBanner, RecipeCard,
+                            #   LogoMorph (+ logoMorphData.js generato: contorni tracciati dal logo)
     TodayTab, ExpiringList, SeasonalRecipesModal, PantryTab, PantryColumns, PantryComposer, ItemRow, CucinaTab, AITab, SavedRecipesTab, RecipeDetail, MealTrackerTab,
     SpesaTab, SavedShoppingTab, PantrySuggestionsModal, TuTab, ProfileTab, NotificationSettings,
-    AddFlow, AddSheet, VoiceBatchModal, ReceiptScanModal, BatchReview, ShortcutsHelp,
+    SplashScreen, AddFlow, AddSheet, VoiceBatchModal, ReceiptScanModal, BatchReview, ShortcutsHelp,
     MealFormModal, MealDetailSheet, MealReminderSettings, NotificationList, NotificationInbox, NotificationPanel,
     Modal, BottomNav, Sidebar, LoginScreen
   data/
@@ -78,6 +79,8 @@ src/
   utils/
     date.js                 # SOON_DAYS, daysUntil (giorni di calendario), toDateStr, formatExpiry, expiryStatus
     pantry.js               # estimateRemaining, priorityInfo/comparePriority, itemBadge, getUseSoonItems, getPantryCandidates
+    logoMorph.js            # coreografia della splash: logoFrame(t) puro (pose, morph forchetta→S e coltello→K, scintille)
+    splash.js               # shouldShowSplash/endSplash: una volta per sessione, mai con «riduci movimento»
     markdown.js             # md(): escape HTML poi #/##→h3, ###→h4, **bold**, liste
     parsers.js              # parseRecipes (split su "## "), parseShoppingItems, extractQty
     ingredientMatch.js      # "Hai X ingredienti su Y": matching per radici (puro)
@@ -178,6 +181,22 @@ disattivabile): solo con `display-mode: standalone` `.main` ha 16px di padding i
 dalla fascia (in una scheda del browser non serve). I toast
 (`ui/Toast`) stanno in alto, sotto la safe area, così non si sovrappongono a FAB e nav.
 
+## Animazione di avvio
+
+`SplashScreen` (in `App`, sopra tutto: `--z-splash`) mostra forchetta e coltello che oscillano uno verso l'altro, si toccano due volte
+(scintille, rimbalzo) e si trasformano nel logo SK (`ui/LogoMorph`). Resta finché il logo è formato (`FORMED_AT`, 2,75 s) **e** Firebase ha
+risolto l'auth (`App` → `AppContent.onAuthResolved`), poi sfuma in 0,36 s. Si vede solo al primo caricamento della sessione
+(`sessionStorage` `sk-splash-seen`: un ricarico nella stessa scheda non la ripete, un avvio a freddo della PWA sì) e mai con
+`prefers-reduced-motion`. `index.html` mette `html.splash-boot` (sfondo verde dal primo paint, evita il lampo chiaro); la regola è
+duplicata in `utils/splash.js`: cambiarle insieme. In demo mode parte come in produzione.
+- `utils/logoMorph.js` è puro: `logoFrame(t)` restituisce trasformazioni, `d` dei path e scintille dell'istante t; `LogoMorph` li applica con
+  `setAttribute` in un loop `requestAnimationFrame` (nessun render React per frame). Il morph è un'interpolazione punto per punto: funziona anche
+  su Safari (le animazioni CSS del path `d` no).
+- `ui/logoMorphData.js` è **generato**: contorni tracciati da `public/icon-512.png` (potrace su maschere crema/giallo) e ricampionati con punti
+  di riferimento (rebbi, bordi, estremità) così forchetta→S e coltello→K non si attorcigliano; contiene anche la posa «in piedi» e l'angolo di
+  contatto calcolato dalla geometria. Se cambia il logo vanno rigenerati. Colori: token `--brand-cream`, `--brand-yellow`, sfondo `--hero`
+  (uguali nei due temi). Per ritoccare la coreografia basta `utils/logoMorph.js` (`TILT`, `MORPH_START`, `SPARK_HITS`).
+
 ## Firebase — configurazione
 
 Variabili d'ambiente Vite (`.env`):
@@ -245,6 +264,25 @@ si può cancellare dalla Console.
 - `user === object` → loggato (mostra app)
 - `signInWithGoogle()` → `signInWithPopup`; `signOut()` → torna a `LoginScreen`
 
+## Uso offline
+
+Due livelli, entrambi automatici:
+- **App shell** — un solo service worker, `src/firebase-messaging-sw.template.js` (stesso file delle push: uno scope ha un solo SW).
+  `vite.config.js` (`firebaseSwPlugin`, hook `writeBundle`) lo riscrive dopo la build con l'elenco di tutti i file di `dist/`
+  (`SHELL = { version, urls }`, versione = hash dei contenuti). All'install li mette in `sk-shell-<versione>` e `skipWaiting`; all'activate
+  cancella le cache `sk-shell-*` vecchie e fa `clients.claim`. Navigazioni: **network first** (online si ha sempre l'ultimo deploy), con
+  ripiego su `/index.html` in cache se la rete fallisce o impiega più di 5 s. Il resto: dalla cache (i nomi file hanno l'hash), altrimenti rete.
+  `match` usa `ignoreVary` (gli host aggiungono `Vary: Origin` e senza i moduli non verrebbero trovati). Restano sempre in rete `/__/` (handler di
+  Firebase Auth), `/_vercel/` e il SW stesso (`NETWORK_ONLY`). In dev `SHELL.urls` è vuoto e il SW non fa caching; `main.jsx` lo registra solo con `import.meta.env.PROD`.
+  Il caricamento di Firebase Messaging (`importScripts` da gstatic + `firebase.messaging()`) è in try/catch: se fallisce si perdono le push, non l'offline.
+- **Dati** — `firebase.js` crea Firestore con `persistentLocalCache` + `persistentMultipleTabManager`: dispensa, pasti, ricette e spesa restano leggibili
+  e modificabili offline, le scritture in coda partono al ritorno della rete (se IndexedDB non è disponibile ripiega sulla cache in memoria).
+  Gli `onSnapshot` degli hook dati ignorano gli snapshot con `hasPendingWrites` **solo dopo il primo caricamento** (`loaded`): dopo un ricarico offline con
+  modifiche ancora in coda il primo snapshot arriva dalla cache già con `hasPendingWrites` e va applicato, altrimenti la schermata resterebbe vuota.
+  Il ramo di migrazione (`!snap.exists()`) scatta solo se `!fromCache`, per non sovrascrivere dati veri con quelli locali. Ogni scrittura è un `setDoc` dell'intero
+  documento: modifiche concorrenti offline da due dispositivi → vince l'ultima a sincronizzarsi.
+- Non funzionano offline: primo accesso/login (un utente già entrato resta dentro grazie alla persistenza di Auth), AI, notifiche, prima apertura dell'app.
+
 ## Hook con sync Firestore — pattern condiviso
 
 `useInventory`, `useMealTracker`, `useSavedRecipes`, `useSavedShopping` seguono tutti
@@ -252,7 +290,7 @@ lo stesso pattern (`useInventory.js` è il riferimento canonico):
 - Accettano `uid` come parametro.
 - Con uid: `onSnapshot` per real-time sync; ogni mutazione chiama `setDoc(ref, next)`.
 - Senza uid: solo localStorage (fallback / non loggati).
-- `!snap.metadata.hasPendingWrites` per evitare doppi render sui propri write.
+- `!snap.metadata.hasPendingWrites` per evitare doppi render sui propri write (tranne il primo snapshot: vedi «Uso offline»).
 - Migrazione `localStorage → Firestore` al primo login: se `!snap.exists()` fa
   `setDoc(ref, local)`.
 - `clearInventory()` svuota sia Firestore che localStorage.

@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app'
 import { getAuth } from 'firebase/auth'
-import { getFirestore } from 'firebase/firestore'
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore'
 import { getMessaging, isSupported } from 'firebase/messaging'
 import { MOCK_MODE } from './mock/mode.js'
 
@@ -17,7 +17,21 @@ const firebaseConfig = {
 // and nothing can reach the real project.
 const app = MOCK_MODE ? null : initializeApp(firebaseConfig)
 export const auth = MOCK_MODE ? null : getAuth(app)
-export const db = MOCK_MODE ? null : getFirestore(app)
+
+// Firestore keeps a copy of the documents in IndexedDB: the pantry, meals and lists stay
+// readable and editable offline, and queued writes are sent when the connection returns.
+// Multiple tabs share the one cache. Where IndexedDB is unavailable (some private
+// windows) the SDK would throw at the first use, so fall back to the memory cache.
+function createDb() {
+  try {
+    return initializeFirestore(app, {
+      localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+    })
+  } catch {
+    return getFirestore(app)
+  }
+}
+export const db = MOCK_MODE ? null : createDb()
 
 // Messaging is only available in browsers that support service workers
 export const messagingPromise = MOCK_MODE
