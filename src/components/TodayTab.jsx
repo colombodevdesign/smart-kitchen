@@ -20,14 +20,14 @@ function capitalize(s) {
 const MAX_ITEMS = 3
 const MAX_SEASONAL = 4
 
-export function TodayTab({ inventory, meals, detail, onOpenExpiring, onCloseDetail, onCook, onSeasonal, onPlan, onSavedRecipes, onProfile, onAdd }) {
+export function TodayTab({ inventory, meals, detail, onOpenExpiring, onCloseDetail, onCook, onSeasonal, onPlan, onSavedRecipes, onProfile, onAdd, unread = 0, onInbox }) {
   if (detail?.type === 'scadenze') {
     return <ExpiringList inventory={inventory} onBack={onCloseDetail} onCook={onCook} />
   }
-  return <Today inventory={inventory} meals={meals} onOpenExpiring={onOpenExpiring} onCook={onCook} onSeasonal={onSeasonal} onPlan={onPlan} onSavedRecipes={onSavedRecipes} onProfile={onProfile} onAdd={onAdd} />
+  return <Today inventory={inventory} meals={meals} onOpenExpiring={onOpenExpiring} onCook={onCook} onSeasonal={onSeasonal} onPlan={onPlan} onSavedRecipes={onSavedRecipes} onProfile={onProfile} onAdd={onAdd} unread={unread} onInbox={onInbox} />
 }
 
-function Today({ inventory, meals, onOpenExpiring, onCook, onSeasonal, onPlan, onSavedRecipes, onProfile, onAdd }) {
+function Today({ inventory, meals, onOpenExpiring, onCook, onSeasonal, onPlan, onSavedRecipes, onProfile, onAdd, unread, onInbox }) {
   const now = new Date()
   const [allSeasonal, setAllSeasonal] = useState(false)
   const dateLabel = capitalize(now.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' }))
@@ -45,9 +45,22 @@ function Today({ inventory, meals, onOpenExpiring, onCook, onSeasonal, onPlan, o
           <p className={styles.date}>{dateLabel}</p>
           <h1 className={styles.greeting}>{greeting(now.getHours())}</h1>
         </div>
-        <button type="button" className={styles.avatar} onClick={onProfile} aria-label="Profilo e impostazioni">
-          <Icon name="user" size={22} />
-        </button>
+        <div className={styles.headActions}>
+          {onInbox && (
+            <button
+              type="button"
+              className={`${styles.avatar} ${styles.bell}`}
+              onClick={onInbox}
+              aria-label={unread ? `Notifiche, ${unread} da leggere` : 'Notifiche'}
+            >
+              <Icon name="bell" size={22} />
+              {unread > 0 && <span className={styles.badge} aria-hidden="true">{unread > 99 ? '99+' : unread}</span>}
+            </button>
+          )}
+          <button type="button" className={styles.avatar} onClick={onProfile} aria-label="Profilo e impostazioni">
+            <Icon name="user" size={22} />
+          </button>
+        </div>
       </header>
 
       <div className={styles.grid}>

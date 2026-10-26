@@ -35,7 +35,7 @@ Stack: React 18 + Vite 5 + CSS Modules + Firebase (Auth, Firestore, Cloud Messag
 - **Aggiunta rapida** — a mano, a voce, da foto o PDF dello scontrino, da CSV; schermata di verifica prima di confermare
 - **Cucina** — ricette AI basate su dispensa e scadenze (con streaming), ricette salvate con «Hai X ingredienti su Y», pasti come registro e planner (pasti in programma con promemoria)
 - **Spesa** — lista della spesa e idee AI stagionali integrate con la dispensa
-- **Notifiche push** (Cloud Functions): avviso di scadenza con orario e anticipo a scelta, promemoria dei pasti in programma e «pianifica la cena»
+- **Notifiche push** (Cloud Functions): avviso di scadenza con orario e anticipo a scelta, promemoria dei pasti in programma e «pianifica la cena», con un centro notifiche nell'app (campanella su mobile, pannello su desktop)
 - **Scorciatoie da tastiera**, tema chiaro/scuro, PWA installabile
 - **Modalità demo** per le preview, senza login né Firebase
 

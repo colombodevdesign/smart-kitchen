@@ -8,7 +8,9 @@ Ordine di deploy consigliato: **Functions → client → regole**. Eccezione per
 (`meals` in `notificationPrefs`): le regole nuove accettano anche i documenti vecchi, quindi pubblicale
 **prima** del client, altrimenti salvare le impostazioni dei promemoria dà "Regole Firestore non aggiornate".
 `mealReminders/data` (pasti già ricordati) lo scrive e legge solo la Function: nessuna regola, il client non
-ci accede. Il vecchio doc `pushToken/data` (dispositivo
+ci accede. Anche il **centro notifiche** (`notifications/{id}`) va pubblicato **prima** del client: lo
+scrivono solo le Functions, il client legge i propri e aggiorna solo `readAt` (segna come letta); senza la
+regola la campanella resta vuota. Il vecchio doc `pushToken/data` (dispositivo
 singolo) non è più usato: la sua regola va tolta solo dopo il deploy del client, perché quello precedente lo
 scrive ancora. Il doc rimasto su Firestore si può cancellare a mano dalla Console.
 
@@ -71,6 +73,14 @@ service cloud.firestore {
       allow read: if isOwner(userId);
       allow create, update: if isOwner(userId) && isValidDevice(request.resource.data);
       allow delete: if isOwner(userId);
+    }
+
+    // Centro notifiche: scritto solo dalle Functions; il client segna come letta.
+    match /users/{userId}/notifications/{notificationId} {
+      allow read: if isOwner(userId);
+      allow update: if isOwner(userId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readAt'])
+        && request.resource.data.readAt is int;
     }
   }
 

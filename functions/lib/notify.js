@@ -15,6 +15,10 @@ const MAX_NAMES = 3
 const EXPIRY_TAG = 'sk-scadenze'
 const TEST_TAG = 'sk-test'
 
+// In-app history (users/{uid}/notifications), read by the app's notification centre.
+const INBOX_KEEP_MS = 30 * 24 * 3600 * 1000
+const INBOX_PURGE_BATCH = 20
+
 function dayLabel(offset) {
   if (offset === 0) return 'Oggi'
   if (offset === 1) return 'Domani'
@@ -142,12 +146,14 @@ async function loadTokens(db, uid, { includeStale = false, nowMs = Date.now() } 
   return entries
 }
 
-// The service worker reads `data.open` on click to open that view of the app.
-function toMessage(token, { title, body }, { tag, open } = {}) {
+// The service worker reads `data.open` on click to open that view of the app, and
+// `data.nid` (the notification centre entry) so the app can mark it read.
+function toMessage(token, { title, body }, { tag, open, nid } = {}) {
+  const data = { ...(open ? { open } : {}), ...(nid ? { nid } : {}) }
   return {
     token,
     notification: { title, body },
-    ...(open ? { data: { open } } : {}),
+    ...(Object.keys(data).length ? { data } : {}),
     webpush: { notification: { icon: '/icon-192.png', badge: '/icon-192.png', ...(tag ? { tag } : {}) } },
   }
 }
@@ -167,20 +173,64 @@ async function processExpiry({ db, uid, prefs, nowMs, send }) {
   if (groups.length === 0) { await markRan(); return { sent: 0, skipped: 'nothing-expiring' } }
 
   const message = buildMessage(groups)
-  const sent = await send(message, { tag: EXPIRY_TAG, open: 'scadenze' })
+  const sent = await send(message, { tag: EXPIRY_TAG, open: 'scadenze', type: 'scadenze' })
   await markRan()
   return { sent, message }
 }
 
+// One entry of the notification centre; returns its id (sent along with the push).
+async function recordNotification(db, uid, { type, title, body, open }, nowMs) {
+  const ref = db.collection(`users/${uid}/notifications`).doc()
+  await ref.set({ type, title, body: body ?? '', open: open ?? null, createdAt: nowMs, readAt: null })
+  return ref.id
+}
+
+async function purgeOldNotifications(db, uid, nowMs) {
+  const snap = await db.collection(`users/${uid}/notifications`)
+    .where('createdAt', '<', nowMs - INBOX_KEEP_MS).limit(INBOX_PURGE_BATCH).get()
+  await Promise.all(snap.docs.map(d => d.ref.delete().catch(() => {})))
+}
+
+// In-app only (no push): a device FCM no longer reaches.
+function deviceStaleNotice(label) {
+  return {
+    type: 'dispositivo',
+    title: `${label} non raggiungibile`,
+    body: 'Apri l’app lì per riattivare gli avvisi.',
+    open: 'impostazioni',
+  }
+}
+
 // Delivery to all of a user's active devices; tokens are loaded on the first push
 // of the tick and reused by the next ones (expiry summary, meal reminders).
+// With `opts.type` the message is also kept in the notification centre, even when
+// the user has no device to send it to.
 function userSender({ db, messaging, uid, nowMs }) {
   let entries
-  return async (message, opts) => {
+  let purged = false
+  return async (message, opts = {}) => {
+    const { type, ...pushOpts } = opts
+    let nid = null
+    if (type) {
+      nid = await recordNotification(db, uid, { type, ...message, open: opts.open }, nowMs).catch(e => {
+        console.error('notification centre write failed for user', uid, e)
+        return null
+      })
+      if (!purged) {
+        purged = true
+        await purgeOldNotifications(db, uid, nowMs).catch(() => {})
+      }
+    }
     entries ??= await loadTokens(db, uid, { nowMs })
     if (entries.length === 0) return 0
-    const res = await messaging.sendEach(entries.map(e => toMessage(e.token, message, opts)))
+    const res = await messaging.sendEach(entries.map(e => toMessage(e.token, message, { ...pushOpts, nid })))
     const results = await applyResults(entries, res.responses, nowMs)
+    // A device that just stopped answering gets a note in the notification centre.
+    for (let i = 0; i < entries.length; i++) {
+      if (results[i]?.status === 'stale' && !entries[i].staleSince) {
+        await recordNotification(db, uid, deviceStaleNotice(entries[i].label), nowMs).catch(() => {})
+      }
+    }
     // Tokens just marked stale are not tried again in this tick.
     const ok = new Set(results.filter(r => r.status !== 'stale').map(r => r.deviceId))
     entries = entries.filter(e => ok.has(e.id))
@@ -240,5 +290,5 @@ async function sendTest({ db, messaging, uid, nowMs = Date.now() }) {
 }
 
 module.exports = {
-  collectExpiring, estimatedOffset, buildMessage, nameList, loadTokens, toMessage, processExpiry, processUser, runTick, sendTest,
+  collectExpiring, estimatedOffset, buildMessage, nameList, loadTokens, toMessage, recordNotification, processExpiry, processUser, runTick, sendTest,
 }

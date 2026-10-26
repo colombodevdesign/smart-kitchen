@@ -5,7 +5,7 @@ importScripts('https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js
 importScripts('https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js')
 
 // Views the app can open from a notification (`data.open` in the message).
-const OPEN_TARGETS = ['scadenze', 'pasti']
+const OPEN_TARGETS = ['scadenze', 'pasti', 'impostazioni']
 
 // Registered before firebase.messaging(), so it runs ahead of the SDK's own click
 // handler (which would open a new window) and stops it. A tap focuses the app if it
@@ -15,13 +15,16 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close()
   const data = event.notification.data ?? {}
   const open = data.FCM_MSG?.data?.open ?? data.open
+  // Notification centre entry, marked read by the app.
+  const nid = data.FCM_MSG?.data?.nid ?? data.nid ?? null
   const target = OPEN_TARGETS.includes(open) ? open : null
-  const url = new URL(target ? `./?apri=${target}` : './', self.registration.scope).href
+  const query = target ? `?apri=${target}${nid ? `&n=${encodeURIComponent(nid)}` : ''}` : ''
+  const url = new URL(`./${query}`, self.registration.scope).href
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
       for (const client of list) {
         if (client.url.startsWith(self.registration.scope) && 'focus' in client) {
-          if (target) client.postMessage({ type: 'sk-open', open: target })
+          if (target) client.postMessage({ type: 'sk-open', open: target, nid })
           return client.focus()
         }
       }

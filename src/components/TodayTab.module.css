@@ -34,6 +34,30 @@
   border-radius: 50%;
 }
 
+/* Bell (notification centre) next to the profile; on desktop the sidebar has it. */
+.headActions { flex: none; display: flex; align-items: center; gap: 8px; }
+.bell { position: relative; }
+.badge {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+  color: var(--highlight-ink);
+  background: var(--highlight);
+  border: 2px solid var(--bg);
+  border-radius: 10px;
+  box-sizing: content-box;
+}
+@media (min-width: 1024px) {
+  .bell { display: none; }
+}
+
 .grid {
   display: flex;
   flex-direction: column;

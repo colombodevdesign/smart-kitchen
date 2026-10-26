@@ -20,6 +20,7 @@ export const SHORTCUT_GROUPS = [
   {
     title: 'Generale',
     items: [
+      { keys: ['B'], label: 'Apri o chiudi le notifiche' },
       { keys: ['?'], label: 'Mostra le scorciatoie' },
       { keys: ['Esc'], label: 'Chiudi finestra, ricerca o dettaglio; riduci la sezione espansa' },
     ],

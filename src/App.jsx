@@ -9,6 +9,8 @@ import { useMealTracker } from './hooks/useMealTracker.js'
 import { useMealPrefs } from './hooks/useMealPrefs.js'
 import { useApiKeySync } from './hooks/useApiKeySync.js'
 import { useNavigation } from './hooks/useNavigation.js'
+import { useNotificationInbox } from './hooks/useNotificationInbox.js'
+import { useMediaQuery } from './hooks/useMediaQuery.js'
 import { useOnline } from './hooks/useOnline.js'
 import { LoginScreen } from './components/LoginScreen.jsx'
 import { TodayTab } from './components/TodayTab.jsx'
@@ -20,6 +22,8 @@ import { Sidebar } from './components/Sidebar.jsx'
 import { BottomNav } from './components/BottomNav.jsx'
 import { AddFlow } from './components/AddFlow.jsx'
 import { SeasonalRecipesModal } from './components/SeasonalRecipesModal.jsx'
+import { NotificationInbox } from './components/NotificationInbox.jsx'
+import { NotificationPanel } from './components/NotificationPanel.jsx'
 import { useToast } from './components/ui/Toast.jsx'
 import { useForegroundPush, useNotificationOpen } from './hooks/useNotifications.js'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts.js'
@@ -38,6 +42,14 @@ export default function App() {
   const toast = useToast()
   const online = useOnline()
   const mainRef = useRef(null)
+  const isDesktop = useMediaQuery('(min-width: 1024px)')
+
+  // undefined = auth still resolving, null = logged out, string = uid
+  const authUid = user === undefined ? undefined : (user?.uid ?? null)
+
+  // Notification centre: page on mobile (detail of Oggi), panel off the sidebar on desktop.
+  const inbox = useNotificationInbox(authUid)
+  const [panelOpen, setPanelOpen] = useState(false)
 
   // "In scadenza": from Oggi, the daily notification and its foreground toast.
   const showingExpiring = nav.tab === 'oggi' && nav.detail?.type === 'scadenze'
@@ -48,18 +60,34 @@ export default function App() {
     }
     if (mainRef.current) mainRef.current.scrollTop = 0
   }, [showingExpiring, nav.go, nav.openDetail])
-  const openFromNotification = useCallback((target) => {
+  const openNotificationSettings = useCallback(() => {
+    setPanelOpen(false)
+    nav.go('tu')
+    nav.openDetail({ type: 'notifiche' })
+  }, [nav.go, nav.openDetail])
+  // A view of the app named by a push or a notification centre entry (`open`);
+  // `nid` is that entry, marked read.
+  const openFromNotification = useCallback((target, nid) => {
+    if (nid) inbox.markRead(nid)
     if (target === 'scadenze') openExpiring()
     else if (target === 'pasti') {
       nav.go('cucina', 'pasti')
       if (mainRef.current) mainRef.current.scrollTop = 0
-    }
-  }, [openExpiring, nav.go])
+    } else if (target === 'impostazioni') openNotificationSettings()
+  }, [openExpiring, openNotificationSettings, nav.go, inbox.markRead])
+  const openNotificationEntry = useCallback((entry) => {
+    setPanelOpen(false)
+    openFromNotification(entry.open, entry.id)
+  }, [openFromNotification])
+  const openNotifications = useCallback(() => {
+    if (isDesktop) { setPanelOpen(o => !o); return }
+    if (nav.tab === 'oggi' && nav.detail?.type === 'inbox') return
+    nav.go('oggi')
+    nav.openDetail({ type: 'inbox' })
+    if (mainRef.current) mainRef.current.scrollTop = 0
+  }, [isDesktop, nav.tab, nav.detail, nav.go, nav.openDetail])
   useForegroundPush(!!user && !MOCK_MODE, openFromNotification)
   useNotificationOpen(!!user && !MOCK_MODE, openFromNotification)
-
-  // undefined = auth still resolving, null = logged out, string = uid
-  const authUid = user === undefined ? undefined : (user?.uid ?? null)
 
   const {
     inventory,
@@ -165,6 +193,7 @@ export default function App() {
     p: () => { nav.go('cucina', 'pasti'); setMealRequested(true) },
     '\\': () => { handleTabChange('dispensa'); setPantrySearch(true) },
     '?': () => setHelpOpen(true),
+    b: openNotifications,
     Escape: () => { if (nav.detail) nav.closeDetail() },
   }, !!user)
 
@@ -212,7 +241,21 @@ export default function App() {
           onTabChange={handleTabChange}
           onAdd={() => openAddHere('sheet')}
           onShortcuts={() => setHelpOpen(true)}
+          unread={inbox.unread}
+          notificationsOpen={panelOpen}
+          onNotifications={() => setPanelOpen(o => !o)}
         />
+        {isDesktop && (
+          <NotificationPanel
+            open={panelOpen}
+            onClose={() => setPanelOpen(false)}
+            user={user}
+            inbox={inbox}
+            onOpen={openNotificationEntry}
+            onCook={(entry) => { inbox.markRead(entry.id); setPanelOpen(false); handleCook() }}
+            onSettings={openNotificationSettings}
+          />
+        )}
 
         <main ref={mainRef} className={styles.main}>
           {MOCK_MODE && <MockBanner />}
@@ -220,7 +263,17 @@ export default function App() {
 
           {/* No box of its own: only carries the direction of the last navigation for the entrance animation (App.module.css). */}
           <div className={styles.page} data-motion={nav.motion}>
-          {nav.tab === 'oggi' && (
+          {nav.tab === 'oggi' && nav.detail?.type === 'inbox' && (
+            <NotificationInbox
+              user={user}
+              inbox={inbox}
+              onBack={nav.closeDetail}
+              onOpen={openNotificationEntry}
+              onCook={(entry) => { inbox.markRead(entry.id); handleCook() }}
+              onSettings={openNotificationSettings}
+            />
+          )}
+          {nav.tab === 'oggi' && nav.detail?.type !== 'inbox' && (
             <TodayTab
               inventory={inventory}
               meals={mealTracker.meals}
@@ -233,6 +286,8 @@ export default function App() {
               onSavedRecipes={() => nav.go('cucina', 'salvate')}
               onProfile={() => nav.go('tu')}
               onAdd={() => openAdd('sheet')}
+              unread={inbox.unread}
+              onInbox={openNotifications}
             />
           )}
 

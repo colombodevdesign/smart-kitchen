@@ -6,7 +6,7 @@ import styles from './Sidebar.module.css'
 
 const PAGE_DELAY_MS = 120
 
-export function Sidebar({ activeTab, onTabChange, onAdd, onShortcuts }) {
+export function Sidebar({ activeTab, onTabChange, onAdd, onShortcuts, unread = 0, notificationsOpen = false, onNotifications }) {
   const [shownTab, setShownTab] = useOptimisticValue(activeTab)
   // The highlight moves on the tap; the page changes a beat later, so the heavy render doesn't land mid-slide.
   const timer = useRef(0)
@@ -38,6 +38,22 @@ export function Sidebar({ activeTab, onTabChange, onAdd, onShortcuts }) {
         ))}
       </nav>
       <div className={styles.footer}>
+        {onNotifications && (
+          <button
+            type="button"
+            className={`${styles.notif} ${notificationsOpen ? styles.notifOpen : ''}`}
+            onClick={onNotifications}
+            aria-haspopup="dialog"
+            aria-expanded={notificationsOpen}
+            aria-keyshortcuts="b"
+            aria-label={unread ? `Notifiche, ${unread} da leggere` : 'Notifiche'}
+            data-notif-trigger
+          >
+            <Icon name="bell" size={22} />
+            <span className={styles.notifLabel}>Notifiche</span>
+            {unread > 0 && <span className={styles.badge} aria-hidden="true">{unread > 99 ? '99+' : unread}</span>}
+          </button>
+        )}
         {onShortcuts && (
           <button type="button" className={styles.help} onClick={onShortcuts} aria-keyshortcuts="?">
             Scorciatoie da tastiera
