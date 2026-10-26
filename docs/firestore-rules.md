@@ -1,10 +1,16 @@
 # Regole Firestore
 
-Le regole si applicano a mano da Firebase Console → Firestore Database → Rules (nel repo non c'è
-`firestore.rules`). **Vanno pubblicate prima di deployare le Functions e il client**: senza le regole per
-`notificationPrefs` e `pushTokens` le notifiche mostrano "Regole Firestore non aggiornate".
+Il testo delle regole è in [`firestore.rules`](../firestore.rules), alla radice del repo: è l'unica fonte. Il workflow
+[`.github/workflows/firebase.yml`](../.github/workflows/firebase.yml) le pubblica da solo quando un merge su `master`
+cambia quel file, **prima** delle Functions; il client lo pubblica Vercel nello stesso momento (le regole impiegano circa
+30 secondi, meno della build). Setup una tantum e avvio manuale: [`docs/deploy.md`](deploy.md).
 
-Ordine di deploy consigliato: **Functions → client → regole**. Eccezione per i **promemoria dei pasti**
+Ripiego manuale: `firebase deploy --only firestore:rules`, oppure Firebase Console → Firestore Database → Rules →
+incolla il contenuto di `firestore.rules` → Publish.
+
+## Compatibilità e ordine
+
+Con il deploy manuale l'ordine è **Functions → client → regole**. Eccezione per i **promemoria dei pasti**
 (`meals` in `notificationPrefs`): le regole nuove accettano anche i documenti vecchi, quindi pubblicale
 **prima** del client, altrimenti salvare le impostazioni dei promemoria dà "Regole Firestore non aggiornate".
 `mealReminders/data` (pasti già ricordati) lo scrive e legge solo la Function: nessuna regola, il client non
@@ -14,123 +20,8 @@ regola la campanella resta vuota. Il vecchio doc `pushToken/data` (dispositivo
 singolo) non è più usato: la sua regola va tolta solo dopo il deploy del client, perché quello precedente lo
 scrive ancora. Il doc rimasto su Firestore si può cancellare a mano dalla Console.
 
-```
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-
-    function isOwner(userId) {
-      return request.auth != null && request.auth.uid == userId;
-    }
-
-    match /{document=**} {
-      allow read, write: if false;
-    }
-
-    match /users/{userId}/inventory/data {
-      allow read: if isOwner(userId);
-      allow write: if isOwner(userId) && isValidInventory(request.resource.data);
-    }
-
-    match /users/{userId}/meals/data {
-      allow read: if isOwner(userId);
-      allow write: if isOwner(userId) && request.resource.data is map;
-    }
-
-    match /users/{userId}/savedRecipes/data {
-      allow read: if isOwner(userId);
-      allow write: if isOwner(userId)
-                   && request.resource.data.keys().hasAll(['items'])
-                   && request.resource.data.items is list;
-    }
-
-    match /users/{userId}/savedShopping/data {
-      allow read: if isOwner(userId);
-      allow write: if isOwner(userId)
-                   && request.resource.data.keys().hasAll(['items'])
-                   && request.resource.data.items is list;
-    }
-
-    // Chiave API Gemini dell'utente. La rimozione è `apiKey: ''` (il doc resta),
-    // così "doc assente" significa ancora "primo accesso: carica la chiave locale".
-    match /users/{userId}/settings/gemini {
-      allow read: if isOwner(userId);
-      allow write: if isOwner(userId) && isValidGeminiKey(request.resource.data);
-    }
-
-    // Preferenze di notifica. Lettura e scrittura sono regole separate:
-    // in lettura request.resource non esiste.
-    // `lastRunDay` lo scrive la Function (Admin SDK), ma il client salva con
-    // merge e quindi lo rimanda: deve essere ammesso tra le chiavi.
-    match /users/{userId}/notificationPrefs/data {
-      allow read: if isOwner(userId);
-      allow write: if isOwner(userId) && isValidPrefs(request.resource.data);
-    }
-
-    // Un documento per dispositivo. Il client scrive solo token "attivi":
-    // `stale` lo imposta la Function (Admin SDK, che ignora le regole).
-    match /users/{userId}/pushTokens/{deviceId} {
-      allow read: if isOwner(userId);
-      allow create, update: if isOwner(userId) && isValidDevice(request.resource.data);
-      allow delete: if isOwner(userId);
-    }
-
-    // Centro notifiche: scritto solo dalle Functions; il client segna come letta.
-    match /users/{userId}/notifications/{notificationId} {
-      allow read: if isOwner(userId);
-      allow update: if isOwner(userId)
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readAt'])
-        && request.resource.data.readAt is int;
-    }
-  }
-
-  function isValidInventory(data) {
-    return data.keys().hasAll(['credenza', 'frigo', 'freezer'])
-        && data.credenza is list
-        && data.frigo    is list
-        && data.freezer  is list;
-  }
-
-  function isValidGeminiKey(data) {
-    return data.keys().hasOnly(['apiKey', 'updatedAt'])
-        && data.get('apiKey', '') is string
-        && data.get('apiKey', '').size() <= 200;
-  }
-
-  function isValidPrefs(data) {
-    return data.keys().hasOnly(['enabled', 'hour', 'minute', 'tz', 'daysBefore', 'updatedAt', 'lastRunDay', 'meals'])
-        && data.get('enabled', false) is bool
-        && data.get('hour', 9) is int
-        && data.get('hour', 9) >= 0 && data.get('hour', 9) <= 23
-        && data.get('minute', 0) in [0, 15, 30, 45]
-        && data.get('tz', 'Europe/Rome') is string
-        && data.get('daysBefore', [1]) is list
-        && data.get('daysBefore', [1]).size() <= 8
-        && isValidMealPrefs(data.get('meals', {}));
-  }
-
-  // Promemoria dei pasti (notificationPrefs/data.meals).
-  function isValidMealPrefs(meals) {
-    return meals is map
-        && meals.keys().hasOnly(['enabled', 'lead', 'times', 'dinnerNudge'])
-        && meals.get('enabled', false) is bool
-        && meals.get('lead', '30') in ['30', '60', 'am', 'at']
-        && meals.get('times', {}) is map
-        && meals.get('times', {}).keys().hasOnly(['colazione', 'pranzo', 'cena', 'spuntino'])
-        && meals.get('dinnerNudge', false) is bool;
-  }
-
-  function isValidDevice(data) {
-    return data.token is string
-        && data.token.size() > 0
-        && data.get('status', 'active') == 'active'
-        && data.get('label', '').size() <= 80;
-  }
-}
-```
-
 Ogni utente legge e scrive solo i propri documenti `/users/{uid}/...`. Le regole non si possono provare
-senza l'emulatore: dopo averle pubblicate, apri **Tu → Avvisi di scadenza** e attiva/disattiva gli avvisi
+senza l'emulatore: dopo averle pubblicate, apri **Tu → Notifiche** e attiva/disattiva gli avvisi
 (deve funzionare senza errori), poi usa "Invia notifica di prova". Per la chiave Gemini: salva una chiave in
 **Tu → Chiave API Gemini** (il toast deve dire "nel tuo account"; se dice "solo su questo dispositivo" le regole
 non sono ancora pubblicate).

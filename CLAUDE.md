@@ -92,9 +92,14 @@ functions/
   lib/notify.js             # raggruppamento messaggi, invio, token stale (funzioni pure con db/messaging iniettati)
   lib/meals.js              # promemoria dei pasti in programma e «pianifica la cena» delle 17:00 (puro)
   test/meals.test.js        # `cd functions && npm test` (node --test): finestre, fusi, cambio d'ora, invio con fake
+firestore.rules             # regole Firestore (unica fonte), pubblicate dal workflow
+firebase.json, .firebaserc  # progetto smart-kitchen-822db: firestore.rules, functions (predeploy = test); hosting non usato (client su Vercel)
+scripts/check-firestore-rules.mjs  # dentro l'emulatore: fallisce se firestore.rules non compila
+.github/workflows/firebase.yml     # PR: test Functions + regole; merge su master: deploy regole → Functions (Workload Identity)
 docs/
   design-brief.md, ui-implementation-notes.md   # design e note di implementazione
-  firestore-rules.md                            # regole Firestore da applicare a mano
+  firestore-rules.md                            # note sulle regole (compatibilità, ordine)
+  deploy.md                                     # chi pubblica cosa, setup una tantum di Workload Identity, ripiego manuale
 ```
 
 ## Modalità demo (deploy non di produzione)
@@ -464,8 +469,9 @@ arrivano da `data-s` / `data-cat`. `[hidden]` è forzato a `display: none`. Brea
 
 ## Firestore Security Rules
 
-Il testo completo delle regole è in `docs/firestore-rules.md` (nessun `firestore.rules` nel repo:
-applicarle a mano dalla Console dopo ogni modifica). Ogni utente legge e scrive solo i propri documenti;
+Il testo delle regole è in `firestore.rules` (note in `docs/firestore-rules.md`). Sulle PR il workflow `firebase.yml` controlla che
+compilino (emulatore Firestore + `scripts/check-firestore-rules.mjs`); al merge su `master` le pubblica da solo, prima delle Functions
+(setup e ripiego manuale in `docs/deploy.md`). Ogni utente legge e scrive solo i propri documenti;
 `notificationPrefs` ha regole di lettura e scrittura separate con validazione dei campi, `pushTokens`
 accetta solo token `active` dal client (`stale` lo imposta la Function).
 
@@ -536,11 +542,10 @@ fuoco l'app e le manda `sk-open`, oppure la apre su `/?apri=<vista>`.
 1. Firebase Console → Cloud Messaging → **Web Push certificates** → copiare la chiave in `.env` come
    `VITE_FIREBASE_VAPID_KEY`.
 2. Piano **Blaze** (Cloud Functions schedulate). 96 esecuzioni al giorno: ricontrollare il free tier.
-3. `cd functions && npm install && cd .. && firebase deploy --only functions` (aggiorna il job esistente
-   `sendExpiryNotifications` e la callable `sendTestNotification`).
-4. Poi deploy del client, poi le regole di `docs/firestore-rules.md`. Ordine: **Functions → client → regole**
-   (per i promemoria dei pasti le regole vanno pubblicate prima del client: vedi `docs/firestore-rules.md`).
-5. iOS: le push web funzionano solo con la PWA aggiunta alla Home (iOS 16.4+).
+3. Workload Identity per il workflow GitHub (`docs/deploy.md`): da lì in poi regole e Functions si pubblicano da sole al
+   merge su `master` (regole → Functions), il client lo pubblica Vercel. Il deploy manuale resta come ripiego
+   (`firebase deploy --only firestore:rules` / `--only functions`, che prima esegue i test).
+4. iOS: le push web funzionano solo con la PWA aggiunta alla Home (iOS 16.4+).
 
 ## Branch di sviluppo
 
