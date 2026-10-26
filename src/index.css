@@ -42,6 +42,8 @@
   --hero: #1E5A43;               /* hero card, same in both themes */
   --on-hero: #FFFFFF;
   --on-hero-muted: #CFE3D8;
+  --brand-cream: #F0F3EE;        /* logo colours (splash animation), same in both themes */
+  --brand-yellow: #EDB83A;
   --hero-art: #2E7A5C;            /* login illustration */
   --hero-line: color-mix(in srgb, var(--on-hero) 18%, transparent);
   --hero-fill: color-mix(in srgb, var(--on-hero) 16%, transparent);
@@ -102,6 +104,7 @@
   --z-modal: 1000;
   --z-toast: 1100;
   --z-popover: 1200;
+  --z-splash: 2000;
 }
 
 @media (max-width: 600px) {

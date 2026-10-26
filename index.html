@@ -14,6 +14,10 @@
     <meta name="apple-mobile-web-app-title" content="Smart Kitchen" />
     <link rel="preload" href="/fonts/dm-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/bricolage-grotesque-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <style>
+      /* Splash di avvio: sfondo verde dal primo paint (la rimuove utils/splash.js) */
+      html.splash-boot, html.splash-boot body { background: #1E5A43; }
+    </style>
     <!-- Resolve the theme before first paint (same logic as src/utils/theme.js). -->
     <script>
       (function () {
@@ -25,6 +29,17 @@
           r.setAttribute('data-theme', t);
           r.style.colorScheme = t;
           document.querySelector('meta[name="theme-color"]').setAttribute('content', dark ? '#101A14' : '#F3F5F0');
+        } catch (e) {}
+      })();
+    </script>
+    <!-- Same rule as src/utils/splash.js shouldShowSplash(). -->
+    <script>
+      (function () {
+        try {
+          var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+          if (!reduce && sessionStorage.getItem('sk-splash-seen') !== '1') {
+            document.documentElement.classList.add('splash-boot');
+          }
         } catch (e) {}
       })();
     </script>

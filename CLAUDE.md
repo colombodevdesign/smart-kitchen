@@ -62,10 +62,11 @@ src/
     useCollapsedGroups.js   # gruppi ripiegati di "Per categoria", ricordati in localStorage
     useMediaQuery.js
   components/
-    ui/                     # Icon, GroupHeader, Segmented, StatusBadge, Chip, EmptyState, Toast(+useToast), PageHeader, OfflineBanner, RecipeCard
+    ui/                     # Icon, GroupHeader, Segmented, StatusBadge, Chip, EmptyState, Toast(+useToast), PageHeader, OfflineBanner, RecipeCard,
+                            #   LogoMorph (+ logoMorphData.js generato: contorni tracciati dal logo)
     TodayTab, ExpiringList, SeasonalRecipesModal, PantryTab, PantryColumns, PantryComposer, ItemRow, CucinaTab, AITab, SavedRecipesTab, RecipeDetail, MealTrackerTab,
     SpesaTab, SavedShoppingTab, PantrySuggestionsModal, TuTab, ProfileTab, NotificationSettings,
-    AddFlow, AddSheet, VoiceBatchModal, ReceiptScanModal, BatchReview, ShortcutsHelp,
+    SplashScreen, AddFlow, AddSheet, VoiceBatchModal, ReceiptScanModal, BatchReview, ShortcutsHelp,
     MealFormModal, MealDetailSheet, MealReminderSettings, Modal, BottomNav, Sidebar, LoginScreen
   data/
     initialInventory.js     # SECTIONS, SECTION_LABELS
@@ -76,6 +77,8 @@ src/
   utils/
     date.js                 # SOON_DAYS, daysUntil (giorni di calendario), toDateStr, formatExpiry, expiryStatus
     pantry.js               # estimateRemaining, priorityInfo/comparePriority, itemBadge, getUseSoonItems, getPantryCandidates
+    logoMorph.js            # coreografia della splash: logoFrame(t) puro (pose, morph forchetta→S e coltello→K, scintille)
+    splash.js               # shouldShowSplash/endSplash: una volta per sessione, mai con «riduci movimento»
     markdown.js             # md(): escape HTML poi #/##→h3, ###→h4, **bold**, liste
     parsers.js              # parseRecipes (split su "## "), parseShoppingItems, extractQty
     ingredientMatch.js      # "Hai X ingredienti su Y": matching per radici (puro)
@@ -175,6 +178,22 @@ pagina è disegnata sotto la status bar, `black-translucent`): il logo compare s
 disattivabile): solo con `display-mode: standalone` `.main` ha 16px di padding in più in alto per stare fuori
 dalla fascia (in una scheda del browser non serve). I toast
 (`ui/Toast`) stanno in alto, sotto la safe area, così non si sovrappongono a FAB e nav.
+
+## Animazione di avvio
+
+`SplashScreen` (in `App`, sopra tutto: `--z-splash`) mostra forchetta e coltello che oscillano uno verso l'altro, si toccano due volte
+(scintille, rimbalzo) e si trasformano nel logo SK (`ui/LogoMorph`). Resta finché il logo è formato (`FORMED_AT`, 2,75 s) **e** Firebase ha
+risolto l'auth (`App` → `AppContent.onAuthResolved`), poi sfuma in 0,36 s. Si vede solo al primo caricamento della sessione
+(`sessionStorage` `sk-splash-seen`: un ricarico nella stessa scheda non la ripete, un avvio a freddo della PWA sì) e mai con
+`prefers-reduced-motion`. `index.html` mette `html.splash-boot` (sfondo verde dal primo paint, evita il lampo chiaro); la regola è
+duplicata in `utils/splash.js`: cambiarle insieme. In demo mode parte come in produzione.
+- `utils/logoMorph.js` è puro: `logoFrame(t)` restituisce trasformazioni, `d` dei path e scintille dell'istante t; `LogoMorph` li applica con
+  `setAttribute` in un loop `requestAnimationFrame` (nessun render React per frame). Il morph è un'interpolazione punto per punto: funziona anche
+  su Safari (le animazioni CSS del path `d` no).
+- `ui/logoMorphData.js` è **generato**: contorni tracciati da `public/icon-512.png` (potrace su maschere crema/giallo) e ricampionati con punti
+  di riferimento (rebbi, bordi, estremità) così forchetta→S e coltello→K non si attorcigliano; contiene anche la posa «in piedi» e l'angolo di
+  contatto calcolato dalla geometria. Se cambia il logo vanno rigenerati. Colori: token `--brand-cream`, `--brand-yellow`, sfondo `--hero`
+  (uguali nei due temi). Per ritoccare la coreografia basta `utils/logoMorph.js` (`TILT`, `MORPH_START`, `SPARK_HITS`).
 
 ## Firebase — configurazione
 
