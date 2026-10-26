@@ -25,10 +25,16 @@ export function useMealTracker(uid) {
       return
     }
     const ref = firestoreRef(uid)
+    // Pending-write snapshots are skipped once the state is loaded (see below)
+    let loaded = false
     const unsub = onSnapshot(ref, (snap) => {
       if (snap.exists()) {
-        if (!snap.metadata.hasPendingWrites) setMeals(snap.data())
+        if (!snap.metadata.hasPendingWrites || !loaded) {
+          loaded = true
+          setMeals(snap.data())
+        }
       } else if (!snap.metadata.fromCache) {
+        loaded = true
         const local = loadFromLocalStorage()
         setDoc(ref, local).catch(console.error)
         setMeals(local)

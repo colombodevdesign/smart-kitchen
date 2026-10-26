@@ -54,14 +54,19 @@ export function useInventory(uid) {
       return
     }
     const ref = firestoreRef(uid)
+    // Pending-write snapshots are skipped once the state is loaded (see below)
+    let loaded = false
     const unsub = onSnapshot(ref, (snap) => {
       if (snap.exists()) {
-        // Skip snapshots caused by our own pending writes to avoid double-renders
-        if (!snap.metadata.hasPendingWrites) {
+        // Skip snapshots caused by our own pending writes to avoid double-renders, except
+        // the first one: after a reload with edits still queued offline it is all we have.
+        if (!snap.metadata.hasPendingWrites || !loaded) {
+          loaded = true
           setInventory(snap.data())
         }
       } else if (!snap.metadata.fromCache) {
         // Confirmed by the server (not a cache-miss/offline false negative): first login, migrate localStorage data to Firestore
+        loaded = true
         const local = loadFromLocalStorage()
         setDoc(ref, local)
         setInventory(local)
