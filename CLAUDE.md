@@ -27,6 +27,7 @@ index.html                  # script inline che applica il tema prima del primo 
 public/
   fonts/                    # Bricolage Grotesque + DM Sans (variabili, latin, self-hosted) + licenze
   manifest.json, icon-*.png # PWA: monogramma SK con forchetta/coltello, S crema + K giallo su verde #1E5A43
+  splash/                   # schermate di lancio iOS (apple-touch-startup-image): verde #1E5A43 a tinta unita
 src/
   main.jsx                  # entry: ToastProvider + watchSystemTheme + registrazione del service worker (solo build di produzione)
   mock/                     # modalità demo: mode.js (flag di build), data.js (utente finto, dati di esempio, seed/reset)
@@ -183,10 +184,17 @@ dalla fascia (in una scheda del browser non serve). I toast
 
 `SplashScreen` (in `App`, sopra tutto: `--z-splash`) mostra forchetta e coltello che oscillano uno verso l'altro, si toccano due volte
 (scintille, rimbalzo) e si trasformano nel logo SK (`ui/LogoMorph`). Resta finché il logo è formato (`FORMED_AT`, 2,75 s) **e** Firebase ha
-risolto l'auth (`App` → `AppContent.onAuthResolved`), poi sfuma in 0,36 s. Si vede solo al primo caricamento della sessione
+risolto l'auth (`App` → `AppContent.onAuthResolved`), poi esce in 640 ms (`LEAVE_MS`): il logo si stringe un attimo, si ingrandisce
+verso chi guarda e sparisce (entro ~320 ms), **poi** il verde sfuma, così logo e pagina non si sovrappongono; intanto la pagina entra
+con `data-motion="reveal"` su `.page` (fade + zoom da 0,97 con ritardo, `revealing` in `App` per `REVEAL_MS`). All'**inizio** dell'uscita
+`endSplash()` toglie `html.splash-boot` e ripristina il theme-color: se lo facesse alla fine, la pagina si vedrebbe su sfondo verde e
+scatterebbe al chiaro. Si vede solo al primo caricamento della sessione
 (`sessionStorage` `sk-splash-seen`: un ricarico nella stessa scheda non la ripete, un avvio a freddo della PWA sì) e mai con
-`prefers-reduced-motion`. `index.html` mette `html.splash-boot` (sfondo verde dal primo paint, evita il lampo chiaro); la regola è
-duplicata in `utils/splash.js`: cambiarle insieme. In demo mode parte come in produzione.
+`prefers-reduced-motion`. `index.html` mette `html.splash-boot` (sfondo verde dal primo paint, evita il lampo chiaro) e il theme-color
+verde; la regola è duplicata in `utils/splash.js`: cambiarle insieme. In demo mode parte come in produzione.
+- Prima della splash: su iOS la schermata di lancio della PWA sono le `apple-touch-startup-image` di `index.html` (`public/splash/`,
+  PNG verdi a tinta unita da 1 bit, una per dimensione di iPhone: senza, iOS mostra nero e poi dissolve nel verde); su Android
+  `background_color` del manifest è lo stesso verde. Un iPhone con dimensioni nuove va aggiunto lì (altrimenti ricade sul nero).
 - `utils/logoMorph.js` è puro: `logoFrame(t)` restituisce trasformazioni, `d` dei path e scintille dell'istante t; `LogoMorph` li applica con
   `setAttribute` in un loop `requestAnimationFrame` (nessun render React per frame). Il morph è un'interpolazione punto per punto: funziona anche
   su Safari (le animazioni CSS del path `d` no).

@@ -92,6 +92,12 @@
   animation: pageFade 0.3s ease-out 0.08s backwards;
 }
 
+/* Splash exit (SplashScreen): the page moves forward like the zooming logo while the green
+   fades. Delayed so it moves while it is visible. Never scale above 1: .main would overflow. */
+.page[data-motion='reveal'] { --from-scale: 0.97; --dur: 0.6s; }
+.page[data-motion='reveal'] > * > :not([data-fixed], [data-view]) { animation-delay: 0.2s; }
+.page[data-motion='reveal'] [data-fixed] { animation-delay: 0.4s; }
+
 @keyframes pageIn {
   from { opacity: 0; transform: scale(var(--from-scale)); }
 }
