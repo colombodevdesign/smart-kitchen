@@ -41,12 +41,16 @@ export function useSavedShopping(uid) {
       return
     }
     const ref = firestoreRef(uid)
+    // Pending-write snapshots are skipped once the state is loaded (see below)
+    let loaded = false
     const unsub = onSnapshot(ref, (snap) => {
       if (snap.exists()) {
-        if (!snap.metadata.hasPendingWrites) {
+        if (!snap.metadata.hasPendingWrites || !loaded) {
+          loaded = true
           setItems((snap.data().items ?? []).map(normalizeItem))
         }
       } else if (!snap.metadata.fromCache) {
+        loaded = true
         const local = loadFromLocalStorage()
         setDoc(ref, { items: local }).catch(console.error)
         setItems(local)

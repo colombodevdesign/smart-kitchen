@@ -26,10 +26,16 @@ export function useSavedRecipes(uid) {
       return
     }
     const ref = firestoreRef(uid)
+    // Pending-write snapshots are skipped once the state is loaded (see below)
+    let loaded = false
     const unsub = onSnapshot(ref, (snap) => {
       if (snap.exists()) {
-        if (!snap.metadata.hasPendingWrites) setRecipes(snap.data().items ?? [])
+        if (!snap.metadata.hasPendingWrites || !loaded) {
+          loaded = true
+          setRecipes(snap.data().items ?? [])
+        }
       } else if (!snap.metadata.fromCache) {
+        loaded = true
         const local = loadFromLocalStorage()
         setDoc(ref, { items: local }).catch(console.error)
         setRecipes(local)

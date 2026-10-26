@@ -12,6 +12,14 @@ import './index.css'
 // it in sync with the OS while the preference is "Sistema".
 watchSystemTheme()
 
+// Offline support: the worker precaches the app shell (see firebase-messaging-sw.template.js).
+// It is the same worker that handles push, so notifications reuse this registration.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/firebase-messaging-sw.js', { scope: '/' }).catch(() => {})
+  })
+}
+
 // Demo mode (non-production deploys): sample data in place of the Google login.
 if (MOCK_MODE) seedMockData()
 
