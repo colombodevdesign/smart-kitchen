@@ -110,20 +110,43 @@ function fakes(docs) {
     set: async (data, opts) => { store[path] = opts?.merge ? { ...(store[path] ?? {}), ...data } : data },
     delete: async () => { delete store[path] },
   })
+  let autoId = 0
+  const docsIn = (path) => Object.keys(store)
+    .filter(k => k.startsWith(`${path}/`) && !k.slice(path.length + 1).includes('/'))
+    .map(k => ({ id: k.slice(path.length + 1), ref: ref(k), data: () => store[k] }))
   const db = {
     doc: ref,
     collection: (path) => ({
-      get: async () => ({
-        docs: Object.keys(store).filter(k => k.startsWith(`${path}/`)).map(k => ({ id: k.slice(path.length + 1), ref: ref(k), data: () => store[k] })),
+      get: async () => ({ docs: docsIn(path) }),
+      doc: (id) => ({ id: id ?? `n${++autoId}`, ...ref(`${path}/${id ?? `n${autoId}`}`) }),
+      where: (field, op, value) => ({
+        limit: (n) => ({
+          get: async () => ({
+            docs: docsIn(path).filter(d => op === '<' && d.data()[field] < value).slice(0, n),
+          }),
+        }),
       }),
     }),
   }
   const sentMessages = []
+  // `fail`: tokens FCM rejects as no longer registered.
   const messaging = {
-    sendEach: async (msgs) => { sentMessages.push(...msgs); return { responses: msgs.map(() => ({ success: true })) } },
+    fail: new Set(),
+    sendEach: async (msgs) => {
+      sentMessages.push(...msgs)
+      return {
+        responses: msgs.map(m => (messaging.fail.has(m.token)
+          ? { success: false, error: { code: 'messaging/registration-token-not-registered' } }
+          : { success: true })),
+      }
+    },
   }
   return { db, messaging, store, sentMessages }
 }
+
+const inbox = (store, uid) => Object.entries(store)
+  .filter(([k]) => k.startsWith(`users/${uid}/notifications/`))
+  .map(([k, v]) => ({ id: k.split('/').pop(), ...v }))
 
 test('processUser: meal reminder without expiry alerts, recorded and not repeated', async () => {
   const uid = 'u1'
@@ -137,7 +160,12 @@ test('processUser: meal reminder without expiry alerts, recorded and not repeate
   assert.equal(r.sent, 1)
   assert.equal(r.expiry.skipped, 'not-now')
   assert.equal(sentMessages[0].webpush.notification.tag, 'sk-pasto-a')
-  assert.deepEqual(sentMessages[0].data, { open: 'pasti' })
+  const [entry] = inbox(store, uid)
+  assert.equal(entry.type, 'pasto')
+  assert.equal(entry.title, 'Cena alle 19:30')
+  assert.equal(entry.open, 'pasti')
+  assert.equal(entry.readAt, null)
+  assert.deepEqual(sentMessages[0].data, { open: 'pasti', nid: entry.id })
   assert.equal(sentMessages[0].notification.body, 'Pasto a · ricetta: Risotto alla zucca')
   assert.ok(Object.keys(store[`users/${uid}/mealReminders/data`].sent).length === 1)
   const again = await processUser({ db, messaging, uid, prefs: userPrefs, nowMs: now + 5 * MIN })
@@ -165,4 +193,38 @@ test('processUser: the expiry summary still goes out at its time, alongside meal
   assert.equal(r.sent, 2)
   assert.deepEqual(sentMessages.map(m => m.webpush.notification.tag), ['sk-scadenze', 'sk-pasto-b'])
   assert.equal(store[`users/${uid}/notificationPrefs/data`].lastRunDay, '2026-10-21')
+})
+
+test('notification centre: kept without devices, old entries purged', async () => {
+  const uid = 'u3'
+  const now = at('2026-10-21', 17, 0)
+  const old = now - 31 * 24 * 3600 * 1000
+  const { db, messaging, store, sentMessages } = fakes({
+    [`users/${uid}/notifications/old1`]: { type: 'scadenze', title: 'Vecchia', createdAt: old, readAt: null },
+    [`users/${uid}/notifications/recent`]: { type: 'scadenze', title: 'Recente', createdAt: now - 3600 * 1000, readAt: null },
+  })
+  const r = await processUser({ db, messaging, uid, prefs: { enabled: false, tz: ROME, meals: { ...prefs, dinnerNudge: true } }, nowMs: now })
+  assert.equal(r.sent, 0)
+  assert.equal(sentMessages.length, 0)
+  const titles = inbox(store, uid).map(n => n.title).sort()
+  assert.deepEqual(titles, ['Cosa ceni stasera?', 'Recente'])
+  assert.equal(inbox(store, uid).find(n => n.type === 'cena').open, 'pasti')
+})
+
+test('notification centre: a device that stops answering gets a note, once', async () => {
+  const uid = 'u4'
+  const now = at('2026-10-21', 19, 0)
+  const { db, messaging, store } = fakes({
+    [`users/${uid}/meals/data`]: { '2026-10-21': [planned('a', 'cena', '30')] },
+    [`users/${uid}/pushTokens/d1`]: { token: 't1', status: 'active', label: 'iPad' },
+    [`users/${uid}/pushTokens/d2`]: { token: 't2', status: 'active', label: 'iPhone' },
+  })
+  messaging.fail.add('t1')
+  const r = await processUser({ db, messaging, uid, prefs: { enabled: false, tz: ROME, meals: prefs }, nowMs: now })
+  assert.equal(r.sent, 1)
+  const notes = inbox(store, uid).filter(n => n.type === 'dispositivo')
+  assert.equal(notes.length, 1)
+  assert.equal(notes[0].title, 'iPad non raggiungibile')
+  assert.equal(notes[0].open, 'impostazioni')
+  assert.equal(store[`users/${uid}/pushTokens/d1`].status, 'stale')
 })

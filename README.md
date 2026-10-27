@@ -35,7 +35,7 @@ Stack: React 18 + Vite 5 + CSS Modules + Firebase (Auth, Firestore, Cloud Messag
 - **Aggiunta rapida** — a mano, a voce, da foto o PDF dello scontrino, da CSV; schermata di verifica prima di confermare
 - **Cucina** — ricette AI basate su dispensa e scadenze (con streaming), ricette salvate con «Hai X ingredienti su Y», pasti come registro e planner (pasti in programma con promemoria)
 - **Spesa** — lista della spesa e idee AI stagionali integrate con la dispensa
-- **Notifiche push** (Cloud Functions): avviso di scadenza con orario e anticipo a scelta, promemoria dei pasti in programma e «pianifica la cena»
+- **Notifiche push** (Cloud Functions): avviso di scadenza con orario e anticipo a scelta, promemoria dei pasti in programma e «pianifica la cena», con un centro notifiche nell'app (campanella su mobile, pannello su desktop)
 - **Scorciatoie da tastiera**, tema chiaro/scuro, PWA installabile
 - **Modalità demo** per le preview, senza login né Firebase
 
@@ -75,18 +75,14 @@ npm run preview  # anteprima della build
 Il client è una build statica (`dist/`), pubblicabile su Vercel, Firebase Hosting o simili. Su Vercel ogni branch diverso da `master`
 usa la modalità demo; in produzione non è mai attiva.
 
-Per le notifiche l'ordine è **Functions → client → regole**:
-
-```bash
-cd functions && npm install && cd ..
-firebase deploy --only functions
-```
-
-Poi pubblica il client e infine le regole Firestore. Eccezione: quando le regole aggiungono campi che il client nuovo scrive (come `meals` per i promemoria dei pasti), pubblicale prima del client; i dettagli sono in [`docs/firestore-rules.md`](docs/firestore-rules.md).
+Regole Firestore e Cloud Functions si pubblicano da sole: il workflow [`firebase.yml`](.github/workflows/firebase.yml) le controlla
+sulle PR (test delle Functions, compilazione delle regole) e, al merge su `master`, pubblica le regole e poi le Functions se sono
+cambiate. Si autentica con Workload Identity Federation, senza chiavi nel repo: setup una tantum, avvio manuale e deploy di ripiego
+in [`docs/deploy.md`](docs/deploy.md).
 
 ## Firestore Security Rules
 
-Le regole vanno applicate a mano dalla Firebase Console (Firestore Database → Rules → Publish): il testo completo e aggiornato è in
+Le regole sono in [`firestore.rules`](firestore.rules) e le pubblica il workflow di deploy; note su compatibilità e ordine in
 [`docs/firestore-rules.md`](docs/firestore-rules.md). Ogni utente legge e scrive solo i propri documenti `/users/{uid}/...`; tutto il resto è negato.
 
 ## Documentazione

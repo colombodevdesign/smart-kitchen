@@ -9,7 +9,8 @@ const DEVICE_ID_KEY = 'sk-device-id'
 const OFF_HERE_KEY = 'sk-notif-off-here'
 const SEEN_EVERY_MS = 12 * 3600 * 1000
 const OPEN_PARAM = 'apri'
-const OPEN_TARGETS = ['scadenze', 'pasti']
+const NID_PARAM = 'n'
+const OPEN_TARGETS = ['scadenze', 'pasti', 'impostazioni']
 
 export const DEFAULT_PREFS = { enabled: false, hour: 9, minute: 0, daysBefore: [1] }
 
@@ -241,28 +242,32 @@ export function useNotifications(uid) {
   }
 }
 
+// { open, nid } from `?apri=<view>&n=<id>`, removed from the address bar; null without it.
 function readOpenParam() {
   const params = new URLSearchParams(window.location.search)
   const open = params.get(OPEN_PARAM)
   if (open === null) return null
+  const nid = params.get(NID_PARAM)
   params.delete(OPEN_PARAM)
+  params.delete(NID_PARAM)
   const query = params.toString()
   window.history.replaceState(window.history.state, '', window.location.pathname + (query ? `?${query}` : '') + window.location.hash)
-  return OPEN_TARGETS.includes(open) ? open : null
+  return OPEN_TARGETS.includes(open) ? { open, nid } : null
 }
 
 // Tapping a notification opens a view of the app: through `?apri=<view>` when the
 // app was closed, or a message from the service worker when it was already open.
+// onOpen(view, nid): `nid` is the notification centre entry, to mark it read.
 export function useNotificationOpen(active, onOpen) {
   const onOpenRef = useRef(onOpen)
   onOpenRef.current = onOpen
   useEffect(() => {
     if (!active) return
     const fromUrl = readOpenParam()
-    if (fromUrl) onOpenRef.current(fromUrl)
+    if (fromUrl) onOpenRef.current(fromUrl.open, fromUrl.nid)
     if (!('serviceWorker' in navigator)) return
     const onMsg = (e) => {
-      if (e.data?.type === 'sk-open' && OPEN_TARGETS.includes(e.data.open)) onOpenRef.current(e.data.open)
+      if (e.data?.type === 'sk-open' && OPEN_TARGETS.includes(e.data.open)) onOpenRef.current(e.data.open, e.data.nid ?? null)
     }
     navigator.serviceWorker.addEventListener('message', onMsg)
     return () => navigator.serviceWorker.removeEventListener('message', onMsg)
@@ -285,8 +290,9 @@ export function useForegroundPush(active, onOpen) {
         const message = [title, body].filter(Boolean).join(' · ')
         if (!message) return
         const open = payload.data?.open
+        const nid = payload.data?.nid ?? null
         if (OPEN_TARGETS.includes(open) && onOpenRef.current) {
-          show({ message, ms: 8000, actionLabel: 'Vedi', onAction: () => onOpenRef.current(open) })
+          show({ message, ms: 8000, actionLabel: 'Vedi', onAction: () => onOpenRef.current(open, nid) })
         } else {
           show({ message, ms: 8000 })
         }

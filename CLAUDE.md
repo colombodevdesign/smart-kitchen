@@ -57,6 +57,7 @@ src/
     useReceiptScan.js       # scontrino → item dispensa
     useBatchCandidates.js   # lista candidati editabile condivisa dai due import
     useNotifications.js     # preferenze + dispositivi push, enable/disable/enableMeals, notifica di prova; useForegroundPush
+    useNotificationInbox.js # centro notifiche: users/{uid}/notifications (senza account: localStorage), markRead/markAllRead, badge dell'icona
     useKeyboardShortcuts.js # scorciatoie a tasto singolo (document keydown), vedi "Scorciatoie da tastiera"
     usePantryDrag.js        # Dispensa desktop: drag di una riga su un'altra card (copia in portal, hit-test su [data-section])
     useOnline.js            # navigator.onLine + eventi
@@ -68,7 +69,8 @@ src/
     TodayTab, ExpiringList, SeasonalRecipesModal, PantryTab, PantryColumns, PantryComposer, ItemRow, CucinaTab, AITab, SavedRecipesTab, RecipeDetail, MealTrackerTab,
     SpesaTab, SavedShoppingTab, PantrySuggestionsModal, TuTab, ProfileTab, NotificationSettings,
     SplashScreen, AddFlow, AddSheet, VoiceBatchModal, ReceiptScanModal, BatchReview, ShortcutsHelp,
-    MealFormModal, MealDetailSheet, MealReminderSettings, Modal, BottomNav, Sidebar, LoginScreen
+    MealFormModal, MealDetailSheet, MealReminderSettings, NotificationList, NotificationInbox, NotificationPanel,
+    Modal, BottomNav, Sidebar, LoginScreen
   data/
     initialInventory.js     # SECTIONS, SECTION_LABELS
     seasonal.js             # produce stagionale per mese (Lombardia)
@@ -91,9 +93,14 @@ functions/
   lib/notify.js             # raggruppamento messaggi, invio, token stale (funzioni pure con db/messaging iniettati)
   lib/meals.js              # promemoria dei pasti in programma e «pianifica la cena» delle 17:00 (puro)
   test/meals.test.js        # `cd functions && npm test` (node --test): finestre, fusi, cambio d'ora, invio con fake
+firestore.rules             # regole Firestore (unica fonte), pubblicate dal workflow
+firebase.json, .firebaserc  # progetto smart-kitchen-822db: firestore.rules, functions (predeploy = test); hosting non usato (client su Vercel)
+scripts/check-firestore-rules.mjs  # dentro l'emulatore: fallisce se firestore.rules non compila
+.github/workflows/firebase.yml     # PR: test Functions + regole; merge su master: deploy regole → Functions (Workload Identity)
 docs/
   design-brief.md, ui-implementation-notes.md   # design e note di implementazione
-  firestore-rules.md                            # regole Firestore da applicare a mano
+  firestore-rules.md                            # note sulle regole (compatibilità, ordine)
+  deploy.md                                     # chi pubblica cosa, setup una tantum di Workload Identity, ripiego manuale
 ```
 
 ## Modalità demo (deploy non di produzione)
@@ -106,7 +113,7 @@ Per testare le feature sulle preview di Vercel senza login Google e senza autori
 - `useAuth` restituisce un utente finto **senza `uid`**: tutti gli hook dati (`useInventory`, `useMealTracker`, `useSavedRecipes`,
   `useSavedShopping`) restano sul ramo localStorage e Firestore non viene mai toccato. `firebase.js` non inizializza Firebase
   (`auth`/`db` sono `null`, `messagingPromise` è `null`), quindi le preview non richiedono variabili `VITE_FIREBASE_*`.
-- `main.jsx` chiama `seedMockData()`: scrive i dati di esempio (anche pasti in programma e `sk-meal-prefs` con i promemoria attivi) (scadenze relative a oggi) nelle chiavi localStorage di fallback,
+- `main.jsx` chiama `seedMockData()`: scrive i dati di esempio (anche pasti in programma, `sk-meal-prefs` con i promemoria attivi e le notifiche di `sk-inbox`) (scadenze relative a oggi) nelle chiavi localStorage di fallback,
   una volta per scheda (un ricarico mantiene le modifiche, una scheda nuova riparte da zero). Banner "Modalità demo" con "Ripristina dati"
   (stessa azione del pulsante "Esci" in Tu). Per cambiare i dati di esempio si modifica solo `src/mock/data.js`.
 - Limiti: niente notifiche push né sync tra dispositivi; la chiave Gemini va inserita in Tu (resta in localStorage di quel dominio).
@@ -165,11 +172,11 @@ Solo tasti singoli, senza Ctrl/⌘/Alt: sono identici su Windows e Mac e non col
 `useKeyboardShortcuts(bindings, enabled)` ascolta `keydown` su `document` e ignora l'evento se si sta
 scrivendo in un campo, se c'è un `[role="dialog"][aria-modal]` aperto o se c'è un modificatore.
 I binding sono in `App.jsx`: `1`–`5` destinazioni (ordine di `TABS`), `N` aggiungi, `S` scontrino, `V` voce
-(entrambi richiedono la chiave Gemini, altrimenti toast), `C` "Cosa cucino", `P` aggiungi o pianifica un pasto (apre Cucina › Pasti e il form sul giorno selezionato, via `mealRequested` → `MealTrackerTab`; «Pianifica» di una ricetta salvata usa lo stesso canale con `{ recipeId }`), `\` cerca in Dispensa
+(entrambi richiedono la chiave Gemini, altrimenti toast), `B` notifiche (pannello su desktop, vista su mobile), `C` "Cosa cucino", `P` aggiungi o pianifica un pasto (apre Cucina › Pasti e il form sul giorno selezionato, via `mealRequested` → `MealTrackerTab`; «Pianifica» di una ricetta salvata usa lo stesso canale con `{ recipeId }`), `\` cerca in Dispensa
 (`searchRequested` → `PantryTab`), `?` aiuto, `Esc` chiude il dettaglio (in Dispensa desktop, con una sezione espansa, `Esc` la riduce: listener in `PantryTab`, ignorato se si scrive, con un dialog aperto o durante un drag). `N`, `S`, `V` e il pulsante «Aggiungi prodotti» della sidebar aggiungono nella sezione che si sta guardando in Dispensa
 (sezione espansa su desktop, segmented su tablet; `PantryTab` la comunica con `onViewChange` → `pantryView` in `App`); altrove, in
 ricerca o con le tre colonne, il default è Frigo. **Se aggiungi o cambi un binding,
-aggiorna anche `nav/shortcuts.js`** (è la lista dell'aiuto). La sidebar ha il link «Scorciatoie da tastiera» (con badge `?`, piccolo) sopra «Aggiungi prodotti»; nessun altro badge.
+aggiorna anche `nav/shortcuts.js`** (è la lista dell'aiuto). La sidebar ha, in fondo, la voce «Notifiche» (badge giallo con i non letti, apre `NotificationPanel`), il link «Scorciatoie da tastiera» (con badge `?`, piccolo) e «Aggiungi prodotti»; nessun altro badge.
 
 Layout mobile (≤600px): `.app` è una colonna flex con la bottom nav **in flusso** (non fixed), quindi l'area
 scrollabile `.main` finisce già sopra la nav. Conseguenze: le barre `position: sticky` dentro `.main` usano
@@ -228,6 +235,7 @@ L'unico provider è Google (Firebase Console → Authentication → Sign-in meth
 /users/{uid}/settings/gemini          →  { apiKey, updatedAt }   (apiKey '' = rimossa)
 /users/{uid}/notificationPrefs/data    →  { enabled, hour, minute, tz, daysBefore: number[], lastRunDay, updatedAt,
                                            meals?: { enabled, lead: '30'|'60'|'am'|'at', times: {colazione,pranzo,cena,spuntino: 'HH:MM'}, dinnerNudge } }
+/users/{uid}/notifications/{id}        →  { type: 'scadenze'|'pasto'|'cena'|'dispositivo', title, body, open, createdAt, readAt }  (centro notifiche)
 /users/{uid}/mealReminders/data        →  { sent: { "<mealId>@<ms>": ms }, nudgeDay }   (solo Functions: promemoria già inviati)
 /users/{uid}/pushTokens/{deviceId}     →  { token, label, platform, status: 'active'|'stale', lastOkAt, lastSeenAt, staleSince, updatedAt }
 ```
@@ -252,6 +260,7 @@ si può cancellare dalla Console.
 | `sk-pantry-sort` | ordinamento scelto in Dispensa (assente = «Da usare prima», il default) |
 | `sk-pantry-collapsed` | chiavi (`<sezione>:<gruppo>`) dei gruppi ripiegati in Dispensa › Per categoria |
 | `sk-meal-prefs` | impostazioni dei promemoria dei pasti senza account (demo); con account stanno in `notificationPrefs/data.meals` |
+| `sk-inbox` | centro notifiche senza account (demo): lista di `{ id, type, title, body, open, createdAt, readAt }` |
 | `sk-expiring-banner-dismissed` | data (`YYYY-MM-DD`) in cui è stato chiuso il banner «stanno per scadere» di Spesa; riappare il giorno dopo |
 | `cucina-ai-cache-v1` | cache risposte AI (l'hash include `PROMPT_VERSION`) |
 | `cucina-session-ricette-v1` | sessione chat ricette |
@@ -468,8 +477,9 @@ arrivano da `data-s` / `data-cat`. `[hidden]` è forzato a `display: none`. Brea
 
 ## Firestore Security Rules
 
-Il testo completo delle regole è in `docs/firestore-rules.md` (nessun `firestore.rules` nel repo:
-applicarle a mano dalla Console dopo ogni modifica). Ogni utente legge e scrive solo i propri documenti;
+Il testo delle regole è in `firestore.rules` (note in `docs/firestore-rules.md`). Sulle PR il workflow `firebase.yml` controlla che
+compilino (emulatore Firestore + `scripts/check-firestore-rules.mjs`); al merge su `master` le pubblica da solo, prima delle Functions
+(setup e ripiego manuale in `docs/deploy.md`). Ogni utente legge e scrive solo i propri documenti;
 `notificationPrefs` ha regole di lettura e scrittura separate con validazione dei campi, `pushTokens`
 accetta solo token `active` dal client (`stale` lo imposta la Function).
 
@@ -498,6 +508,16 @@ avvisi di scadenza: attivarli registra il dispositivo (`enableMeals`) senza tocc
 almeno uno dei due è attivo. Push con `tag: sk-pasto-<id>` / `sk-cena` e `data.open = 'pasti'` (apre Cucina › Pasti; `OPEN_TARGETS` in
 `useNotifications.js` e nel template del SW).
 
+**Centro notifiche** — ogni push delle Functions (scadenze, promemoria pasto, «pianifica la cena») lascia un documento in
+`users/{uid}/notifications` (anche senza dispositivi registrati), più una voce solo in app quando un dispositivo diventa non
+raggiungibile. `useNotificationInbox` (in `App`, una sola istanza) legge gli ultimi 60, conta i non letti e aggiorna il badge
+dell'icona (`setAppBadge`). Mobile/tablet: campanella con badge su Oggi (nascosta a ≥1024px) → dettaglio `{type:'inbox'}` di Oggi
+(`NotificationInbox`); desktop: voce «Notifiche» della sidebar → `NotificationPanel` (non modale: Esc, click fuori o apertura di una voce
+lo chiudono). Entrambi usano `NotificationList` (filtri Tutte/Da leggere, gruppi Oggi/Ieri/Questa settimana/Prima, «Segna tutte come
+lette», «Cosa cucino con questi?» sotto l'avviso di scadenza di oggi, stato vuoto con banner se qui le push sono spente). Il tocco segna
+come letta e apre `open` (`scadenze`, `pasti`, `impostazioni`). La push porta `data.nid`: il SW lo passa all'app (`?apri=…&n=<id>` o
+`sk-open`) e `openFromNotification` segna come letta quella voce.
+
 **Functions** (`functions/`, Node 22, CommonJS):
 - `sendExpiryNotifications`: schedule `*/15 * * * *`. Per ogni utente con `notificationPrefs.enabled`
   controlla se l'ora locale (`tz`) è nella finestra `[hour:minute, +30 min)` (minuti arrotondati al quarto
@@ -514,6 +534,8 @@ almeno uno dei due è attivo. Push con `tag: sk-pasto-<id>` / `sk-cena` e `data.
   promemoria dei pasti in programma il cui orario (nel `tz` dell'utente) è passato da meno di 20 minuti e non ancora inviati (chiave
   id + istante, così un pasto spostato viene ricordato di nuovo), più il promemoria della cena; scrive `mealReminders/data`. Testo:
   «Cena alle 19:30» / nome del pasto. I token si caricano una volta per utente e tick (`userSender`), condivisi con le scadenze.
+- `userSender` con `type` scrive prima la voce del centro notifiche (`recordNotification`, id in `data.nid`), pulisce quelle oltre
+  30 giorni (al più 20 per tick) e, se un token diventa stale, aggiunge la voce `dispositivo` (solo in app).
 - `sendTestNotification` (callable, richiede auth): invia a tutti i dispositivi (anche stale) e restituisce
   `{ results: [{ deviceId, label, status: 'ok'|'stale'|'error' }] }`.
 - `lib/schedule.js` e `lib/notify.js` sono pure (db/messaging iniettati), provabili con `node`.
@@ -528,11 +550,10 @@ fuoco l'app e le manda `sk-open`, oppure la apre su `/?apri=<vista>`.
 1. Firebase Console → Cloud Messaging → **Web Push certificates** → copiare la chiave in `.env` come
    `VITE_FIREBASE_VAPID_KEY`.
 2. Piano **Blaze** (Cloud Functions schedulate). 96 esecuzioni al giorno: ricontrollare il free tier.
-3. `cd functions && npm install && cd .. && firebase deploy --only functions` (aggiorna il job esistente
-   `sendExpiryNotifications` e la callable `sendTestNotification`).
-4. Poi deploy del client, poi le regole di `docs/firestore-rules.md`. Ordine: **Functions → client → regole**
-   (per i promemoria dei pasti le regole vanno pubblicate prima del client: vedi `docs/firestore-rules.md`).
-5. iOS: le push web funzionano solo con la PWA aggiunta alla Home (iOS 16.4+).
+3. Workload Identity per il workflow GitHub (`docs/deploy.md`): da lì in poi regole e Functions si pubblicano da sole al
+   merge su `master` (regole → Functions), il client lo pubblica Vercel. Il deploy manuale resta come ripiego
+   (`firebase deploy --only firestore:rules` / `--only functions`, che prima esegue i test).
+4. iOS: le push web funzionano solo con la PWA aggiunta alla Home (iOS 16.4+).
 
 ## Branch di sviluppo
 

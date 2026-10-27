@@ -1,0 +1,165 @@
+# Cloud Functions and Firestore rules: checked on every PR that touches them,
+# deployed when such a change lands on master (rules first, then Functions), or
+# by hand from Actions › "Firebase" › Run workflow. The client is deployed by Vercel.
+# One-time setup (Workload Identity Federation, repo variables): docs/deploy.md.
+name: Firebase
+
+on:
+  pull_request:
+    paths:
+      - functions/**
+      - firestore.rules
+      - firebase.json
+      - scripts/check-firestore-rules.mjs
+      - .github/workflows/firebase.yml
+  push:
+    branches: [master]
+    paths:
+      - functions/**
+      - firestore.rules
+      - firebase.json
+      - scripts/check-firestore-rules.mjs
+      - .github/workflows/firebase.yml
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Cosa pubblicare
+        type: choice
+        options: [tutto, regole, functions]
+        default: tutto
+
+permissions:
+  contents: read
+
+# PRs: a new push cancels the previous check. Deploys never overlap or get cancelled.
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && format('firebase-pr-{0}', github.ref) || 'firebase-deploy' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  FIREBASE_TOOLS: firebase-tools@14.27.0
+  FIREBASE_PROJECT: smart-kitchen-822db
+
+jobs:
+  check:
+    name: Test e regole
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      # The Firestore emulator (rules check below) needs Java.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Dipendenze delle Functions
+        run: npm ci --prefix functions
+
+      - name: Test delle Functions
+        run: npm test --prefix functions
+
+      - name: firestore.rules compila
+        run: npx -y "$FIREBASE_TOOLS" emulators:exec --only firestore --project demo-smart-kitchen "node scripts/check-firestore-rules.mjs"
+
+  deploy:
+    name: Deploy
+    needs: check
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write   # Workload Identity Federation: a short-lived Google token, no stored key
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: changes
+        if: github.event_name == 'push'
+        with:
+          filters: |
+            rules:
+              - firestore.rules
+              - firebase.json
+            functions:
+              - functions/**
+              - firebase.json
+
+      - name: Cosa pubblicare
+        id: what
+        env:
+          EVENT: ${{ github.event_name }}
+          TARGET: ${{ inputs.target }}
+          CHANGED_RULES: ${{ steps.changes.outputs.rules }}
+          CHANGED_FUNCTIONS: ${{ steps.changes.outputs.functions }}
+        run: |
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            case "$TARGET" in
+              regole)    rules=true;  functions=false ;;
+              functions) rules=false; functions=true ;;
+              *)         rules=true;  functions=true ;;
+            esac
+          else
+            rules="${CHANGED_RULES:-false}"
+            functions="${CHANGED_FUNCTIONS:-false}"
+          fi
+          echo "rules=$rules" >> "$GITHUB_OUTPUT"
+          echo "functions=$functions" >> "$GITHUB_OUTPUT"
+          echo "Regole: $rules · Functions: $functions"
+
+      - name: Configurazione presente
+        if: steps.what.outputs.rules == 'true' || steps.what.outputs.functions == 'true'
+        env:
+          PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          SERVICE_ACCOUNT: ${{ vars.GCP_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$PROVIDER" ] || [ -z "$SERVICE_ACCOUNT" ]; then
+            echo "::error::Mancano le variabili GCP_WORKLOAD_IDENTITY_PROVIDER e GCP_SERVICE_ACCOUNT del repo: vedi docs/deploy.md."
+            exit 1
+          fi
+
+      - uses: google-github-actions/auth@v2
+        if: steps.what.outputs.rules == 'true' || steps.what.outputs.functions == 'true'
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+
+      - uses: actions/setup-node@v4
+        if: steps.what.outputs.rules == 'true' || steps.what.outputs.functions == 'true'
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      # Rules before Functions: new Functions may write documents only the new rules let the app read.
+      - name: Deploy delle regole Firestore
+        if: steps.what.outputs.rules == 'true'
+        run: npx -y "$FIREBASE_TOOLS" deploy --only firestore:rules --project "$FIREBASE_PROJECT" --non-interactive
+
+      - name: Dipendenze delle Functions
+        if: steps.what.outputs.functions == 'true'
+        run: npm ci --prefix functions
+
+      # --force: no prompts in CI (Artifact Registry cleanup policy, functions removed from the code).
+      - name: Deploy delle Functions
+        if: steps.what.outputs.functions == 'true'
+        run: npx -y "$FIREBASE_TOOLS" deploy --only functions --project "$FIREBASE_PROJECT" --non-interactive --force
+
+      - name: Riepilogo
+        if: always()
+        env:
+          RULES: ${{ steps.what.outputs.rules }}
+          FUNCTIONS: ${{ steps.what.outputs.functions }}
+          STATUS: ${{ job.status }}
+        run: |
+          {
+            echo "### Deploy Firebase ($STATUS)"
+            echo "- Regole Firestore: $([ "$RULES" = true ] && echo incluse || echo 'nessuna modifica')"
+            echo "- Cloud Functions: $([ "$FUNCTIONS" = true ] && echo incluse || echo 'nessuna modifica')"
+          } >> "$GITHUB_STEP_SUMMARY"

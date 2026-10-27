@@ -102,12 +102,12 @@ async function processMeals({ db, uid, prefs, nowMs, send }) {
   let delivered = 0
   const nextSent = Object.fromEntries(Object.entries(sent).filter(([, ms]) => nowMs - ms < SENT_KEEP_MS))
   for (const r of due) {
-    delivered += await send({ title: r.title, body: r.body }, { tag: `sk-pasto-${r.id}`, open: 'pasti' })
+    delivered += await send({ title: r.title, body: r.body }, { tag: `sk-pasto-${r.id}`, open: 'pasti', type: 'pasto' })
     nextSent[r.key] = nowMs
   }
   const patch = { sent: nextSent }
   if (nudge) {
-    delivered += await send(NUDGE_MESSAGE, { tag: 'sk-cena', open: 'pasti' })
+    delivered += await send(NUDGE_MESSAGE, { tag: 'sk-cena', open: 'pasti', type: 'cena' })
     patch.nudgeDay = localDateStr(nowMs, tz)
   }
   // Not merged: `sent` is replaced, so old entries go away.

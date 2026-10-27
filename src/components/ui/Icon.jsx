@@ -28,6 +28,7 @@ const ICONS = {
   swap: (<path d="M4 8h15M15 4l4 4-4 4M20 16H5M9 12l-4 4 4 4"/>),
   more: (<><circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/></>),
   bell: (<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4l2-2zM10 21h4"/>),
+  sliders: (<><circle cx="16" cy="7" r="2.5"/><circle cx="8" cy="17" r="2.5"/><path d="M4 7h9.5M18.5 7H20M4 17h1.5M10.5 17H20"/></>),
   sparkle: (<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3zM19 17l.8 2.2L22 20l-2.2.8L19 23l-.8-2.2L16 20l2.2-.8L19 17z"/>),
   wifiOff: (<path d="M2 8.8a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0M12 20h.01M3 3l18 18"/>),
   alert: (<path d="M12 3l10 18H2L12 3zM12 10v5M12 18h.01"/>),

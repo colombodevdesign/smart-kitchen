@@ -17,6 +17,7 @@ const KEYS = {
   recipes: 'cucina-ricette-salvate-v1',
   shopping: 'cucina-spesa-salvata-v1',
   mealPrefs: 'sk-meal-prefs',
+  inbox: 'sk-inbox',
 }
 const SEEDED_FLAG = 'sk-mock-seeded'
 
@@ -129,6 +130,29 @@ function buildMeals() {
   }
 }
 
+// Notification centre: what the Functions would have written next to their pushes.
+// `at(days, hh, mm)`: local time `days` from today; entries in the future are skipped.
+function buildInbox() {
+  const at = (days, hh, mm) => {
+    const d = new Date()
+    d.setDate(d.getDate() + days)
+    d.setHours(hh, mm, 0, 0)
+    return d.getTime()
+  }
+  const now = Date.now()
+  const n = (id, type, title, body, open, createdAt, read = false) => ({
+    id, type, title, body, open, createdAt, readAt: read ? createdAt + 60_000 : null,
+  })
+  return [
+    n('mock-n1', 'pasto', 'Cena alle 19:30', 'Pasta con zucchine e mozzarella', 'pasti', Math.min(at(0, 19, 0), now - 60_000)),
+    n('mock-n2', 'scadenze', '3 prodotti in scadenza', 'Oggi: latte, zucchine · Domani: yogurt greco', 'scadenze', Math.min(at(0, 9, 0), now - 120_000)),
+    n('mock-n3', 'cena', 'Cosa ceni stasera?', 'Per stasera non hai ancora niente in programma: pianifica la cena.', 'pasti', at(-1, 17, 0)),
+    n('mock-n4', 'dispositivo', 'iPad non raggiungibile', 'Apri l’app lì per riattivare gli avvisi.', 'impostazioni', at(-1, 14, 20), true),
+    n('mock-n5', 'scadenze', '2 prodotti da usare presto', 'Domani: fagioli, passata', 'scadenze', at(-3, 9, 0), true),
+    n('mock-n6', 'pasto', 'Pranzo alle 12:30', 'Insalata di tonno', 'pasti', at(-2, 12, 0), true),
+  ]
+}
+
 // Meal reminders on, so the planner shows its reminder times (no push in the demo).
 const MEAL_PREFS = {
   enabled: true, lead: '30', dinnerNudge: false,
@@ -231,6 +255,7 @@ export function seedMockData({ force = false } = {}) {
   write(KEYS.recipes, buildRecipes())
   write(KEYS.shopping, buildShopping())
   write(KEYS.mealPrefs, MEAL_PREFS)
+  write(KEYS.inbox, buildInbox())
 }
 
 export function resetMockData() {

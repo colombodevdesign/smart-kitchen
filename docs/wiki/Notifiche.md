@@ -21,6 +21,15 @@ Il riepilogo include anche i prodotti analizzati senza data stampata la cui scad
 
 Toccando un promemoria si apre Cucina › Pasti.
 
+## Centro notifiche
+
+Le notifiche ricevute restano nell'app: su telefono e tablet dalla **campanella** in Oggi, su computer dalla voce **Notifiche** della barra laterale (o con il tasto `B`). Il numero giallo indica quelle da leggere.
+
+- **Tutte / Da leggere** filtrano l'elenco, raggruppato per giorno;
+- un tocco segna la notifica come letta e apre la schermata giusta (In scadenza, Pasti, impostazioni);
+- **Segna tutte come lette** azzera il conteggio;
+- le notifiche più vecchie di 30 giorni vengono cancellate.
+
 ## Dispositivi
 
 Ogni dispositivo su cui attivi gli avvisi compare nell'elenco. Un dispositivo «non raggiungibile» si riattiva aprendo l'app su di esso. Il cestino rimuove un dispositivo. **Invia notifica di prova** controlla che tutto funzioni.
