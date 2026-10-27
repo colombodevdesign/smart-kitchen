@@ -1,0 +1,24 @@
+.wrap {
+  position: relative;
+  display: flex;
+  min-width: 0;
+}
+
+/* Two classes, so the caller's padding shorthand cannot take the room of the chevron back. */
+.wrap > .select {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: 1;
+  min-width: 0;
+  padding-right: 44px;
+  text-overflow: ellipsis;
+}
+
+.chevron {
+  position: absolute;
+  top: 50%;
+  right: 16px;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+}

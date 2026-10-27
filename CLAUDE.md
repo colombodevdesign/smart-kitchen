@@ -66,7 +66,7 @@ src/
     useCollapsedGroups.js   # gruppi ripiegati di "Per categoria", ricordati in localStorage
     useMediaQuery.js
   components/
-    ui/                     # Icon, GroupHeader, Segmented, StatusBadge, Chip, EmptyState, Toast(+useToast), PageHeader, OfflineBanner, RecipeCard,
+    ui/                     # Icon, GroupHeader, Segmented, Select (<select> nativa con chevron a 16px dal bordo: usarla per ogni select), StatusBadge, Chip, EmptyState, Toast(+useToast), PageHeader, OfflineBanner, RecipeCard,
                             #   LogoMorph (+ logoMorphData.js generato: contorni tracciati dal logo)
     TodayTab, ExpiringList, SeasonalRecipesModal, PantryTab, PantryColumns, PantryComposer, ItemRow, CucinaTab, AITab, SavedRecipesTab, RecipeDetail, MealTrackerTab,
     SpesaTab, SavedShoppingTab, PantrySuggestionsModal, TuTab, ProfileTab, NotificationSettings,
@@ -330,7 +330,7 @@ lo stesso pattern (`useInventory.js` è il riferimento canonico):
     openDays: number | null,  // giorni di conservazione dopo l'apertura, nella sezione in cui sta
     freshDays: number | null, // giorni dall'acquisto per i freschi senza data stampata
     manual?: true,   // categoria scelta a mano dalla scheda di modifica (ItemEditSheet): la rianalisi la mantiene
-    // Scheda di modifica: «Analisi AI» è un <details> chiuso con la tabella dei campi sopra; senza expiresAt il campo
+    // Scheda di modifica: «Analisi AI» è un <details> chiuso (contenitore con bordo `--highlight`, icona in cerchio giallo, chevron che ruota) con la tabella dei campi dentro; senza expiresAt il campo
     // Scadenza parte dalla stima (estimatedExpiry in utils/pantry.js) e, se non si cambia, al salvataggio la stima diventa expiresAt.
   }
 }

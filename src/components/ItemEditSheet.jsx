@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Modal } from './Modal.jsx'
 import { Icon } from './ui/Icon.jsx'
 import { Segmented } from './ui/Segmented.jsx'
+import { Select } from './ui/Select.jsx'
 import { SECTIONS, SECTION_LABELS } from '../data/initialInventory.js'
 import { FOOD_CATEGORIES } from '../data/foodCategories.js'
 import { analysisKey } from '../ai/analyzePantry.js'
@@ -187,16 +188,20 @@ export function ItemEditSheet({ open, item, section, withCategory = false, onClo
           <label className={styles.field}>
             <span>Categoria</span>
             {/* Set by the AI; a choice made here is kept when the product is analysed again. */}
-            <select className={styles.input} value={category} onChange={e => setCategory(e.target.value)}>
+            <Select className={styles.input} value={category} onChange={e => setCategory(e.target.value)}>
               <option value="">{item?.ai?.category ? 'Rianalizza con l\u2019AI' : 'Da analizzare'}</option>
               {FOOD_CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-            </select>
+            </Select>
           </label>
         )}
 
         {item && (
           <details className={styles.details}>
-            <summary className={styles.summary}>Analisi AI</summary>
+            <summary className={styles.summary}>
+              <span className={styles.aiBadge}><Icon name="sparkle" size={18} /></span>
+              Analisi AI
+              <Icon name="chevD" size={20} className={styles.chevron} />
+            </summary>
             <AiInfo item={item} section={section} />
           </details>
         )}
