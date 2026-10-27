@@ -46,6 +46,18 @@ export function estimateRemaining(item, section, now = Date.now()) {
   return options.reduce((a, b) => (b.days < a.days ? b : a))
 }
 
+// Day the AI expects a product without a printed date to go off, as the end-of-day
+// timestamp used by the expiry field; null when there is a printed date or no estimate.
+export function estimatedExpiry(item, section, now = Date.now()) {
+  if (item.expiresAt) return null
+  const est = estimateRemaining(item, section, now)
+  if (!est) return null
+  const day = new Date(now)
+  day.setDate(day.getDate() + est.days)
+  day.setHours(23, 59, 59, 999)
+  return day.getTime()
+}
+
 // Sort key shared by every "what to use first" list.
 export function priorityInfo(item, section, now = Date.now()) {
   const est = estimateRemaining(item, section, now)

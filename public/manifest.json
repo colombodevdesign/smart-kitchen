@@ -1,4 +1,5 @@
 {
+  "id": "/",
   "name": "Smart Kitchen",
   "short_name": "Smart Kitchen",
   "description": "Gestione dispensa con suggerimenti AI stagionali",
@@ -11,13 +12,34 @@
       "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/dispensa-wide.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Dispensa"
+    },
+    {
+      "src": "/screenshots/dispensa-narrow.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "label": "Dispensa"
     }
   ]
 }

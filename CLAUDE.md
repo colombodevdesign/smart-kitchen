@@ -27,6 +27,8 @@ index.html                  # script inline che applica il tema prima del primo 
 public/
   fonts/                    # Bricolage Grotesque + DM Sans (variabili, latin, self-hosted) + licenze
   manifest.json, icon-*.png # PWA: monogramma SK con forchetta/coltello, S crema + K giallo su verde #1E5A43
+  icon-maskable-512.png     # stesso logo ridotto nella zona sicura (purpose "maskable"); icon-192/512 sono purpose "any"
+  screenshots/              # dispensa-wide/narrow: richiesti dal manifest per l'installazione "ricca" (generati in demo mode)
   splash/                   # schermate di lancio iOS (apple-touch-startup-image): verde #1E5A43 a tinta unita
 src/
   main.jsx                  # entry: ToastProvider + watchSystemTheme + registrazione del service worker (solo build di produzione)
@@ -317,6 +319,7 @@ lo stesso pattern (`useInventory.js` è il riferimento canonico):
   qty: string,
   urgent: boolean,   // flag "aperto": elemento aperto, da consumare presto (senza scadenza precisa)
   added: number,     // timestamp ms
+  updatedAt?: number, // ultima modifica dell'utente (updateItem, moveItem, toggleUrgent); assente sui prodotti vecchi
   expiresAt: number | null,
   openedAt?: number | null,  // impostato da toggleUrgent; gli aperti senza openedAt contano da `added`
   ai?: {             // metadata nascosti dell'analisi AI (vedi "Priorità della dispensa")
@@ -327,6 +330,8 @@ lo stesso pattern (`useInventory.js` è il riferimento canonico):
     openDays: number | null,  // giorni di conservazione dopo l'apertura, nella sezione in cui sta
     freshDays: number | null, // giorni dall'acquisto per i freschi senza data stampata
     manual?: true,   // categoria scelta a mano dalla scheda di modifica (ItemEditSheet): la rianalisi la mantiene
+    // Scheda di modifica: «Analisi AI» è un <details> chiuso con la tabella dei campi sopra; senza expiresAt il campo
+    // Scadenza parte dalla stima (estimatedExpiry in utils/pantry.js) e, se non si cambia, al salvataggio la stima diventa expiresAt.
   }
 }
 ```
