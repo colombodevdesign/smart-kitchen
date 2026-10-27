@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Modal } from './Modal.jsx'
 import { Segmented } from './ui/Segmented.jsx'
+import { Select } from './ui/Select.jsx'
 import { MEAL_CATEGORIES, REMINDER_LEADS, DEFAULT_MEAL_TIMES } from '../data/mealCategories.js'
 import { effectiveLead, isUpcoming, mealTime, reminderTime } from '../utils/meals.js'
 import styles from './MealFormModal.module.css'
@@ -194,7 +195,7 @@ export function MealFormModal({
         {savedRecipes.length > 0 && (
           <label className={styles.field}>
             <span className={styles.label}>Collega ricetta (opzionale)</span>
-            <select
+            <Select
               className={styles.select}
               value={recipeId}
               onChange={e => setRecipeId(e.target.value)}
@@ -203,7 +204,7 @@ export function MealFormModal({
               {savedRecipes.map(r => (
                 <option key={r.id} value={r.id}>{r.title ?? r.label}</option>
               ))}
-            </select>
+            </Select>
           </label>
         )}
 

@@ -3,6 +3,7 @@ import { Modal } from './Modal.jsx'
 import { PantrySuggestionsModal } from './PantrySuggestionsModal.jsx'
 import { Icon } from './ui/Icon.jsx'
 import { EmptyState } from './ui/EmptyState.jsx'
+import { Select } from './ui/Select.jsx'
 import { getPantryCandidates } from '../utils/pantry.js'
 import { SECTION_LABELS } from '../data/initialInventory.js'
 import { toDateStr } from '../utils/date.js'
@@ -303,15 +304,16 @@ export function SavedShoppingTab({
               autoFocus
             />
           ) : (
-            <select
+            <Select
               className={styles.addCategory}
+              wrapClassName={styles.addCategoryWrap}
               value={newCategory}
               onChange={handleCategoryChange}
               aria-label="Categoria"
             >
               {existingCategories.map(c => <option key={c} value={c}>{c}</option>)}
               <option value={NEW_CATEGORY_KEY}>+ Nuova categoria…</option>
-            </select>
+            </Select>
           )}
           <button type="button" className={styles.addBtn} onClick={handleAdd}>+ Aggiungi</button>
         </div>

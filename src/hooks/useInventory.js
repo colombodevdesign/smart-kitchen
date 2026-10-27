@@ -148,7 +148,7 @@ export function useInventory(uid) {
 
   const updateItem = useCallback((section, id, patch) => {
     setInventory(prev => {
-      const next = { ...prev, [section]: prev[section].map(i => i.id === id ? { ...i, ...patch } : i) }
+      const next = { ...prev, [section]: prev[section].map(i => i.id === id ? { ...i, ...patch, updatedAt: Date.now() } : i) }
       if (uidRef.current) setDoc(firestoreRef(uidRef.current), next).catch(console.error)
       return next
     })
@@ -162,7 +162,7 @@ export function useInventory(uid) {
       const next = {
         ...prev,
         [fromSection]: prev[fromSection].filter(i => i.id !== id),
-        [toSection]: [...prev[toSection], item],
+        [toSection]: [...prev[toSection], { ...item, updatedAt: Date.now() }],
       }
       if (uidRef.current) setDoc(firestoreRef(uidRef.current), next).catch(console.error)
       return next
@@ -175,7 +175,7 @@ export function useInventory(uid) {
       const next = {
         ...prev,
         [section]: prev[section].map(i => i.id === id
-          ? { ...i, urgent: !i.urgent, openedAt: i.urgent ? null : Date.now() }
+          ? { ...i, urgent: !i.urgent, openedAt: i.urgent ? null : Date.now(), updatedAt: Date.now() }
           : i),
       }
       if (uidRef.current) setDoc(firestoreRef(uidRef.current), next).catch(console.error)
