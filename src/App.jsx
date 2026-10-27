@@ -38,24 +38,36 @@ import { shouldShowSplash, endSplash } from './utils/splash.js'
 import { TABS } from './nav/tabs.js'
 import styles from './App.module.css'
 
+// How long the 'reveal' entrance in App.module.css needs (delay + duration, with margin).
+const REVEAL_MS = 900
+
 export default function App() {
   const [splash, setSplash] = useState(shouldShowSplash)
   const [authResolved, setAuthResolved] = useState(false)
-  const closeSplash = useCallback(() => {
+  // While the splash leaves, the page underneath settles into place (data-motion 'reveal').
+  const [revealing, setRevealing] = useState(false)
+  const leaveSplash = useCallback(() => {
     endSplash()
-    setSplash(false)
+    setRevealing(true)
   }, [])
+  const closeSplash = useCallback(() => setSplash(false), [])
   const onAuthResolved = useCallback(() => setAuthResolved(true), [])
+
+  useEffect(() => {
+    if (!revealing) return undefined
+    const id = setTimeout(() => setRevealing(false), REVEAL_MS)
+    return () => clearTimeout(id)
+  }, [revealing])
 
   return (
     <>
-      <AppContent onAuthResolved={onAuthResolved} />
-      {splash && <SplashScreen ready={authResolved} onDone={closeSplash} />}
+      <AppContent onAuthResolved={onAuthResolved} revealing={revealing} />
+      {splash && <SplashScreen ready={authResolved} onLeave={leaveSplash} onDone={closeSplash} />}
     </>
   )
 }
 
-function AppContent({ onAuthResolved }) {
+function AppContent({ onAuthResolved, revealing }) {
   const { user, signInWithGoogle, signOut } = useAuth()
   // La splash di avvio aspetta che Firebase abbia deciso se c'è un utente.
   useEffect(() => {
@@ -285,7 +297,7 @@ function AppContent({ onAuthResolved }) {
           {!online && <OfflineBanner />}
 
           {/* No box of its own: only carries the direction of the last navigation for the entrance animation (App.module.css). */}
-          <div className={styles.page} data-motion={nav.motion}>
+          <div className={styles.page} data-motion={nav.motion === 'none' && revealing ? 'reveal' : nav.motion}>
           {nav.tab === 'oggi' && nav.detail?.type === 'inbox' && (
             <NotificationInbox
               user={user}

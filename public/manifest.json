@@ -4,7 +4,7 @@
   "description": "Gestione dispensa con suggerimenti AI stagionali",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#F3F5F0",
+  "background_color": "#1E5A43",
   "theme_color": "#1E5A43",
   "icons": [
     {
