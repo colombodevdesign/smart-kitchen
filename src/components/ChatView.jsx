@@ -181,7 +181,7 @@ export function ChatView({
         <button type="button" className={styles.iconBtn} onClick={onClose} aria-label="Chiudi la chat">
           <Icon name="close" size={22} />
         </button>
-        <span className={styles.avatar} aria-hidden="true"><Icon name="sparkle" size={18} /></span>
+        <span className={styles.avatar} aria-hidden="true"><Icon name="ai" size={18} /></span>
         <div className={styles.titleWrap}>
           <h2 className={styles.title}>Assistente</h2>
           <div className={styles.subtitle}>
@@ -242,7 +242,7 @@ export function ChatView({
               </button>
             )}
             <div className={styles.hero}>
-              <span className={styles.heroIcon} aria-hidden="true"><Icon name="sparkle" size={30} strokeWidth={1.6} /></span>
+              <span className={styles.heroIcon} aria-hidden="true"><Icon name="ai" size={30} strokeWidth={1.6} /></span>
               <h3 className={styles.heroTitle}>Cosa cuciniamo?</h3>
               <p className={styles.heroText}>Conosco la tua dispensa, i pasti in programma e la lista della spesa. Se qualcosa cambia mentre parliamo, me ne accorgo.</p>
             </div>

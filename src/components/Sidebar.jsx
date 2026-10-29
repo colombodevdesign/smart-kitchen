@@ -46,7 +46,7 @@ export function Sidebar({ activeTab, onTabChange, onAdd, onShortcuts, unread = 0
             aria-expanded={assistantOpen}
             aria-keyshortcuts="a"
           >
-            <Icon name="sparkle" size={22} />
+            <Icon name="ai" size={22} />
             <span className={styles.notifLabel}>Assistente</span>
             <kbd className={styles.kbd} aria-hidden="true">A</kbd>
           </button>

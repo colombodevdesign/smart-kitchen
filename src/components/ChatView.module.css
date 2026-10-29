@@ -20,6 +20,10 @@
 @media (max-width: 600px) {
   .head { padding-top: calc(10px + env(safe-area-inset-top, 0px)); }
 }
+/* Installed app: iOS 26 blurs a band below the top edge; same 16px as .main in App.module.css. */
+@media (max-width: 600px) and (display-mode: standalone) {
+  .head { padding-top: calc(26px + env(safe-area-inset-top, 0px)); }
+}
 
 .iconBtn {
   flex: none;

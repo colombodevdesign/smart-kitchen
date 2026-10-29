@@ -14,7 +14,7 @@ export function ChatFab({ onClick, stacked = false }) {
       aria-label="Chiedi all’assistente"
       aria-keyshortcuts="a"
     >
-      <Icon name="sparkle" size={22} />
+      <Icon name="ai" size={22} />
     </button>
   )
 }
