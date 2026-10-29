@@ -5,6 +5,7 @@
 | Client (PWA) | Vercel | a ogni push; `master` è la produzione, gli altri branch sono anteprime in modalità demo |
 | Regole Firestore (`firestore.rules`) | workflow GitHub [`firebase.yml`](../.github/workflows/firebase.yml) | al merge su `master` se cambiano, **prima** delle Functions |
 | Cloud Functions (`functions/`) | stesso workflow | al merge su `master` se cambiano |
+| Wiki (`docs/wiki/`) | workflow [`wiki.yml`](../.github/workflows/wiki.yml) | al merge su `master` se cambiano le pagine; setup in [`docs/wiki/README.md`](wiki/README.md) |
 
 Sulle PR che toccano `functions/`, `firestore.rules` o `firebase.json` il workflow fa solo i controlli, senza credenziali:
 - i test delle Functions;

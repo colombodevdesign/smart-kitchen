@@ -11,6 +11,7 @@ Solo tasti singoli, senza Ctrl/⌘/Alt: sono uguali su Windows e Mac. Non funzio
 | `C` | Cosa cucino stasera? |
 | `P` | Aggiungi o pianifica un pasto |
 | `\` | Cerca in dispensa |
+| `A` | Apri o chiudi l'assistente |
 | `B` | Apri o chiudi le notifiche |
 | `?` | Mostra le scorciatoie |
 | `Esc` | Chiudi finestra, ricerca o dettaglio; riduci la sezione espansa |

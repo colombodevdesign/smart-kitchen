@@ -108,10 +108,13 @@ firestore.rules             # regole Firestore (unica fonte), pubblicate dal wor
 firebase.json, .firebaserc  # progetto smart-kitchen-822db: firestore.rules, functions (predeploy = test); hosting non usato (client su Vercel)
 scripts/check-firestore-rules.mjs  # dentro l'emulatore: fallisce se firestore.rules non compila
 .github/workflows/firebase.yml     # PR: test Functions + regole; merge su master: deploy regole → Functions (Workload Identity)
+.github/workflows/wiki.yml         # merge su master che tocca docs/wiki: specchia le pagine nella wiki di GitHub (GITHUB_TOKEN, nessun segreto)
 docs/
   design-brief.md, ui-implementation-notes.md   # design e note di implementazione
   firestore-rules.md                            # note sulle regole (compatibilità, ordine)
   deploy.md                                     # chi pubblica cosa, setup una tantum di Workload Identity, ripiego manuale
+  wiki/                                         # sorgenti della wiki di GitHub (pagine .md; le pubblica wiki.yml, setup in wiki/README.md): aggiornarle quando cambia una funzione visibile all'utente
+screens/                    # screenshot desktop usati dal README
 ```
 
 ## Modalità demo (deploy non di produzione)
