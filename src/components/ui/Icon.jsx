@@ -34,6 +34,8 @@ const ICONS = {
   stop: (<rect x="7" y="7" width="10" height="10" rx="2"/>),
   compose: (<path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/>),
   sparkle: (<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3zM19 17l.8 2.2L22 20l-2.2.8L19 23l-.8-2.2L16 20l2.2-.8L19 17z"/>),
+  // The same sparkle, optically centred: for the icon alone in a circle (assistant avatar, chat button).
+  ai: (<g transform="translate(-1.5 -1)"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3zM19 17l.8 2.2L22 20l-2.2.8L19 23l-.8-2.2L16 20l2.2-.8L19 17z"/></g>),
   wifiOff: (<path d="M2 8.8a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0M12 20h.01M3 3l18 18"/>),
   alert: (<path d="M12 3l10 18H2L12 3zM12 10v5M12 18h.01"/>),
   info: (<><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></>),
