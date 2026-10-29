@@ -1,4 +1,4 @@
-import { startTransition, useCallback, useEffect, useRef, useState } from 'react'
+import { startTransition, useCallback, useDeferredValue, useEffect, useRef, useState } from 'react'
 import { useAuth } from './hooks/useAuth.js'
 import { useInventory } from './hooks/useInventory.js'
 import { usePantryAnalysis } from './hooks/usePantryAnalysis.js'
@@ -66,16 +66,29 @@ export default function App() {
     return () => clearTimeout(id)
   }, [revealing])
 
+  // With the splash, the app mounts one frame later and in a transition: the splash
+  // animations are already running and React renders the (heavy) app in slices,
+  // leaving room for the frames of the logo morph.
+  const [appMounted, setAppMounted] = useState(!splash)
+  useEffect(() => {
+    if (appMounted) return undefined
+    const id = requestAnimationFrame(() => startTransition(() => setAppMounted(true)))
+    return () => cancelAnimationFrame(id)
+  }, [appMounted])
+
   return (
     <>
-      <AppContent onAuthResolved={onAuthResolved} revealing={revealing} />
+      {appMounted && <AppContent onAuthResolved={onAuthResolved} revealing={revealing} />}
       {splash && <SplashScreen ready={authResolved} onLeave={leaveSplash} onDone={closeSplash} />}
     </>
   )
 }
 
 function AppContent({ onAuthResolved, revealing }) {
-  const { user, signInWithGoogle, signOut } = useAuth()
+  const { user: authUser, signInWithGoogle, signOut } = useAuth()
+  // The whole app re-renders when auth resolves: deferred, so React does it in slices
+  // (it usually happens while the startup animation is playing).
+  const user = useDeferredValue(authUser)
   // La splash di avvio aspetta che Firebase abbia deciso se c'è un utente.
   useEffect(() => {
     if (user !== undefined) onAuthResolved()
