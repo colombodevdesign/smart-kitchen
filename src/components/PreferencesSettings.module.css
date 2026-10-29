@@ -1,0 +1,96 @@
+/* Same page frame as Notifiche. */
+.wrap  { composes: wrap from './NotificationSettings.module.css'; }
+.top   { composes: top from './NotificationSettings.module.css'; }
+.back  { composes: back from './NotificationSettings.module.css'; }
+.title { composes: title from './NotificationSettings.module.css'; }
+.hint  { composes: hint from './NotificationSettings.module.css'; margin: 0; }
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+.label { font-size: 13px; font-weight: 500; color: var(--text-muted); }
+.field {
+  width: 100%;
+  height: 48px;
+  padding: 0 14px;
+  font: inherit;
+  font-size: 16px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+.formRow { display: flex; gap: 8px; }
+.kind { flex: 1; min-width: 0; }
+.add {
+  flex: none;
+  height: 48px;
+  padding: 0 18px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--on-accent);
+  background: var(--accent);
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+}
+.add:disabled { opacity: 0.5; cursor: default; }
+.notice { margin: 0; font-size: 14px; color: var(--text-muted); }
+
+.group { display: flex; flex-direction: column; gap: 6px; }
+.legend {
+  composes: legend from './NotificationSettings.module.css';
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.strict {
+  padding: 2px 8px;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: var(--urgent-text);
+  background: var(--urgent-light);
+  border-radius: var(--radius-pill);
+}
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.row {
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 4px 6px 14px;
+}
+.row + .row { border-top: 1px solid var(--border); }
+.rowText { flex: 1; min-width: 0; display: flex; flex-direction: column; font-weight: 500; overflow-wrap: anywhere; }
+.source { display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 400; color: var(--warn-text); }
+.remove {
+  flex: none;
+  width: var(--tap);
+  height: var(--tap);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.remove:hover { color: var(--urgent-text); background: var(--surface-hover); }

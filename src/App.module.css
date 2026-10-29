@@ -158,6 +158,11 @@
     max-width: 1280px;
     padding: 2rem 2.5rem 3rem;
   }
+  /* The assistant's side panel (ChatAssistant) takes the right edge: the page shrinks, never hides under it. */
+  .app[data-chat] .main {
+    width: calc(100% - 240px - var(--chat-w));
+    max-width: none;
+  }
   /* Form-style single-column tabs (Impostazioni) read better capped at the
      prior width; the split panes, calendar and pantry grid use full width. */
   .narrowTab {

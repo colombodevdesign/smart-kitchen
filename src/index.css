@@ -91,6 +91,7 @@
   --safe-b: env(safe-area-inset-bottom, 0px);
   --nav-h: 64px;
   --bottom-nav-h: 0px;                       /* set below on mobile */
+  --chat-w: 420px;                           /* assistant side panel on desktop */
   --float-bottom: calc(var(--bottom-nav-h) + 16px);   /* fixed FABs; in-flow sticky bars use 16px: the nav is a flex sibling of the scroll area */
 
   /* motion: iOS-style ease-out, for entrances and for the sliding highlights (menu, segmented) */

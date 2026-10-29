@@ -18,6 +18,8 @@ const KEYS = {
   shopping: 'cucina-spesa-salvata-v1',
   mealPrefs: 'sk-meal-prefs',
   inbox: 'sk-inbox',
+  preferences: 'sk-preferences',
+  chats: 'sk-chats',
 }
 const SEEDED_FLAG = 'sk-mock-seeded'
 
@@ -238,6 +240,39 @@ function buildShopping() {
   ]
 }
 
+function buildPreferences() {
+  const now = Date.now()
+  return {
+    items: [
+      { id: 'mock-p1', kind: 'allergia', text: 'Frutta a guscio', source: 'manual', createdAt: now - 20 * DAY },
+      { id: 'mock-p2', kind: 'non-piace', text: 'Coriandolo', source: 'chat', createdAt: now - 6 * DAY },
+      { id: 'mock-p3', kind: 'abitudine', text: 'Nei giorni feriali, ricette pronte in 30 minuti', source: 'chat', createdAt: now - DAY },
+    ],
+    dismissed: [],
+  }
+}
+
+// La chat di ieri, già archiviata (l'archivio a fine giornata è derivato dal giorno).
+function buildChats() {
+  const at = Date.now() - DAY
+  return [{
+    id: 'mock-chat-1',
+    day: dateStr(-1),
+    title: 'Idee per la cena con il radicchio',
+    createdAt: at,
+    updatedAt: at + 120000,
+    archivedAt: null,
+    messages: [
+      { id: 'mock-m1', role: 'user', text: 'Idee per la cena con il radicchio?', at },
+      {
+        id: 'mock-m2', role: 'model', at: at + 60000,
+        text: 'Con il radicchio e lo stracchino che hai in frigo: **risotto radicchio e stracchino**, 25 minuti. Ti manca solo una cipolla.',
+        actions: [{ type: 'spesa', items: [{ name: 'Cipolla', qty: '1' }], status: 'done' }],
+      },
+    ],
+  }]
+}
+
 function write(key, value) {
   try { localStorage.setItem(key, JSON.stringify(value)) } catch {}
 }
@@ -256,6 +291,8 @@ export function seedMockData({ force = false } = {}) {
   write(KEYS.shopping, buildShopping())
   write(KEYS.mealPrefs, MEAL_PREFS)
   write(KEYS.inbox, buildInbox())
+  write(KEYS.preferences, buildPreferences())
+  write(KEYS.chats, buildChats())
 }
 
 export function resetMockData() {

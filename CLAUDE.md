@@ -4,7 +4,8 @@ Reference rapido per sessioni future. Aggiorna quando cambia l'architettura.
 
 ## Progetto
 
-App React single-page per gestione dispensa con suggerimenti AI stagionali e pasti (registro + planner con promemoria).
+App React single-page per gestione dispensa con suggerimenti AI stagionali, pasti (registro + planner con promemoria) e una chat
+con l'assistente che conosce tutto il contesto dell'utente e propone azioni e preferenze alimentari.
 Stack: React 18 + Vite 5 + CSS Modules + Firebase (Auth + Firestore) + Motion (`motion/react`, solo per la Dispensa desktop).
 Autenticazione Google obbligatoria. Dispensa, pasti, ricette salvate e lista
 spesa vivono su Firestore, sincronizzati in real-time tra dispositivi. Nessun backend
@@ -16,6 +17,7 @@ custom, nessun routing library.
 npm run dev      # dev server (Vite)
 npm run build    # build produzione
 npm run preview  # preview build
+npm test         # node --test sui moduli puri (src/**/*.test.js)
 ```
 
 Richiede `.env` con le variabili Firebase (vedi `.env.example`).
@@ -39,7 +41,9 @@ src/
   nav/shortcuts.js          # SHORTCUT_GROUPS: elenco mostrato in ShortcutsHelp (i binding veri stanno in App.jsx)
   ai/
     model.js                # MODEL_NAME (Lite) + MODEL_PRO e PRO_CONFIG (unico punto dove cambiare modelli)
-    prompts.js              # prompt ricette/spesa/stagione, PROMPT_VERSION (entra nell'hash della cache)
+    prompts.js              # prompt ricette/spesa/stagione, preferencesNote, RECIPE_FORMAT, PROMPT_VERSION (entra nell'hash della cache)
+    chat.js                 # chatSystemPrompt(contesto): prompt di sistema della chat, ricostruito a ogni messaggio
+    chatActions.js          # protocollo ```azioni (spesa/pasto/rimuovi/preferenza): splitActions, visibleText (+ test)
     errors.js               # classifyError → no-key | quota | billing | invalid-key | offline | unknown
     validateKey.js          # validateApiKey: verifica la chiave Gemini (models.list, gratuito) prima di salvarla
     extractIngredients.js   # estrazione batch degli ingredienti delle ricette (generateContent + responseSchema)
@@ -54,7 +58,9 @@ src/
     useSavedRecipes.js      # ricette salvate + sync + estrazione ingredienti in background
     useSavedShopping.js     # lista spesa + sync
     useApiKeySync.js        # chiave Gemini: localStorage ↔ users/{uid}/settings/gemini
-    useAI.js                # Gemini: ricette/spesa/follow-up, streaming, cache
+    useAI.js                # Gemini: ricette/spesa/follow-up, streaming, cache; il follow-up rimanda la dispensa se è cambiata
+    useChat.js              # chat con l'assistente: users/{uid}/chats (senza account: sk-chats), contesto fresco + «Da allora», streaming
+    usePreferences.js       # preferenze alimentari: users/{uid}/preferences/data (senza account: sk-preferences), add/remove/dismiss
     useVoiceBatch.js        # voce → item dispensa
     useReceiptScan.js       # scontrino → item dispensa
     useBatchCandidates.js   # lista candidati editabile condivisa dai due import
@@ -72,16 +78,19 @@ src/
     SpesaTab, SavedShoppingTab, PantrySuggestionsModal, TuTab, ProfileTab, NotificationSettings,
     SplashScreen, AddFlow, AddSheet, VoiceBatchModal, ReceiptScanModal, BatchReview, ShortcutsHelp,
     MealFormModal, MealDetailSheet, MealReminderSettings, NotificationList, NotificationInbox, NotificationPanel,
+    ChatFab, ChatAssistant (sheet mobile / pannello desktop), ChatView, ChatActionCard, PreferencesSettings,
     Modal, BottomNav, Sidebar, LoginScreen
   data/
     initialInventory.js     # SECTIONS, SECTION_LABELS
     seasonal.js             # produce stagionale per mese (Lombardia)
     mealCategories.js       # categorie pasti {id, label, icon} (colori: token --cat-*), DEFAULT_MEAL_TIMES, REMINDER_LEADS, MORNING_TIME
     staples.js              # STAPLES: sale, pepe, olio, acqua… sempre in casa (match ricette + prompt)
+    preferences.js          # PREFERENCE_KINDS (allergia, dieta: vincoli; non-piace, piace, abitudine), preferenceKey
     foodCategories.js       # categorie alimentari dell'analisi AI, FOOD_GROUPS (i gruppi di "Per categoria") e ordine per sezione, FALLBACK_OPEN_DAYS
   utils/
     date.js                 # SOON_DAYS, daysUntil (giorni di calendario), toDateStr, formatExpiry, expiryStatus
-    pantry.js               # estimateRemaining, priorityInfo/comparePriority, itemBadge, getUseSoonItems, getPantryCandidates
+    pantry.js               # estimateRemaining, priorityInfo/comparePriority, itemBadge, getUseSoonItems, getPantryCandidates, inventoryText (testo per l'AI)
+    userContext.js          # buildUserContext (testo + snapshot del contesto della chat), diffSnapshots («Da allora») (+ test)
     logoMorph.js            # coreografia della splash: logoFrame(t) puro (pose, morph forchetta→S e coltello→K, scintille)
     splash.js               # shouldShowSplash/endSplash: una volta per sessione, mai con «riduci movimento»
     markdown.js             # md(): escape HTML poi #/##→h3, ###→h4, **bold**, liste
@@ -175,10 +184,10 @@ Solo tasti singoli, senza Ctrl/⌘/Alt: sono identici su Windows e Mac e non col
 scrivendo in un campo, se c'è un `[role="dialog"][aria-modal]` aperto o se c'è un modificatore.
 I binding sono in `App.jsx`: `1`–`5` destinazioni (ordine di `TABS`), `N` aggiungi, `S` scontrino, `V` voce
 (entrambi richiedono la chiave Gemini, altrimenti toast), `B` notifiche (pannello su desktop, vista su mobile), `C` "Cosa cucino", `P` aggiungi o pianifica un pasto (apre Cucina › Pasti e il form sul giorno selezionato, via `mealRequested` → `MealTrackerTab`; «Pianifica» di una ricetta salvata usa lo stesso canale con `{ recipeId }`), `\` cerca in Dispensa
-(`searchRequested` → `PantryTab`), `?` aiuto, `Esc` chiude il dettaglio (in Dispensa desktop, con una sezione espansa, `Esc` la riduce: listener in `PantryTab`, ignorato se si scrive, con un dialog aperto o durante un drag). `N`, `S`, `V` e il pulsante «Aggiungi prodotti» della sidebar aggiungono nella sezione che si sta guardando in Dispensa
+(`searchRequested` → `PantryTab`), `A` assistente (apre la chat; su desktop apre/chiude il pannello), `?` aiuto, `Esc` chiude il dettaglio (in Dispensa desktop, con una sezione espansa, `Esc` la riduce: listener in `PantryTab`, ignorato se si scrive, con un dialog aperto o durante un drag). `N`, `S`, `V` e il pulsante «Aggiungi prodotti» della sidebar aggiungono nella sezione che si sta guardando in Dispensa
 (sezione espansa su desktop, segmented su tablet; `PantryTab` la comunica con `onViewChange` → `pantryView` in `App`); altrove, in
 ricerca o con le tre colonne, il default è Frigo. **Se aggiungi o cambi un binding,
-aggiorna anche `nav/shortcuts.js`** (è la lista dell'aiuto). La sidebar ha, in fondo, la voce «Notifiche» (badge giallo con i non letti, apre `NotificationPanel`), il link «Scorciatoie da tastiera» (con badge `?`, piccolo) e «Aggiungi prodotti»; nessun altro badge.
+aggiorna anche `nav/shortcuts.js`** (è la lista dell'aiuto). La sidebar ha, in fondo, la voce «Assistente» (badge `A`, gialla a pannello aperto), «Notifiche» (badge giallo con i non letti, apre `NotificationPanel`), il link «Scorciatoie da tastiera» (con badge `?`, piccolo) e «Aggiungi prodotti»; nessun altro badge.
 
 Layout mobile (≤600px): `.app` è una colonna flex con la bottom nav **in flusso** (non fixed), quindi l'area
 scrollabile `.main` finisce già sopra la nav. Conseguenze: le barre `position: sticky` dentro `.main` usano
@@ -238,6 +247,8 @@ L'unico provider è Google (Firebase Console → Authentication → Sign-in meth
 /users/{uid}/notificationPrefs/data    →  { enabled, hour, minute, tz, daysBefore: number[], lastRunDay, updatedAt,
                                            meals?: { enabled, lead: '30'|'60'|'am'|'at', times: {colazione,pranzo,cena,spuntino: 'HH:MM'}, dinnerNudge } }
 /users/{uid}/notifications/{id}        →  { type: 'scadenze'|'pasto'|'cena'|'dispositivo', title, body, open, createdAt, readAt }  (centro notifiche)
+/users/{uid}/preferences/data          →  { items: [{ id, kind, text, source: 'chat'|'manual', createdAt }], dismissed: string[] }
+/users/{uid}/chats/{chatId}            →  { day: 'YYYY-MM-DD', title, createdAt, updatedAt, archivedAt, messages: Message[], snapshot }
 /users/{uid}/mealReminders/data        →  { sent: { "<mealId>@<ms>": ms }, nudgeDay }   (solo Functions: promemoria già inviati)
 /users/{uid}/pushTokens/{deviceId}     →  { token, label, platform, status: 'active'|'stale', lastOkAt, lastSeenAt, staleSince, updatedAt }
 ```
@@ -263,6 +274,8 @@ si può cancellare dalla Console.
 | `sk-pantry-collapsed` | chiavi (`<sezione>:<gruppo>`) dei gruppi ripiegati in Dispensa › Per categoria |
 | `sk-meal-prefs` | impostazioni dei promemoria dei pasti senza account (demo); con account stanno in `notificationPrefs/data.meals` |
 | `sk-inbox` | centro notifiche senza account (demo): lista di `{ id, type, title, body, open, createdAt, readAt }` |
+| `sk-preferences` | preferenze alimentari senza account (demo) |
+| `sk-chats` | chat con l'assistente senza account (demo), ultime 30 |
 | `sk-expiring-banner-dismissed` | data (`YYYY-MM-DD`) in cui è stato chiuso il banner «stanno per scadere» di Spesa; riappare il giorno dopo |
 | `cucina-ai-cache-v1` | cache risposte AI (l'hash include `PROMPT_VERSION`) |
 | `cucina-session-ricette-v1` | sessione chat ricette |
@@ -439,6 +452,8 @@ Due flussi paralleli, stessa struttura e stessa schermata di verifica:
   passa i titoli già visti in `exclude` (entra nell'hash) e usa lo slot `stagione:<nome>:altre`. Le ricette si salvano con `savedRecipes.addRecipes`.
 - Ogni richiesta di `useAI` ha un numero (`runRef`): uno stream superato (nuova richiesta o `clearOutput`) non
   aggiorna più lo stato, ma il risultato finisce comunque in cache.
+- Follow-up (`sendFollowUp`): se la dispensa è cambiata dall'ultimo invio, il messaggio porta `[Dispensa aggiornata, …]` con la lista
+  attuale (la sessione salva `inventoryText`); anche una risposta dalla cache fa da base al follow-up.
 - Funzioni esposte da `useAI`: `fetchRicette()`, `fetchSpesa()`, `fetchStagione(ingrediente, exclude)`,
   `sendFollowUp(text)`, `clearOutput()`; stato `{ loading, messages,
   streaming, error, errorCode, cached, ... }`. `errorCode`: `no-key | quota | billing | invalid-key | offline | unknown`.
@@ -454,6 +469,31 @@ Due flussi paralleli, stessa struttura e stessa schermata di verifica:
   Gli ingredienti di base di `data/staples.js` (sale, pepe, olio, acqua, aceto, zucchero, origano, peperoncino; match sul nome principale)
   hanno stato `staple` (badge «Di base»): mai «Manca», fuori dal conteggio «Hai X su Y» e dai mancanti da aggiungere alla spesa; i prompt
   ricette/spesa dicono all'AI di darli per scontati. Per cambiare l'elenco si modifica solo quel file (e si alza `PROMPT_VERSION`).
+
+## Chat con l'assistente
+
+Sempre raggiungibile: su mobile/tablet `ChatFab` (tondo giallo 48px; su Oggi e Dispensa impilato sopra il «+» verde, nascosto nei
+dettagli), su desktop la voce «Assistente» della sidebar e il tasto `A`. Mobile: `Modal` con `fullscreen` (tutto schermo ≤600px, dialog
+alto su tablet; segue la tastiera iOS). Desktop: pannello fisso a destra largo `--chat-w`, **non modale** (la pagina si restringe con
+`.app[data-chat]`, Esc chiude solo con il focus dentro). Grafiche: canvas «Smart Kitchen — Nuova UI», pagina Proposte.
+- **Contesto vivo**: a ogni invio `useChat` chiama `buildUserContext` sugli input correnti (`contextRef` in `App`: dispensa, pasti ±7 gg,
+  ricette salvate, spesa, preferenze e rifiutate, orari dei pasti, data/ora) e lo mette nel `systemInstruction` di quel turno. La
+  `snapshot` dell'ultimo invio sta nel doc della chat: `diffSnapshots` produce le righe «Da allora» (`changes` sul messaggio, mostrate
+  in una riga tratteggiata e mandate al modello come `[Cambiamenti dall’ultimo messaggio: …]`).
+- **Azioni confermate**: il modello chiude la risposta con un blocco ```` ```azioni ```` (JSON); `splitActions` lo toglie dal testo e
+  valida le voci (`spesa`, `pasto`, `rimuovi`, `preferenza`), `visibleText` lo nasconde durante lo streaming. `ChatActionCard`:
+  Conferma / No → riga di esito (stato nel messaggio: `pending|done|dismissed|missing`). Le esegue `App.handleChatAction`
+  (`handleAddMissing`, `addMeal` con promemoria da `mealPrefs`, `removeItem` + Annulla, `preferences.add/dismiss`). Lo storico mandato
+  al modello riporta per ogni risposta le azioni proposte e il loro esito.
+- **Archivio**: una chat è archiviata se `archivedAt` o `day < oggi` (derivato, nessuna Function); «Nuova chat» imposta `archivedAt`.
+  Archivio per Oggi/Ieri/Questa settimana/Prima, lettura senza azioni, Elimina con Annulla. Max 30 chat, 200 messaggi per chat.
+- Modello `MODEL_PRO` + `PRO_CONFIG`, ultimi 30 messaggi come storico; le ricette nel formato `##` diventano `RecipeCard` salvabili.
+
+## Preferenze alimentari
+
+Tu › Preferenze alimentari (`PreferencesSettings`, dettaglio `{type:'preferenze'}`): aggiunte a mano o proposte dalla chat
+(`source: 'chat'`). `preferencesNote` le aggiunge ai prompt di ricette, spesa e stagione (e della chat): allergie e dieta come vincoli.
+Entrano nell'hash della cache di `useAI`. Le proposte rifiutate finiscono in `dismissed` (max 50) e la chat non le ripropone.
 
 ## Chiave API (Tu)
 

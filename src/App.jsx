@@ -7,6 +7,8 @@ import { useSavedRecipes } from './hooks/useSavedRecipes.js'
 import { useSavedShopping } from './hooks/useSavedShopping.js'
 import { useMealTracker } from './hooks/useMealTracker.js'
 import { useMealPrefs } from './hooks/useMealPrefs.js'
+import { usePreferences } from './hooks/usePreferences.js'
+import { useChat } from './hooks/useChat.js'
 import { useApiKeySync } from './hooks/useApiKeySync.js'
 import { useNavigation } from './hooks/useNavigation.js'
 import { useNotificationInbox } from './hooks/useNotificationInbox.js'
@@ -25,6 +27,8 @@ import { AddFlow } from './components/AddFlow.jsx'
 import { SeasonalRecipesModal } from './components/SeasonalRecipesModal.jsx'
 import { NotificationInbox } from './components/NotificationInbox.jsx'
 import { NotificationPanel } from './components/NotificationPanel.jsx'
+import { ChatAssistant } from './components/ChatAssistant.jsx'
+import { ChatFab } from './components/ChatFab.jsx'
 import { useToast } from './components/ui/Toast.jsx'
 import { useForegroundPush, useNotificationOpen } from './hooks/useNotifications.js'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts.js'
@@ -33,6 +37,9 @@ import { OfflineBanner } from './components/ui/OfflineBanner.jsx'
 import { MockBanner } from './components/ui/MockBanner.jsx'
 import { MOCK_MODE } from './mock/mode.js'
 import { todayStr } from './utils/date.js'
+import { isFood } from './utils/pantry.js'
+import { isPlanned } from './utils/meals.js'
+import { SECTIONS, SECTION_LABELS } from './data/initialInventory.js'
 import { hasApiKey } from './utils/apiKey.js'
 import { shouldShowSplash, endSplash } from './utils/splash.js'
 import { TABS } from './nav/tabs.js'
@@ -133,9 +140,11 @@ function AppContent({ onAuthResolved, revealing }) {
   // Hidden AI metadata (category, shelf life) for every product, in the background.
   usePantryAnalysis(user ? inventory : null, applyAnalysis)
 
-  const ricette = useAI(getInventoryText, 'ricette')
-  const spesa   = useAI(getInventoryText, 'spesa')
-  const stagione = useAI(getInventoryText, 'stagione', { session: false })
+  // Food preferences: part of every AI prompt (recipes, shopping, seasonal, chat).
+  const preferences = usePreferences(authUid)
+  const ricette = useAI(getInventoryText, 'ricette', { preferences: preferences.items })
+  const spesa   = useAI(getInventoryText, 'spesa', { preferences: preferences.items })
+  const stagione = useAI(getInventoryText, 'stagione', { session: false, preferences: preferences.items })
   const [seasonalIngredient, setSeasonalIngredient] = useState(null)
 
   const { saveApiKey } = useApiKeySync(authUid)
@@ -144,6 +153,17 @@ function AppContent({ onAuthResolved, revealing }) {
   const savedShopping  = useSavedShopping(authUid)
   const mealTracker    = useMealTracker(authUid)
   const { prefs: mealPrefs } = useMealPrefs(authUid)
+
+  // The assistant chat reads the user's context when a message is sent, never
+  // from an older render: the ref always holds the latest state.
+  const contextRef = useRef(null)
+  contextRef.current = {
+    inventory, meals: mealTracker.meals, savedRecipes: savedRecipes.recipes, shopping: savedShopping.items,
+    preferences: { items: preferences.items, dismissed: preferences.dismissed }, mealTimes: mealPrefs.times,
+  }
+  const getContextInputs = useCallback(() => contextRef.current, [])
+  const chat = useChat(authUid, getContextInputs)
+  const [chatOpen, setChatOpen] = useState(false)
 
   const handleMoveToPantry = useCallback((assignments) => {
     if (!assignments?.length) return
@@ -165,8 +185,9 @@ function AppContent({ onAuthResolved, revealing }) {
 
   const handleGoApiKey = useCallback(() => {
     closeAdd()
+    if (!isDesktop) setChatOpen(false)
     nav.go('tu')
-  }, [closeAdd, nav.go])
+  }, [closeAdd, nav.go, isDesktop])
 
   // Saved recipes: plan one for tonight's dinner / push its missing ingredients to the shopping list.
   const handleCookTonight = useCallback((recipe) => {
@@ -192,6 +213,95 @@ function AppContent({ onAuthResolved, revealing }) {
       onAction: () => nav.go('spesa', 'lista'),
     })
   }, [savedShopping.items, savedShopping.addItems, toast.show, nav.go])
+
+  // Assistant chat: open/close, where its "Vedi" links go, and the actions it proposes.
+  const openChat = useCallback(() => {
+    setPanelOpen(false)
+    setChatOpen(true)
+  }, [])
+  const closeChat = useCallback(() => setChatOpen(false), [])
+  const openFromChat = useCallback((target) => {
+    if (!isDesktop) setChatOpen(false)
+    if (target === 'spesa') nav.go('spesa', 'lista')
+    else if (target === 'pasti') nav.go('cucina', 'pasti')
+    else if (target === 'preferenze') {
+      nav.go('tu')
+      nav.openDetail({ type: 'preferenze' })
+    }
+    if (mainRef.current) mainRef.current.scrollTop = 0
+  }, [isDesktop, nav.go, nav.openDetail])
+
+  const handleChatAction = useCallback((chatId, msgId, index, action, decision) => {
+    const set = (patch) => chat.updateAction(chatId, msgId, index, patch)
+    if (decision === 'dismiss') {
+      if (action.type === 'preferenza') preferences.dismiss(action.text)
+      set({ status: 'dismissed' })
+      return
+    }
+    if (decision === 'undo') {
+      if (action.type === 'rimuovi' && action.removed) restoreItem(action.removed.section, action.removed.item)
+      set({ status: 'pending', removed: null })
+      return
+    }
+    if (action.type === 'spesa') {
+      handleAddMissing(action.items)
+      set({ status: 'done' })
+    } else if (action.type === 'pasto') {
+      const planned = action.date >= todayStr()
+      const recipe = savedRecipes.recipes.find(r => r.title?.trim().toLowerCase() === action.text.trim().toLowerCase())
+      mealTracker.addMeal(action.date, {
+        text: action.text, category: action.category,
+        recipeId: recipe?.id ?? null, recipeTitle: recipe?.title ?? null,
+        ...(planned ? { planned: true, time: action.time, reminder: mealPrefs.enabled ? { lead: mealPrefs.lead } : null } : {}),
+      })
+      set({ status: 'done' })
+    } else if (action.type === 'rimuovi') {
+      // Same name first, then a name that contains it ("yogurt" → "Yogurt greco").
+      const name = action.name.trim().toLowerCase()
+      const sections = action.section ? [action.section, ...SECTIONS.filter(x => x !== action.section)] : SECTIONS
+      const find = (match) => {
+        for (const section of sections) {
+          const item = inventory[section].find(i => match(i.name.trim().toLowerCase()))
+          if (item) return { section, item }
+        }
+        return null
+      }
+      const found = find(n => n === name) ?? find(n => n.includes(name) || name.includes(n))
+      if (!found) { set({ status: 'missing' }); return }
+      removeItem(found.section, found.item.id)
+      set({ status: 'done', removed: found })
+      toast.show({
+        message: `${found.item.name} tolto da ${SECTION_LABELS[found.section]}`,
+        actionLabel: 'Annulla',
+        onAction: () => { restoreItem(found.section, found.item); set({ status: 'pending', removed: null }) },
+      })
+    } else if (action.type === 'preferenza') {
+      preferences.add({ kind: action.kind, text: action.text, source: 'chat' })
+      set({ status: 'done' })
+    }
+  }, [chat.updateAction, preferences.add, preferences.dismiss, handleAddMissing, savedRecipes.recipes, mealTracker.addMeal,
+    mealPrefs.enabled, mealPrefs.lead, inventory, removeItem, restoreItem, toast.show])
+
+  const handleDeleteChat = useCallback((c) => {
+    chat.deleteChat(c.id)
+    toast.show({ message: 'Chat eliminata', actionLabel: 'Annulla', onAction: () => chat.restoreChat(c) })
+  }, [chat.deleteChat, chat.restoreChat, toast.show])
+
+  const handleSaveChatRecipe = useCallback((recipe) => {
+    savedRecipes.addRecipes([recipe])
+    toast.show({ message: 'Ricetta salvata', actionLabel: 'Vedi', onAction: () => { if (!isDesktop) setChatOpen(false); nav.go('cucina', 'salvate') } })
+  }, [savedRecipes.addRecipes, toast.show, isDesktop, nav.go])
+
+  const today = todayStr()
+  const chatSummary = {
+    products: SECTIONS.reduce((n, s) => n + inventory[s].filter(isFood).length, 0),
+    planned: Object.entries(mealTracker.meals ?? {})
+      .filter(([d]) => d >= today)
+      .reduce((n, [, list]) => n + (list ?? []).filter(isPlanned).length, 0),
+    toBuy: savedShopping.items.filter(i => !i.checked).length,
+    prefs: preferences.items.length,
+  }
+  const savedTitles = new Set(savedRecipes.recipes.map(r => r.title?.trim().toLowerCase()))
 
   // "Cosa cucino con questi?": open Cucina and generate straight away.
   const handleCook = useCallback(() => {
@@ -229,6 +339,7 @@ function AppContent({ onAuthResolved, revealing }) {
     '\\': () => { handleTabChange('dispensa'); setPantrySearch(true) },
     '?': () => setHelpOpen(true),
     b: openNotifications,
+    a: () => (isDesktop && chatOpen ? closeChat() : openChat()),
     Escape: () => { if (nav.detail) nav.closeDetail() },
   }, !!user)
 
@@ -249,7 +360,7 @@ function AppContent({ onAuthResolved, revealing }) {
 
   return (
     <>
-      <div className={styles.app} data-detail={nav.detail ? 'true' : undefined}>
+      <div className={styles.app} data-detail={nav.detail ? 'true' : undefined} data-chat={isDesktop && chatOpen ? 'open' : undefined}>
         {/* Tablet: sticky top header with scrollable tabs */}
         <header className={styles.header}>
           <div className={styles.headerInner}>
@@ -279,6 +390,8 @@ function AppContent({ onAuthResolved, revealing }) {
           unread={inbox.unread}
           notificationsOpen={panelOpen}
           onNotifications={() => setPanelOpen(o => !o)}
+          assistantOpen={chatOpen}
+          onAssistant={() => (chatOpen ? closeChat() : openChat())}
         />
         {isDesktop && (
           <NotificationPanel
@@ -384,6 +497,8 @@ function AppContent({ onAuthResolved, revealing }) {
               detail={nav.detail}
               onOpenNotifications={() => nav.openDetail({ type: 'notifiche' })}
               onOpenMealReminders={() => nav.openDetail({ type: 'promemoria-pasti' })}
+              onOpenPreferences={() => nav.openDetail({ type: 'preferenze' })}
+              preferences={preferences}
               onCloseDetail={nav.closeDetail}
               onExport={exportCSV}
               onImport={importCSV}
@@ -394,6 +509,26 @@ function AppContent({ onAuthResolved, revealing }) {
           )}
           </div>
         </main>
+
+        {!isDesktop && !nav.detail && !chatOpen && (
+          <ChatFab onClick={openChat} stacked={nav.tab === 'oggi' || nav.tab === 'dispensa'} />
+        )}
+
+        <ChatAssistant
+          open={chatOpen}
+          isDesktop={isDesktop}
+          onClose={closeChat}
+          chat={chat}
+          archived={chat.archived}
+          summary={chatSummary}
+          mealPrefs={mealPrefs}
+          savedTitles={savedTitles}
+          onSaveRecipe={handleSaveChatRecipe}
+          onAction={handleChatAction}
+          onOpen={openFromChat}
+          onGoApiKey={handleGoApiKey}
+          onDeleteChat={handleDeleteChat}
+        />
 
         <SeasonalRecipesModal
           ingredient={seasonalIngredient}

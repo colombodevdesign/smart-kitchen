@@ -30,9 +30,11 @@ function loadSession(name) {
   try { return JSON.parse(localStorage.getItem(sessionKey(name))) ?? null } catch { return null }
 }
 
-function saveSession(name, messages, apiHistory, systemPrompt) {
+// `inventoryText`: the pantry the conversation last saw, so a follow-up can tell
+// the model what changed since.
+function saveSession(name, messages, apiHistory, systemPrompt, inventoryText) {
   try {
-    localStorage.setItem(sessionKey(name), JSON.stringify({ messages, apiHistory, systemPrompt }))
+    localStorage.setItem(sessionKey(name), JSON.stringify({ messages, apiHistory, systemPrompt, inventoryText }))
   } catch {}
 }
 
@@ -50,8 +52,9 @@ function getApiKey() {
 const STRONG = ['ricette', 'stagione']
 
 // `session: false` keeps nothing between launches (the seasonal-recipes modal
-// starts fresh each time it opens).
-export function useAI(getInventoryText, name, { session = true } = {}) {
+// starts fresh each time it opens). `preferences`: the user's food preferences,
+// part of every prompt and of the cache hash.
+export function useAI(getInventoryText, name, { session = true, preferences = [] } = {}) {
   const saved = session ? loadSession(name) : null
   const strong = STRONG.includes(name)
   const model = strong ? MODEL_PRO : MODEL_NAME
@@ -65,6 +68,7 @@ export function useAI(getInventoryText, name, { session = true } = {}) {
 
   const apiHistoryRef = useRef(saved?.apiHistory ?? [])
   const systemPromptRef = useRef(saved?.systemPrompt ?? '')
+  const inventoryRef = useRef(saved?.inventoryText ?? '')
   // Bumped by every request and by clearOutput: a superseded stream stops updating state.
   const runRef = useRef(0)
 
@@ -83,11 +87,18 @@ export function useAI(getInventoryText, name, { session = true } = {}) {
     return full
   }, [model, strong])
 
-  const call = useCallback(async (systemPrompt, userPrompt, cacheType, cacheHash) => {
+  const call = useCallback(async (systemPrompt, userPrompt, cacheType, cacheHash, inventoryText) => {
     const run = ++runRef.current
     const cache = loadCache()
     if (cache[cacheType]?.hash === cacheHash) {
-      setMessages([{ role: 'model', text: cache[cacheType].output }])
+      // A follow-up continues from the cached answer as if it had just been generated.
+      const output = cache[cacheType].output
+      const history = [{ role: 'user', parts: [{ text: userPrompt }] }, { role: 'model', parts: [{ text: output }] }]
+      systemPromptRef.current = systemPrompt
+      apiHistoryRef.current = history
+      inventoryRef.current = inventoryText
+      if (session) saveSession(name, [{ role: 'model', text: output }], history, systemPrompt, inventoryText)
+      setMessages([{ role: 'model', text: output }])
       setStreaming('')
       setLoading(false)
       setError('')
@@ -98,6 +109,7 @@ export function useAI(getInventoryText, name, { session = true } = {}) {
 
     systemPromptRef.current = systemPrompt
     apiHistoryRef.current = []
+    inventoryRef.current = inventoryText
     setMessages([])
     setCached(false)
     setLoading(true)
@@ -118,7 +130,7 @@ export function useAI(getInventoryText, name, { session = true } = {}) {
       apiHistoryRef.current = newHistory
       setMessages([{ role: 'model', text: fullOutput }])
       setStreaming('')
-      if (fullOutput && session) saveSession(name, [{ role: 'model', text: fullOutput }], newHistory, systemPrompt)
+      if (fullOutput && session) saveSession(name, [{ role: 'model', text: fullOutput }], newHistory, systemPrompt, inventoryText)
     } catch (e) {
       if (runRef.current !== run) return
       const { code, message } = classifyError(e)
@@ -141,7 +153,15 @@ export function useAI(getInventoryText, name, { session = true } = {}) {
     try {
       if (typeof navigator !== 'undefined' && navigator.onLine === false) throw new AIError('offline', 'Sei offline. Riprova quando torni online.')
       const apiKey = getApiKey()
-      const contents = [...apiHistoryRef.current, { role: 'user', parts: [{ text: userText }] }]
+      // The pantry may have changed since the conversation started: say so, with
+      // the current list, otherwise the model keeps answering about the old one.
+      const inventoryText = getInventoryText()
+      let prompt = userText
+      if (inventoryRef.current && inventoryText !== inventoryRef.current) {
+        prompt = `[Dispensa aggiornata, usa questa d'ora in poi:\n${inventoryText}]\n\n${userText}`
+        inventoryRef.current = inventoryText
+      }
+      const contents = [...apiHistoryRef.current, { role: 'user', parts: [{ text: prompt }] }]
       const fullOutput = await runStream(apiKey, contents, text => {
         if (runRef.current === run) setStreaming(prev => prev + text)
       })
@@ -150,7 +170,7 @@ export function useAI(getInventoryText, name, { session = true } = {}) {
       apiHistoryRef.current = newHistory
       setMessages(prev => {
         const updated = [...prev, { role: 'model', text: fullOutput }]
-        if (session) saveSession(name, updated, newHistory, systemPromptRef.current)
+        if (session) saveSession(name, updated, newHistory, systemPromptRef.current, inventoryRef.current)
         return updated
       })
       setStreaming('')
@@ -162,7 +182,9 @@ export function useAI(getInventoryText, name, { session = true } = {}) {
     } finally {
       if (runRef.current === run) setLoading(false)
     }
-  }, [runStream, name, session])
+  }, [runStream, name, session, getInventoryText])
+
+  const prefsHash = preferences.map(p => `${p.kind}:${p.text}`).join('|')
 
   const fetchRicette = useCallback(() => {
     const inventoryText = getInventoryText()
@@ -170,10 +192,11 @@ export function useAI(getInventoryText, name, { session = true } = {}) {
       inventoryText,
       seasonal: getSeasonal().join(', '),
       month: getMonthName(),
+      preferences,
     })
-    const cacheHash = hashString(PROMPT_VERSION + model + 'ricette' + new Date().getMonth() + inventoryText)
-    call(prompts.system, prompts.user, 'ricette', cacheHash)
-  }, [call, getInventoryText, model])
+    const cacheHash = hashString(PROMPT_VERSION + model + 'ricette' + new Date().getMonth() + inventoryText + prefsHash)
+    call(prompts.system, prompts.user, 'ricette', cacheHash, inventoryText)
+  }, [call, getInventoryText, model, preferences, prefsHash])
 
   const fetchSpesa = useCallback(() => {
     const inventoryText = getInventoryText()
@@ -181,19 +204,20 @@ export function useAI(getInventoryText, name, { session = true } = {}) {
       inventoryText,
       seasonal: getSeasonal().join(', '),
       month: getMonthName(),
+      preferences,
     })
-    const cacheHash = hashString(PROMPT_VERSION + model + 'spesa' + new Date().getMonth() + inventoryText)
-    call(prompts.system, prompts.user, 'spesa', cacheHash)
-  }, [call, getInventoryText, model])
+    const cacheHash = hashString(PROMPT_VERSION + model + 'spesa' + new Date().getMonth() + inventoryText + prefsHash)
+    call(prompts.system, prompts.user, 'spesa', cacheHash, inventoryText)
+  }, [call, getInventoryText, model, preferences, prefsHash])
 
   // Per ingredient, the first answer has its own cache slot (reopening is free);
   // "Altre idee" (`exclude` = titles already shown) uses a second one.
   const fetchStagione = useCallback((ingredient, exclude = []) => {
     const inventoryText = getInventoryText()
-    const prompts = stagionePrompts({ ingredient, inventoryText, month: getMonthName(), exclude })
-    const cacheHash = hashString(PROMPT_VERSION + model + 'stagione' + ingredient + exclude.join('|') + new Date().getMonth() + inventoryText)
-    call(prompts.system, prompts.user, `stagione:${ingredient}${exclude.length ? ':altre' : ''}`, cacheHash)
-  }, [call, getInventoryText, model])
+    const prompts = stagionePrompts({ ingredient, inventoryText, month: getMonthName(), exclude, preferences })
+    const cacheHash = hashString(PROMPT_VERSION + model + 'stagione' + ingredient + exclude.join('|') + new Date().getMonth() + inventoryText + prefsHash)
+    call(prompts.system, prompts.user, `stagione:${ingredient}${exclude.length ? ':altre' : ''}`, cacheHash, inventoryText)
+  }, [call, getInventoryText, model, preferences, prefsHash])
 
   // Drops the conversation and any request still running.
   const clearOutput = useCallback(() => {
@@ -205,6 +229,7 @@ export function useAI(getInventoryText, name, { session = true } = {}) {
     setErrorCode('')
     setCached(false)
     apiHistoryRef.current = []
+    inventoryRef.current = ''
     clearSession(name)
   }, [name])
 
