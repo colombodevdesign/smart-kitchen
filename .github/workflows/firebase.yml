@@ -45,16 +45,16 @@ jobs:
     name: Test e regole
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: functions/package-lock.json
 
       # The Firestore emulator (rules check below) needs Java.
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: 21
@@ -77,9 +77,9 @@ jobs:
       contents: read
       id-token: write   # Workload Identity Federation: a short-lived Google token, no stored key
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: dorny/paths-filter@v3
+      - uses: dorny/paths-filter@v4
         id: changes
         if: github.event_name == 'push'
         with:
@@ -124,13 +124,13 @@ jobs:
             exit 1
           fi
 
-      - uses: google-github-actions/auth@v2
+      - uses: google-github-actions/auth@v3
         if: steps.what.outputs.rules == 'true' || steps.what.outputs.functions == 'true'
         with:
           workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         if: steps.what.outputs.rules == 'true' || steps.what.outputs.functions == 'true'
         with:
           node-version: 22
