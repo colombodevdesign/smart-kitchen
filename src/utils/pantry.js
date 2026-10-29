@@ -176,3 +176,30 @@ export function groupByCategory(pairs, section, now = Date.now()) {
   }
   return groups.filter(g => g.pairs.length > 0)
 }
+
+// Food in the pantry as the text sent to the AI, one line per section, with
+// markers for what to use first (legend in ai/prompts.js and ai/chat.js).
+export function inventoryText(inventory, now = Date.now()) {
+  return Object.entries(inventory ?? {})
+    .map(([section, items]) => [section, (items ?? []).filter(isFood)])
+    .filter(([, items]) => items.length > 0)
+    .map(([section, items]) => {
+      const list = items.map(i => {
+        let text = i.qty ? `${i.name} ${i.qty}` : i.name
+        // Opened products only count when they don't keep for long (an opened
+        // ketchup is not urgent); fresh food is flagged near its estimated shelf life.
+        const est = estimateRemaining(i, section, now)
+        if (i.urgent && est && est.days <= USE_SOON_DAYS) text += ' [APERTO]'
+        else if (!i.urgent && est?.source === 'fresh' && est.days <= SOON_DAYS) text += ' [presto]'
+        if (i.expiresAt) {
+          const days = daysUntil(i.expiresAt, now)
+          if (days < 0) text += '[scad]'
+          else if (days === 0) text += '[oggi]'
+          else if (days <= SOON_DAYS) text += `[${days}gg]`
+        }
+        return text
+      }).join(', ')
+      return `${capitalize(section)}: ${list}`
+    })
+    .join('\n')
+}

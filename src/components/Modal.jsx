@@ -15,7 +15,10 @@ const KEYBOARD_MIN_PX = 120
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
 // `autoFocus={false}`: focus the dialog itself instead of its first field (no keyboard popping up on touch).
-export function Modal({ open, onClose, title, children, footer, autoFocus = true }) {
+// `fullscreen`: the whole screen on phones, a tall dialog on tablets; the body has no
+// padding and doesn't scroll (the content lays itself out, e.g. the chat).
+// `label`: accessible name when there is no `title` header.
+export function Modal({ open, onClose, title, label, children, footer, autoFocus = true, fullscreen = false }) {
   const id = useId()
   const titleId = `${id}-title`
   const dialogRef = useRef(null)
@@ -110,7 +113,7 @@ export function Modal({ open, onClose, title, children, footer, autoFocus = true
   if (!open && !present) return null
 
   return (
-    <div ref={overlayRef} className={styles.overlay} data-closing={open ? undefined : 'true'} onClick={onClose} role="presentation">
+    <div ref={overlayRef} className={styles.overlay} data-closing={open ? undefined : 'true'} data-full={fullscreen || undefined} onClick={onClose} role="presentation">
       <div
         ref={dialogRef}
         className={styles.dialog}
@@ -118,6 +121,7 @@ export function Modal({ open, onClose, title, children, footer, autoFocus = true
         aria-modal={open ? 'true' : undefined}
         tabIndex={-1}
         aria-labelledby={title ? titleId : undefined}
+        aria-label={title ? undefined : label}
         onClick={e => e.stopPropagation()}
       >
         {title && (

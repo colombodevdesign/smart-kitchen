@@ -1,0 +1,21 @@
+/* Desktop side panel; its width is reserved in App.module.css (--chat-w) so the page isn't covered. */
+.panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: calc(var(--z-modal) - 1);
+  width: var(--chat-w);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  border-left: 1px solid var(--border);
+  box-shadow: -12px 0 32px color-mix(in srgb, var(--text) 6%, transparent);
+  animation: panelIn 0.22s var(--ease-ios);
+}
+@keyframes panelIn {
+  from { opacity: 0; transform: translateX(16px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .panel { animation: none; }
+}

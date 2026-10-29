@@ -58,6 +58,26 @@ service cloud.firestore {
       allow delete: if isOwner(userId);
     }
 
+    // Preferenze alimentari (Tu › Preferenze alimentari): le usano tutti i prompt AI.
+    match /users/{userId}/preferences/data {
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId)
+                   && request.resource.data.items is list
+                   && request.resource.data.items.size() <= 200
+                   && request.resource.data.dismissed is list
+                   && request.resource.data.dismissed.size() <= 50;
+    }
+
+    // Chat con l'assistente: un documento per chat (quella di oggi + archivio).
+    match /users/{userId}/chats/{chatId} {
+      allow read, delete: if isOwner(userId);
+      allow create, update: if isOwner(userId)
+                            && request.resource.data.day is string
+                            && request.resource.data.messages is list
+                            && request.resource.data.messages.size() <= 200
+                            && request.resource.data.updatedAt is int;
+    }
+
     // Centro notifiche: scritto solo dalle Functions; il client segna come letta.
     match /users/{userId}/notifications/{notificationId} {
       allow read: if isOwner(userId);

@@ -16,7 +16,9 @@ Con il deploy manuale l'ordine è **Functions → client → regole**. Eccezione
 `mealReminders/data` (pasti già ricordati) lo scrive e legge solo la Function: nessuna regola, il client non
 ci accede. Anche il **centro notifiche** (`notifications/{id}`) va pubblicato **prima** del client: lo
 scrivono solo le Functions, il client legge i propri e aggiorna solo `readAt` (segna come letta); senza la
-regola la campanella resta vuota. Il vecchio doc `pushToken/data` (dispositivo
+regola la campanella resta vuota. Anche **chat dell'assistente** (`chats/{id}`) e **preferenze alimentari**
+(`preferences/data`) vanno pubblicate **prima** del client: senza regola la chat funziona solo finché la scheda
+resta aperta (le scritture vengono rifiutate) e le preferenze non si salvano. Il vecchio doc `pushToken/data` (dispositivo
 singolo) non è più usato: la sua regola va tolta solo dopo il deploy del client, perché quello precedente lo
 scrive ancora. Il doc rimasto su Firestore si può cancellare a mano dalla Console.
 

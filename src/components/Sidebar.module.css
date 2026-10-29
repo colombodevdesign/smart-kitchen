@@ -175,3 +175,9 @@
   border-radius: var(--radius-md);
 }
 .cta:hover { background: var(--accent-hover); }
+
+/* Assistant chat (side panel on the right): yellow, the AI accent, while open. */
+.assistant .kbd { font-weight: 600; }
+.assistantOpen,
+.assistantOpen:hover { font-weight: 700; color: var(--highlight-ink); background: var(--warn-light); }
+.assistantOpen .kbd { color: var(--warn-text); border-color: color-mix(in srgb, var(--warn-text) 35%, transparent); }

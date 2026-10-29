@@ -18,7 +18,7 @@ const THEME_OPTIONS = [
   { value: 'dark', label: 'Scuro' },
 ]
 
-export function ProfileTab({ user, online, onExport, onImport, onClearInventory, onSignOut, onOpenNotifications, onSaveApiKey }) {
+export function ProfileTab({ user, online, onExport, onImport, onClearInventory, onSignOut, onOpenNotifications, onOpenPreferences, preferencesCount = 0, onSaveApiKey }) {
   const push = useNotifications(user?.uid)
   const alertsOn = push.prefs.enabled && push.thisDevice === 'active'
   const pad = n => String(n).padStart(2, '0')
@@ -123,6 +123,15 @@ export function ProfileTab({ user, online, onExport, onImport, onClearInventory,
           <span>{alertsOn ? `Scadenze ogni giorno alle ${pad(push.prefs.hour)}:${pad(push.prefs.minute)}` : push.prefs.enabled ? 'Da completare su questo dispositivo' : 'Scadenze e promemoria dei pasti'}</span>
         </span>
         <StatusBadge tone={alertsOn ? 'ok' : push.prefs.enabled ? 'soon' : 'neutral'}>{alertsOn ? 'Attivi' : push.prefs.enabled ? 'Da attivare' : 'Disattivi'}</StatusBadge>
+        <Icon name="chevR" size={20} className={styles.chev} />
+      </button>
+
+      <button type="button" className={styles.linkCard} onClick={onOpenPreferences}>
+        <span className={styles.bell}><Icon name="apple" size={24} /></span>
+        <span className={styles.linkText}>
+          <strong>Preferenze alimentari</strong>
+          <span>{preferencesCount === 0 ? 'Gusti, dieta e allergie per l’AI' : preferencesCount === 1 ? '1 preferenza salvata' : `${preferencesCount} preferenze salvate`}</span>
+        </span>
         <Icon name="chevR" size={20} className={styles.chev} />
       </button>
 

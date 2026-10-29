@@ -6,7 +6,7 @@ import styles from './Sidebar.module.css'
 
 const PAGE_DELAY_MS = 120
 
-export function Sidebar({ activeTab, onTabChange, onAdd, onShortcuts, unread = 0, notificationsOpen = false, onNotifications }) {
+export function Sidebar({ activeTab, onTabChange, onAdd, onShortcuts, unread = 0, notificationsOpen = false, onNotifications, assistantOpen = false, onAssistant }) {
   const [shownTab, setShownTab] = useOptimisticValue(activeTab)
   // The highlight moves on the tap; the page changes a beat later, so the heavy render doesn't land mid-slide.
   const timer = useRef(0)
@@ -38,6 +38,19 @@ export function Sidebar({ activeTab, onTabChange, onAdd, onShortcuts, unread = 0
         ))}
       </nav>
       <div className={styles.footer}>
+        {onAssistant && (
+          <button
+            type="button"
+            className={`${styles.notif} ${styles.assistant} ${assistantOpen ? styles.assistantOpen : ''}`}
+            onClick={onAssistant}
+            aria-expanded={assistantOpen}
+            aria-keyshortcuts="a"
+          >
+            <Icon name="sparkle" size={22} />
+            <span className={styles.notifLabel}>Assistente</span>
+            <kbd className={styles.kbd} aria-hidden="true">A</kbd>
+          </button>
+        )}
         {onNotifications && (
           <button
             type="button"

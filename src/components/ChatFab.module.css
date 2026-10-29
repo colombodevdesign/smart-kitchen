@@ -1,0 +1,24 @@
+.fab {
+  position: fixed;
+  right: 24px;
+  bottom: var(--float-bottom);
+  z-index: var(--z-fab);
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--highlight-ink);
+  background: var(--highlight);
+  border: none;
+  border-radius: 50%;
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
+}
+/* Above the 56px "add" button of Oggi and Dispensa (right: 20px), centred on it. */
+.fab[data-stacked] {
+  bottom: calc(var(--float-bottom) + var(--tap-lg) + 12px);
+}
+@media (min-width: 1024px) {
+  .fab { display: none; }
+}
