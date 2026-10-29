@@ -1,0 +1,58 @@
+# Wiki: the pages in docs/wiki are the single source. On every push to master that
+# touches them (or by hand from Actions › "Wiki" › Run workflow) they are mirrored
+# into the GitHub wiki (smart-kitchen.wiki.git), deleting pages that no longer exist here.
+# One-time setup: create the first page from the repo's Wiki tab (docs/wiki/README.md).
+name: Wiki
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - docs/wiki/**
+      - .github/workflows/wiki.yml
+  workflow_dispatch:
+
+# Pushing to the wiki repository needs write access to the repo's contents.
+permissions:
+  contents: write
+
+# Publishes never overlap or get cancelled.
+concurrency:
+  group: wiki-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Pubblica la wiki
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Clona la wiki
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          if ! git clone --quiet "https://x-access-token:${TOKEN}@github.com/${REPO}.wiki.git" "$RUNNER_TEMP/wiki"; then
+            echo "::error::Wiki non trovata. Inizializzala una volta dalla scheda Wiki del repo creando una prima pagina (vedi docs/wiki/README.md)."
+            exit 1
+          fi
+
+      - name: Allinea le pagine
+        run: |
+          rsync -a --delete --exclude '.git' --exclude 'README.md' docs/wiki/ "$RUNNER_TEMP/wiki/"
+
+      - name: Pubblica
+        working-directory: ${{ runner.temp }}/wiki
+        env:
+          SHA: ${{ github.sha }}
+        run: |
+          git add -A
+          if git diff --cached --quiet; then
+            echo "La wiki è già aggiornata."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit --quiet -m "Aggiorna la wiki da ${SHA::7}"
+          git push --quiet origin HEAD
