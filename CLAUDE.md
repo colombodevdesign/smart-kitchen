@@ -91,7 +91,7 @@ src/
     date.js                 # SOON_DAYS, daysUntil (giorni di calendario), toDateStr, formatExpiry, expiryStatus
     pantry.js               # estimateRemaining, priorityInfo/comparePriority, itemBadge, getUseSoonItems, getPantryCandidates, inventoryText (testo per l'AI)
     userContext.js          # buildUserContext (testo + snapshot del contesto della chat), diffSnapshots («Da allora») (+ test)
-    logoMorph.js            # coreografia della splash: logoFrame(t) puro (pose, morph forchetta→S e coltello→K, scintille)
+    logoMorph.js            # coreografia della splash: keyframe Web Animations della prima fase + morphFrame(t) puro (forchetta→S, coltello→K)
     splash.js               # shouldShowSplash/endSplash: una volta per sessione, mai con «riduci movimento»
     markdown.js             # md(): escape HTML poi #/##→h3, ###→h4, **bold**, liste
     parsers.js              # parseRecipes (split su "## "), parseShoppingItems, extractQty
@@ -201,7 +201,7 @@ dalla fascia (in una scheda del browser non serve). I toast
 ## Animazione di avvio
 
 `SplashScreen` (in `App`, sopra tutto: `--z-splash`) mostra forchetta e coltello che oscillano uno verso l'altro, si toccano due volte
-(scintille, rimbalzo) e si trasformano nel logo SK (`ui/LogoMorph`). Resta finché il logo è formato (`FORMED_AT`, 2,75 s) **e** Firebase ha
+(scintille, rimbalzo) e si trasformano nel logo SK (`ui/LogoMorph`). Resta finché il logo è formato (`FORMED_AT`, 2,1 s) **e** Firebase ha
 risolto l'auth (`App` → `AppContent.onAuthResolved`), poi esce in 640 ms (`LEAVE_MS`): il logo si stringe un attimo, si ingrandisce
 verso chi guarda e sparisce (entro ~320 ms), **poi** il verde sfuma, così logo e pagina non si sovrappongono; intanto la pagina entra
 con `data-motion="reveal"` su `.page` (fade + zoom da 0,97 con ritardo, `revealing` in `App` per `REVEAL_MS`). All'**inizio** dell'uscita
@@ -213,13 +213,20 @@ verde; la regola è duplicata in `utils/splash.js`: cambiarle insieme. In demo m
 - Prima della splash: su iOS la schermata di lancio della PWA sono le `apple-touch-startup-image` di `index.html` (`public/splash/`,
   PNG verdi a tinta unita da 1 bit, una per dimensione di iPhone: senza, iOS mostra nero e poi dissolve nel verde); su Android
   `background_color` del manifest è lo stesso verde. Un iPhone con dimensioni nuove va aggiunto lì (altrimenti ricade sul nero).
-- `utils/logoMorph.js` è puro: `logoFrame(t)` restituisce trasformazioni, `d` dei path e scintille dell'istante t; `LogoMorph` li applica con
-  `setAttribute` in un loop `requestAnimationFrame` (nessun render React per frame). Il morph è un'interpolazione punto per punto: funziona anche
-  su Safari (le animazioni CSS del path `d` no).
+- **Fluidità durante l'avvio**: nel primo secondo il thread principale è occupato (render dell'app, login Firebase, Firestore). Per questo fino a
+  `MORPH_START` (1,2 s) tutto è `transform`/`opacity` su livelli HTML (forchetta, coltello, scintille: `<span>`) animati con la Web Animations API,
+  che girano sul compositor anche col thread principale bloccato. Le animazioni partono col primo frame dipinto e il loop JS prende `startTime`
+  della comparsa come istante zero (non `document.timeline.currentTime`, che durante un task lungo resta fermo). Solo il morph dei path, da
+  `MORPH_START`, è disegnato in un loop `requestAnimationFrame` (`morphFrame(t)` + `setAttribute`, nessun render React per frame); al passaggio
+  il loop annulla le animazioni di inclinazione e imposta lui la rotazione dei livelli. Inoltre `App` monta `AppContent` un frame dopo la splash
+  in `startTransition` e `AppContent` usa `useDeferredValue(user)`: i due render pesanti dell'avvio vengono spezzati da React.
+  Non reintrodurre animazioni JS per frame nella prima fase.
+- `utils/logoMorph.js` è puro: keyframe e tempi della prima fase (`enterAnimation`, `tiltAnimation`, `sparks`, `popAnimation`) e `morphFrame(t)`.
+  Il morph è un'interpolazione punto per punto: funziona anche su Safari (le animazioni CSS del path `d` no).
 - `ui/logoMorphData.js` è **generato**: contorni tracciati da `public/icon-512.png` (potrace su maschere crema/giallo) e ricampionati con punti
   di riferimento (rebbi, bordi, estremità) così forchetta→S e coltello→K non si attorcigliano; contiene anche la posa «in piedi» e l'angolo di
   contatto calcolato dalla geometria. Se cambia il logo vanno rigenerati. Colori: token `--brand-cream`, `--brand-yellow`, sfondo `--hero`
-  (uguali nei due temi). Per ritoccare la coreografia basta `utils/logoMorph.js` (`TILT`, `MORPH_START`, `SPARK_HITS`).
+  (uguali nei due temi). Per ritoccare la coreografia basta `utils/logoMorph.js` (`TILT`, `MORPH_START`, `SPARK_HITS`, `POP`, `FORMED_AT`).
 
 ## Firebase — configurazione
 

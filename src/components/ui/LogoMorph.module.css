@@ -1,7 +1,20 @@
+/* Quadrato del logo (viewBox 512): tutti i livelli lo coprono per intero, così le
+   posizioni in percentuale di logoMorph.js valgono per ognuno. */
 .logo {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+}
+
+.layer {
+  position: absolute;
+  inset: 0;
+}
+
+.svg {
   display: block;
   width: 100%;
-  height: auto;
+  height: 100%;
   overflow: visible;
 }
 
@@ -9,6 +22,10 @@
 .yellow { fill: var(--brand-yellow); }
 
 .spark {
-  stroke-width: 6;
-  stroke-linecap: round;
+  position: absolute;
+  border-radius: 999px;
+  opacity: 0;
+  transform-origin: 0 50%;
+  background: var(--brand-cream);
 }
+.spark[data-color='yellow'] { background: var(--brand-yellow); }
