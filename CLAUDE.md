@@ -112,6 +112,8 @@ docs/
   design-brief.md, ui-implementation-notes.md   # design e note di implementazione
   firestore-rules.md                            # note sulle regole (compatibilità, ordine)
   deploy.md                                     # chi pubblica cosa, setup una tantum di Workload Identity, ripiego manuale
+  wiki/                                         # sorgenti della wiki di GitHub (pagine .md, pubblicazione in wiki/README.md): aggiornarle quando cambia una funzione visibile all'utente
+screens/                    # screenshot desktop usati dal README
 ```
 
 ## Modalità demo (deploy non di produzione)

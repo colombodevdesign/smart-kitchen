@@ -10,7 +10,7 @@
 
 È una **PWA** (Progressive Web App) ottimizzata sia per **desktop** che per **mobile**: si usa dal browser oppure si installa sul dispositivo (su iPhone con «Aggiungi a Home», su desktop e Android con «Installa app») e si apre a schermo intero come un'app nativa. Il layout si adatta allo schermo: sidebar e Dispensa a tre colonne su desktop, navigazione in basso e gesti di swipe su mobile. Funziona anche con le notifiche push: scadenze e promemoria dei pasti.
 
-Stack: React 18 + Vite 5 + CSS Modules + Firebase (Auth, Firestore, Cloud Messaging, Functions) + Gemini AI.
+Stack: React 18 + Vite 5 + CSS Modules + Firebase (Auth, Firestore, Cloud Messaging, Functions) + Gemini AI (`@google/genai`).
 
 ## Screenshot
 
@@ -35,8 +35,11 @@ Stack: React 18 + Vite 5 + CSS Modules + Firebase (Auth, Firestore, Cloud Messag
 - **Aggiunta rapida** — a mano, a voce, da foto o PDF dello scontrino, da CSV; schermata di verifica prima di confermare
 - **Cucina** — ricette AI basate su dispensa e scadenze (con streaming), ricette salvate con «Hai X ingredienti su Y», pasti come registro e planner (pasti in programma con promemoria)
 - **Spesa** — lista della spesa e idee AI stagionali integrate con la dispensa
+- **Assistente** — chat che conosce dispensa, pasti, ricette salvate e spesa e si aggiorna a ogni messaggio; propone azioni (lista della spesa, pasti, rimozioni, preferenze) che si applicano solo dopo conferma; chat archiviate per giorno
+- **Preferenze alimentari** — allergie e dieta come vincoli, gusti e abitudini come indicazioni, usate da tutte le richieste AI; l'assistente propone di salvarle
 - **Notifiche push** (Cloud Functions): avviso di scadenza con orario e anticipo a scelta, promemoria dei pasti in programma e «pianifica la cena», con un centro notifiche nell'app (campanella su mobile, pannello su desktop)
-- **Scorciatoie da tastiera**, tema chiaro/scuro, PWA installabile
+- **Uso offline** — app shell in cache e persistenza locale di Firestore: dispensa, pasti, ricette e spesa restano consultabili e modificabili senza rete
+- **Scorciatoie da tastiera**, tema chiaro/scuro, PWA installabile con animazione di avvio
 - **Modalità demo** per le preview, senza login né Firebase
 
 Le funzioni AI usano la **chiave Gemini dell'utente** (non c'è una chiave del developer), inserita in Tu › Chiave API Gemini: viene salvata in `localStorage` e sincronizzata sull'account.
@@ -68,6 +71,7 @@ Per provare l'app senza Firebase: `VITE_MOCK_MODE=true` nel `.env` attiva la [mo
 npm run dev      # dev server
 npm run build    # build di produzione in dist/
 npm run preview  # anteprima della build
+npm test         # test dei moduli puri (node --test)
 ```
 
 ## Deploy
