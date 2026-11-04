@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from 'react'
 import { GoogleGenAI } from '@google/genai'
 import { MODEL_PRO, PRO_CONFIG } from '../ai/model.js'
 import { classifyError } from '../ai/errors.js'
+import { recordUsage } from '../ai/usageLog.js'
 
 const GEMINI_API_KEY_STORAGE = 'gemini-api-key'
 
@@ -188,6 +189,7 @@ export function useReceiptScan() {
           responseSchema: RESPONSE_SCHEMA,
         },
       })
+      recordUsage('scontrino', MODEL_PRO, res?.usageMetadata)
       if (runRef.current !== run) return
 
       const text = res?.text ?? ''

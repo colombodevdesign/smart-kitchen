@@ -1,5 +1,6 @@
 import { GoogleGenAI } from '@google/genai'
 import { MODEL_NAME } from './model.js'
+import { recordUsage } from './usageLog.js'
 import { CATEGORY_IDS } from '../data/foodCategories.js'
 
 // Bump when the prompt or the metadata change: every item is analysed again.
@@ -57,6 +58,7 @@ export async function analyzePantry(apiKey, entries) {
     contents: [{ role: 'user', parts: [{ text: `${PROMPT}\n\nProdotti:\n${input}` }] }],
     config: { responseMimeType: 'application/json', responseSchema: RESPONSE_SCHEMA },
   })
+  recordUsage('analisi-dispensa', MODEL_NAME, res.usageMetadata)
   const parsed = JSON.parse(res.text)
   if (!Array.isArray(parsed)) throw new Error('Risposta non valida')
   const out = {}

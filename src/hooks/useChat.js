@@ -6,6 +6,7 @@ import { MODEL_PRO, PRO_CONFIG } from '../ai/model.js'
 import { chatSystemPrompt } from '../ai/chat.js'
 import { splitActions, visibleText } from '../ai/chatActions.js'
 import { AIError, classifyError } from '../ai/errors.js'
+import { recordUsage } from '../ai/usageLog.js'
 import { getApiKey } from '../utils/apiKey.js'
 import { todayStr } from '../utils/date.js'
 import { buildUserContext, diffSnapshots } from '../utils/userContext.js'
@@ -136,13 +137,19 @@ export function useChat(uid, getContextInputs) {
         config: { ...PRO_CONFIG, systemInstruction: chatSystemPrompt(contextText) },
       })
       let full = ''
-      for await (const chunk of stream) {
-        if (runRef.current !== run) return
-        const text = chunk.text
-        if (!text) continue
-        full += text
-        partialRef.current = { chatId, text: full }
-        setStreaming(visibleText(full))
+      let usage
+      try {
+        for await (const chunk of stream) {
+          if (chunk.usageMetadata) usage = chunk.usageMetadata
+          if (runRef.current !== run) return
+          const text = chunk.text
+          if (!text) continue
+          full += text
+          partialRef.current = { chatId, text: full }
+          setStreaming(visibleText(full))
+        }
+      } finally {
+        recordUsage('chat', MODEL_PRO, usage)
       }
       if (runRef.current !== run) return
       const { text, actions } = splitActions(full)

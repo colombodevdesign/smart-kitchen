@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { GoogleGenAI } from '@google/genai'
 import { MODEL_NAME } from '../ai/model.js'
 import { classifyError } from '../ai/errors.js'
+import { recordUsage } from '../ai/usageLog.js'
 
 const GEMINI_API_KEY_STORAGE = 'gemini-api-key'
 const MAX_DURATION_MS = 60_000
@@ -151,6 +152,7 @@ export function useVoiceBatch() {
           responseSchema: RESPONSE_SCHEMA,
         },
       })
+      recordUsage('voce', MODEL_NAME, res?.usageMetadata)
       const text = res?.text ?? ''
       let parsed
       try { parsed = JSON.parse(text) }

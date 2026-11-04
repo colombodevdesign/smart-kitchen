@@ -10,6 +10,7 @@ import { useMealPrefs } from './hooks/useMealPrefs.js'
 import { usePreferences } from './hooks/usePreferences.js'
 import { useChat } from './hooks/useChat.js'
 import { useApiKeySync } from './hooks/useApiKeySync.js'
+import { setUsageUser } from './ai/usageLog.js'
 import { useNavigation } from './hooks/useNavigation.js'
 import { useNotificationInbox } from './hooks/useNotificationInbox.js'
 import { useMediaQuery } from './hooks/useMediaQuery.js'
@@ -101,6 +102,7 @@ function AppContent({ onAuthResolved, revealing }) {
 
   // undefined = auth still resolving, null = logged out, string = uid
   const authUid = user === undefined ? undefined : (user?.uid ?? null)
+  useEffect(() => { setUsageUser(authUid) }, [authUid])
 
   // Notification centre: page on mobile (detail of Oggi), panel off the sidebar on desktop.
   const inbox = useNotificationInbox(authUid)
