@@ -78,6 +78,16 @@ service cloud.firestore {
                             && request.resource.data.updatedAt is int;
     }
 
+    // Contatori dei token Gemini, un documento per giorno (UTC): li scrive il client dopo ogni
+    // chiamata (increment), li legge il recap dei costi. Nessuna cancellazione dal client.
+    match /users/{userId}/aiUsage/{day} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId)
+                            && request.resource.data.keys().hasOnly(['day', 'updatedAt', 'byKey'])
+                            && request.resource.data.day == day
+                            && request.resource.data.byKey is map;
+    }
+
     // Centro notifiche: scritto solo dalle Functions; il client segna come letta.
     match /users/{userId}/notifications/{notificationId} {
       allow read: if isOwner(userId);

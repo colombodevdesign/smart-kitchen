@@ -44,6 +44,8 @@ src/
     prompts.js              # prompt ricette/spesa/stagione, preferencesNote, RECIPE_FORMAT, PROMPT_VERSION (entra nell'hash della cache)
     chat.js                 # chatSystemPrompt(contesto): prompt di sistema della chat, ricostruito a ogni messaggio
     chatActions.js          # protocollo ```azioni (spesa/pasto/rimuovi/preferenza): splitActions, visibleText (+ test)
+    usage.js, pricing.js    # contabilità token: normalizeUsage/usageKey/dayKey; PRICING (USD/1M, con data di validità: 3.8 Flash raddoppia dal 2027-01-01), costOf, summarize (+ test)
+    usageLog.js             # recordUsage(feature, model, usageMetadata) dopo ogni chiamata Gemini → users/{uid}/aiUsage/{YYYY-MM-DD}; setUsageUser(uid) da App
     errors.js               # classifyError → no-key | quota | billing | invalid-key | offline | unknown
     validateKey.js          # validateApiKey: verifica la chiave Gemini (models.list, gratuito) prima di salvarla
     extractIngredients.js   # estrazione batch degli ingredienti delle ricette (generateContent + responseSchema)
@@ -259,6 +261,7 @@ L'unico provider è Google (Firebase Console → Authentication → Sign-in meth
 /users/{uid}/notifications/{id}        →  { type: 'scadenze'|'pasto'|'cena'|'dispositivo', title, body, open, createdAt, readAt }  (centro notifiche)
 /users/{uid}/preferences/data          →  { items: [{ id, kind, text, source: 'chat'|'manual', createdAt }], dismissed: string[] }
 /users/{uid}/chats/{chatId}            →  { day: 'YYYY-MM-DD', title, createdAt, updatedAt, archivedAt, messages: Message[], snapshot }
+/users/{uid}/aiUsage/{YYYY-MM-DD}      →  { day, updatedAt, byKey: { "<feature>__<model>": { feature, model, calls, input, output, thoughts, cached } } }  (token Gemini del giorno UTC, increment dal client; costo = summarize in ai/pricing.js)
 /users/{uid}/mealReminders/data        →  { sent: { "<mealId>@<ms>": ms }, nudgeDay }   (solo Functions: promemoria già inviati)
 /users/{uid}/pushTokens/{deviceId}     →  { token, label, platform, status: 'active'|'stale', lastOkAt, lastSeenAt, staleSince, updatedAt }
 ```

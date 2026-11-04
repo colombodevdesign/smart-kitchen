@@ -1,5 +1,6 @@
 import { GoogleGenAI } from '@google/genai'
 import { MODEL_NAME } from './model.js'
+import { recordUsage } from './usageLog.js'
 
 const PROMPT = `Sei un assistente di cucina italiana. Ti do una o più ricette in testo. Per ognuna estrai l'elenco degli ingredienti in forma strutturata.
 
@@ -44,6 +45,7 @@ export async function extractIngredients(apiKey, recipes) {
     contents: [{ role: 'user', parts: [{ text: `${PROMPT}\n\nRicette:\n\n${input}` }] }],
     config: { responseMimeType: 'application/json', responseSchema: RESPONSE_SCHEMA },
   })
+  recordUsage('ingredienti', MODEL_NAME, res.usageMetadata)
   const parsed = JSON.parse(res.text)
   if (!Array.isArray(parsed)) throw new Error('Risposta non valida')
   const out = {}

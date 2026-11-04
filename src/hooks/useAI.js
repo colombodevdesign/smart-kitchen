@@ -4,6 +4,7 @@ import { getSeasonal, getMonthName } from '../data/seasonal'
 import { MODEL_NAME, MODEL_PRO, PRO_CONFIG } from '../ai/model.js'
 import { PROMPT_VERSION, ricettePrompts, spesaPrompts, stagionePrompts } from '../ai/prompts.js'
 import { AIError, classifyError } from '../ai/errors.js'
+import { recordUsage } from '../ai/usageLog.js'
 import { getApiKey as readApiKey } from '../utils/apiKey.js'
 
 const CACHE_KEY = 'cucina-ai-cache-v1'
@@ -80,12 +81,18 @@ export function useAI(getInventoryText, name, { session = true, preferences = []
       config: { ...(strong ? PRO_CONFIG : {}), systemInstruction: systemPromptRef.current },
     })
     let full = ''
-    for await (const chunk of stream) {
-      const text = chunk.text
-      if (text) { full += text; onChunk(text) }
+    let usage
+    try {
+      for await (const chunk of stream) {
+        if (chunk.usageMetadata) usage = chunk.usageMetadata
+        const text = chunk.text
+        if (text) { full += text; onChunk(text) }
+      }
+    } finally {
+      recordUsage(name, model, usage)
     }
     return full
-  }, [model, strong])
+  }, [model, strong, name])
 
   const call = useCallback(async (systemPrompt, userPrompt, cacheType, cacheHash, inventoryText) => {
     const run = ++runRef.current
