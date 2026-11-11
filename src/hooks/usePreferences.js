@@ -1,6 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { doc, onSnapshot, setDoc } from 'firebase/firestore'
-import { db } from '../firebase.js'
+import { useCallback, useRef } from 'react'
+import { useSyncedDoc } from './useSyncedDoc.js'
 import { PREFERENCE_KIND_IDS, preferenceKey } from '../data/preferences.js'
 
 const STORAGE_KEY = 'sk-preferences'
@@ -22,55 +21,18 @@ function loadFromLocalStorage() {
   try { return normalize(JSON.parse(localStorage.getItem(STORAGE_KEY))) } catch { return EMPTY }
 }
 
-function firestoreRef(uid) {
-  return doc(db, 'users', uid, 'preferences', 'data')
-}
-
 // Food preferences used by every AI prompt. Same sync pattern as useSavedShopping.
 export function usePreferences(uid) {
-  const [prefs, setPrefs] = useState(EMPTY)
+  // Synced without overwriting newer data from other devices: see useSyncedDoc.
+  const [prefs, update] = useSyncedDoc(uid, {
+    path: ['preferences', 'data'],
+    normalize,
+    keep: ['items', 'dismissed'],
+    loadLocal: loadFromLocalStorage,
+    saveLocal: (next) => localStorage.setItem(STORAGE_KEY, JSON.stringify(next)),
+  })
   const prefsRef = useRef(prefs)
   prefsRef.current = prefs
-  const uidRef = useRef(uid)
-  useEffect(() => { uidRef.current = uid }, [uid])
-
-  useEffect(() => {
-    if (uid === undefined) return
-    if (!uid) {
-      setPrefs(loadFromLocalStorage())
-      return
-    }
-    const ref = firestoreRef(uid)
-    let loaded = false
-    const unsub = onSnapshot(ref, (snap) => {
-      if (snap.exists()) {
-        if (!snap.metadata.hasPendingWrites || !loaded) {
-          loaded = true
-          setPrefs(normalize(snap.data()))
-        }
-      } else if (!snap.metadata.fromCache) {
-        loaded = true
-        const local = loadFromLocalStorage()
-        setDoc(ref, local).catch(console.error)
-        setPrefs(local)
-      }
-    })
-    return unsub
-  }, [uid])
-
-  useEffect(() => {
-    if (uid || uid === undefined) return
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs)) } catch {}
-  }, [prefs, uid])
-
-  const update = useCallback((fn) => {
-    setPrefs(prev => {
-      const next = fn(prev)
-      if (next === prev) return prev
-      if (uidRef.current) setDoc(firestoreRef(uidRef.current), next).catch(console.error)
-      return next
-    })
-  }, [])
 
   // Returns false when the same preference is already saved.
   const add = useCallback(({ kind, text, source = 'manual' }) => {

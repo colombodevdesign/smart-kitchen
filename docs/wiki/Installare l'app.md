@@ -12,7 +12,7 @@ Al primo caricamento della sessione compare una breve animazione: forchetta e co
 
 ## Senza connessione
 
-L'app si apre anche offline (dopo la prima visita). Dispensa, pasti, ricette salvate e lista della spesa restano leggibili e modificabili: le modifiche partono da sole al ritorno della rete e un banner ti avvisa che sei offline. Servono la rete per il primo accesso, per l'AI (ricette, assistente, voce, scontrino) e per le notifiche. Se modifichi lo stesso dato da due dispositivi offline, vince l'ultimo che si sincronizza.
+L'app si apre anche offline (dopo la prima visita). Dispensa, pasti, ricette salvate e lista della spesa restano leggibili e modificabili: le modifiche partono da sole al ritorno della rete e un banner ti avvisa che sei offline. Servono la rete per il primo accesso, per l'AI (ricette, assistente, voce, scontrino) e per le notifiche. Quando un dispositivo torna online invia solo quello che hai cambiato (un prodotto aggiunto, una quantità, un pasto spostato), applicato sui dati più recenti: le modifiche fatte nel frattempo su un altro dispositivo restano. Se due dispositivi cambiano lo stesso campo dello stesso prodotto, vale l'ultimo che si sincronizza.
 
 ## Chiave Gemini
 

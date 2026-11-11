@@ -1,6 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { doc, onSnapshot, setDoc } from 'firebase/firestore'
-import { db } from '../firebase.js'
+import { useCallback } from 'react'
+import { useSyncedDoc } from './useSyncedDoc.js'
 
 const STORAGE_KEY = 'cucina-pasti-v1'
 const EMPTY_MEALS = {}
@@ -9,49 +8,15 @@ function loadFromLocalStorage() {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) ?? EMPTY_MEALS } catch { return EMPTY_MEALS }
 }
 
-function firestoreRef(uid) {
-  return doc(db, 'users', uid, 'meals', 'data')
-}
-
 export function useMealTracker(uid) {
-  const [meals, setMeals] = useState(EMPTY_MEALS)
-  const uidRef = useRef(uid)
-  useEffect(() => { uidRef.current = uid }, [uid])
-
-  useEffect(() => {
-    if (uid === undefined) return // auth still resolving: don't touch state yet
-    if (!uid) {
-      setMeals(loadFromLocalStorage())
-      return
-    }
-    const ref = firestoreRef(uid)
-    // Pending-write snapshots are skipped once the state is loaded (see below)
-    let loaded = false
-    const unsub = onSnapshot(ref, (snap) => {
-      if (snap.exists()) {
-        if (!snap.metadata.hasPendingWrites || !loaded) {
-          loaded = true
-          setMeals(snap.data())
-        }
-      } else if (!snap.metadata.fromCache) {
-        loaded = true
-        const local = loadFromLocalStorage()
-        setDoc(ref, local).catch(console.error)
-        setMeals(local)
-      }
-    })
-    return unsub
-  }, [uid])
-
-  useEffect(() => {
-    if (uid || uid === undefined) return
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(meals)) } catch {}
-  }, [meals, uid])
-
-  const save = useCallback((next) => {
-    if (uidRef.current) setDoc(firestoreRef(uidRef.current), next).catch(console.error)
-    return next
-  }, [])
+  // Synced without overwriting newer data from other devices: see useSyncedDoc.
+  // Days left without meals disappear from the document (no `keep`).
+  const [meals, setMeals] = useSyncedDoc(uid, {
+    path: ['meals', 'data'],
+    normalize: raw => raw ?? EMPTY_MEALS,
+    loadLocal: loadFromLocalStorage,
+    saveLocal: (next) => localStorage.setItem(STORAGE_KEY, JSON.stringify(next)),
+  })
 
   // `planned: true` = a meal still to eat (Cucina › Pasti as a planner), with an
   // optional `time` and `reminder`; without it the meal is in the log.
@@ -68,8 +33,8 @@ export function useMealTracker(uid) {
       ...planFields(payload),
     }
     const clean = withoutEmpty(meal)
-    setMeals(prev => save({ ...prev, [dateStr]: [...(prev[dateStr] ?? []), clean] }))
-  }, [save])
+    setMeals(prev => ({ ...prev, [dateStr]: [...(prev[dateStr] ?? []), clean] }))
+  }, [setMeals])
 
   const removeMeal = useCallback((dateStr, id) => {
     setMeals(prev => {
@@ -77,9 +42,9 @@ export function useMealTracker(uid) {
       const next = { ...prev }
       if (updated.length === 0) delete next[dateStr]
       else next[dateStr] = updated
-      return save(next)
+      return next
     })
-  }, [save])
+  }, [setMeals])
 
   // Edits a meal; with `toDate` it also moves it to that day (same id).
   const updateMeal = useCallback((dateStr, id, patch, toDate = dateStr) => {
@@ -97,9 +62,9 @@ export function useMealTracker(uid) {
         else next[dateStr] = rest
         next[toDate] = [...(prev[toDate] ?? []), updated]
       }
-      return save(next)
+      return next
     })
-  }, [save])
+  }, [setMeals])
 
   // A planned meal was eaten: it goes in the log and its reminder is dropped.
   const markEaten = useCallback((dateStr, id) => {
