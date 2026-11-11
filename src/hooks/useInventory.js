@@ -1,6 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { doc, onSnapshot, setDoc } from 'firebase/firestore'
-import { db } from '../firebase.js'
+import { useCallback } from 'react'
+import { useSyncedDoc } from './useSyncedDoc.js'
 import { SECTIONS } from '../data/initialInventory.js'
 import { inventoryText } from '../utils/pantry.js'
 import { analysisKey } from '../ai/analyzePantry.js'
@@ -36,58 +35,23 @@ function loadFromLocalStorage() {
   return EMPTY_INVENTORY
 }
 
-function firestoreRef(uid) {
-  return doc(db, 'users', uid, 'inventory', 'data')
+// The sections always exist, even if a document from an older version lacks one.
+function normalizeInventory(raw) {
+  const out = { ...(raw ?? {}) }
+  for (const s of SECTIONS) if (!Array.isArray(out[s])) out[s] = []
+  return out
 }
 
 export function useInventory(uid) {
-  const [inventory, setInventory] = useState(EMPTY_INVENTORY)
-  const uidRef = useRef(uid)
-  useEffect(() => { uidRef.current = uid }, [uid])
-
-  // Subscribe to Firestore or load from localStorage
-  useEffect(() => {
-    if (uid === undefined) return // auth still resolving: don't touch state yet
-    if (!uid) {
-      setInventory(loadFromLocalStorage())
-      return
-    }
-    const ref = firestoreRef(uid)
-    // Pending-write snapshots are skipped once the state is loaded (see below)
-    let loaded = false
-    const unsub = onSnapshot(ref, (snap) => {
-      if (snap.exists()) {
-        // Skip snapshots caused by our own pending writes to avoid double-renders, except
-        // the first one: after a reload with edits still queued offline it is all we have.
-        if (!snap.metadata.hasPendingWrites || !loaded) {
-          loaded = true
-          setInventory(snap.data())
-        }
-      } else if (!snap.metadata.fromCache) {
-        // Confirmed by the server (not a cache-miss/offline false negative): first login, migrate localStorage data to Firestore
-        loaded = true
-        const local = loadFromLocalStorage()
-        setDoc(ref, local)
-        setInventory(local)
-      }
-    })
-    return unsub
-  }, [uid])
-
-  // Persist to localStorage when not using Firestore
-  useEffect(() => {
-    if (uid || uid === undefined) return
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(inventory)) } catch {}
-  }, [inventory, uid])
-
-  // Write next inventory state both locally and to Firestore (if logged in)
-  const persist = useCallback((next) => {
-    setInventory(next)
-    const currentUid = uidRef.current
-    if (currentUid) {
-      setDoc(firestoreRef(currentUid), next).catch(console.error)
-    }
-  }, [])
+  // Synced without overwriting newer data from other devices: see useSyncedDoc.
+  const [inventory, setInventory] = useSyncedDoc(uid, {
+    path: ['inventory', 'data'],
+    normalize: normalizeInventory,
+    keep: SECTIONS,
+    loadLocal: loadFromLocalStorage,
+    saveLocal: (next) => localStorage.setItem(STORAGE_KEY, JSON.stringify(next)),
+  })
+  const persist = useCallback((next) => setInventory(() => next), [setInventory])
 
   const addItem = useCallback((section, name, qty, expiryDateStr) => {
     const id = section[0] + Date.now()
@@ -97,10 +61,9 @@ export function useInventory(uid) {
         ...prev,
         [section]: [...prev[section], { id, name: name.trim(), qty: qty.trim(), urgent: false, added: Date.now(), expiresAt }],
       }
-      if (uidRef.current) setDoc(firestoreRef(uidRef.current), next).catch(console.error)
       return next
     })
-  }, [])
+  }, [setInventory])
 
   const addBatch = useCallback((items) => {
     const valid = (items ?? []).filter(it =>
@@ -122,36 +85,32 @@ export function useInventory(uid) {
           expiresAt: null,
         })
       })
-      if (uidRef.current) setDoc(firestoreRef(uidRef.current), next).catch(console.error)
       return next
     })
-  }, [])
+  }, [setInventory])
 
   const removeItem = useCallback((section, id) => {
     setInventory(prev => {
       const next = { ...prev, [section]: prev[section].filter(i => i.id !== id) }
-      if (uidRef.current) setDoc(firestoreRef(uidRef.current), next).catch(console.error)
       return next
     })
-  }, [])
+  }, [setInventory])
 
   // Re-inserts an item removed a moment ago, keeping its id and timestamps (undo).
   const restoreItem = useCallback((section, item) => {
     setInventory(prev => {
       if (prev[section].some(i => i.id === item.id)) return prev
       const next = { ...prev, [section]: [...prev[section], item] }
-      if (uidRef.current) setDoc(firestoreRef(uidRef.current), next).catch(console.error)
       return next
     })
-  }, [])
+  }, [setInventory])
 
   const updateItem = useCallback((section, id, patch) => {
     setInventory(prev => {
       const next = { ...prev, [section]: prev[section].map(i => i.id === id ? { ...i, ...patch, updatedAt: Date.now() } : i) }
-      if (uidRef.current) setDoc(firestoreRef(uidRef.current), next).catch(console.error)
       return next
     })
-  }, [])
+  }, [setInventory])
 
   const moveItem = useCallback((fromSection, id, toSection) => {
     if (fromSection === toSection) return
@@ -163,10 +122,9 @@ export function useInventory(uid) {
         [fromSection]: prev[fromSection].filter(i => i.id !== id),
         [toSection]: [...prev[toSection], { ...item, updatedAt: Date.now() }],
       }
-      if (uidRef.current) setDoc(firestoreRef(uidRef.current), next).catch(console.error)
       return next
     })
-  }, [])
+  }, [setInventory])
 
   // Opening records when, so the remaining shelf life can be estimated.
   const toggleUrgent = useCallback((section, id) => {
@@ -177,10 +135,9 @@ export function useInventory(uid) {
           ? { ...i, urgent: !i.urgent, openedAt: i.urgent ? null : Date.now(), updatedAt: Date.now() }
           : i),
       }
-      if (uidRef.current) setDoc(firestoreRef(uidRef.current), next).catch(console.error)
       return next
     })
-  }, [])
+  }, [setInventory])
 
   // Stores the AI metadata from usePantryAnalysis: { [id]: { key, name, category, food, openDays, freshDays } }.
   // A result is dropped if the item was renamed or moved meanwhile (its key no
@@ -199,10 +156,9 @@ export function useInventory(uid) {
         })
       }
       if (!changed) return prev
-      if (uidRef.current) setDoc(firestoreRef(uidRef.current), next).catch(console.error)
       return next
     })
-  }, [])
+  }, [setInventory])
 
   // Category picked by hand in the item menu; '' goes back to the AI's choice
   // (clearing the key makes usePantryAnalysis analyse the item again).
@@ -217,10 +173,9 @@ export function useInventory(uid) {
           return { ...i, ai }
         }),
       }
-      if (uidRef.current) setDoc(firestoreRef(uidRef.current), next).catch(console.error)
       return next
     })
-  }, [])
+  }, [setInventory])
 
   const clearInventory = useCallback(async () => {
     persist(EMPTY_INVENTORY)

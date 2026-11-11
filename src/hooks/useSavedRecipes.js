@@ -1,6 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { doc, onSnapshot, setDoc } from 'firebase/firestore'
-import { db } from '../firebase.js'
+import { useCallback } from 'react'
+import { useSyncedDoc } from './useSyncedDoc.js'
 import { extractIngredients } from '../ai/extractIngredients.js'
 import { getApiKey } from '../utils/apiKey.js'
 
@@ -10,53 +9,25 @@ function loadFromLocalStorage() {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) ?? [] } catch { return [] }
 }
 
-function firestoreRef(uid) {
-  return doc(db, 'users', uid, 'savedRecipes', 'data')
-}
-
 export function useSavedRecipes(uid) {
-  const [recipes, setRecipes] = useState([])
-  const uidRef = useRef(uid)
-  useEffect(() => { uidRef.current = uid }, [uid])
-
-  useEffect(() => {
-    if (uid === undefined) return // auth still resolving: don't touch state yet
-    if (!uid) {
-      setRecipes(loadFromLocalStorage())
-      return
-    }
-    const ref = firestoreRef(uid)
-    // Pending-write snapshots are skipped once the state is loaded (see below)
-    let loaded = false
-    const unsub = onSnapshot(ref, (snap) => {
-      if (snap.exists()) {
-        if (!snap.metadata.hasPendingWrites || !loaded) {
-          loaded = true
-          setRecipes(snap.data().items ?? [])
-        }
-      } else if (!snap.metadata.fromCache) {
-        loaded = true
-        const local = loadFromLocalStorage()
-        setDoc(ref, { items: local }).catch(console.error)
-        setRecipes(local)
-      }
-    })
-    return unsub
-  }, [uid])
-
-  useEffect(() => {
-    if (uid || uid === undefined) return
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(recipes)) } catch {}
-  }, [recipes, uid])
-
-  const persist = (next) => {
-    if (uidRef.current) setDoc(firestoreRef(uidRef.current), { items: next }).catch(console.error)
-  }
+  // Synced without overwriting newer data from other devices: see useSyncedDoc.
+  const [stored, updateDoc] = useSyncedDoc(uid, {
+    path: ['savedRecipes', 'data'],
+    normalize: raw => ({ items: Array.isArray(raw?.items) ? raw.items : [] }),
+    keep: ['items'],
+    loadLocal: () => ({ items: loadFromLocalStorage() }),
+    saveLocal: (next) => localStorage.setItem(STORAGE_KEY, JSON.stringify(next.items)),
+  })
+  const recipes = stored.items
+  // Same contract as a state setter over the list: fn(prev) => next.
+  const setRecipes = useCallback(fn => updateDoc(d => {
+    const next = fn(d.items)
+    return next === d.items ? d : { ...d, items: next }
+  }), [updateDoc])
 
   const updateRecipe = useCallback((id, patch) => {
     setRecipes(prev => {
       const next = prev.map(r => r.id === id ? { ...r, ...patch } : r)
-      persist(next)
       return next
     })
   }, [])
@@ -85,7 +56,6 @@ export function useSavedRecipes(uid) {
     const created = items.map((r, i) => ({ id: `${ts}-${i}`, ...r, savedAt: ts }))
     setRecipes(prev => {
       const next = [...prev, ...created]
-      persist(next)
       return next
     })
     analyzeIngredients(created)
@@ -94,7 +64,6 @@ export function useSavedRecipes(uid) {
   const removeRecipe = useCallback((id) => {
     setRecipes(prev => {
       const next = prev.filter(r => r.id !== id)
-      persist(next)
       return next
     })
   }, [])

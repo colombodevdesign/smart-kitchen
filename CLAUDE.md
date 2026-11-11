@@ -34,6 +34,7 @@ public/
   splash/                   # schermate di lancio iOS (apple-touch-startup-image): verde #1E5A43 a tinta unita
 src/
   main.jsx                  # entry: ToastProvider + watchSystemTheme + registrazione del service worker (solo build di produzione)
+  sync/                     # docPatch.js (diffDoc/applyOps: modifiche per entità e campo, + test), pendingQueue.js (coda in localStorage)
   mock/                     # modalità demo: mode.js (flag di build), data.js (utente finto, dati di esempio, seed/reset)
   firebase.js               # app, auth, db (cache locale persistente su IndexedDB), messagingPromise, callFunction (import dinamico di firebase/functions)
   App.jsx                   # auth guard + orchestrazione stato + 5 destinazioni + AddFlow
@@ -51,6 +52,7 @@ src/
   hooks/
     useAuth.js              # Firebase Auth (Google), onAuthStateChanged
     useNavigation.js        # {tab, sub, detail} + history.pushState/popstate (nessun router)
+    useSyncedDoc.js         # sync dei documenti dati: modifiche come operazioni in coda (sync/), applicate in transazione sul server
     useInventory.js         # CRUD dispensa + CSV + Firestore sync (fallback localStorage), restoreItem, applyAnalysis, setCategory
     usePantryAnalysis.js    # analisi AI in background dei prodotti senza item.ai valido
     useMealTracker.js       # pasti (registro + planner) + sync: addMeal, updateMeal (anche cambio giorno), markEaten
@@ -286,6 +288,7 @@ si può cancellare dalla Console.
 | `sk-inbox` | centro notifiche senza account (demo): lista di `{ id, type, title, body, open, createdAt, readAt }` |
 | `sk-preferences` | preferenze alimentari senza account (demo) |
 | `sk-chats` | chat con l'assistente senza account (demo), ultime 30 |
+| `sk-pending:<uid>:<path>` | modifiche ai documenti dati non ancora confermate dal server (`useSyncedDoc`) |
 | `sk-expiring-banner-dismissed` | data (`YYYY-MM-DD`) in cui è stato chiuso il banner «stanno per scadere» di Spesa; riappare il giorno dopo |
 | `cucina-ai-cache-v1` | cache risposte AI (l'hash include `PROMPT_VERSION`) |
 | `cucina-session-ricette-v1` | sessione chat ricette |
@@ -314,24 +317,29 @@ Due livelli, entrambi automatici:
   Firebase Auth), `/_vercel/` e il SW stesso (`NETWORK_ONLY`). In dev `SHELL.urls` è vuoto e il SW non fa caching; `main.jsx` lo registra solo con `import.meta.env.PROD`.
   Il caricamento di Firebase Messaging (`importScripts` da gstatic + `firebase.messaging()`) è in try/catch: se fallisce si perdono le push, non l'offline.
 - **Dati** — `firebase.js` crea Firestore con `persistentLocalCache` + `persistentMultipleTabManager`: dispensa, pasti, ricette e spesa restano leggibili
-  e modificabili offline, le scritture in coda partono al ritorno della rete (se IndexedDB non è disponibile ripiega sulla cache in memoria).
-  Gli `onSnapshot` degli hook dati ignorano gli snapshot con `hasPendingWrites` **solo dopo il primo caricamento** (`loaded`): dopo un ricarico offline con
-  modifiche ancora in coda il primo snapshot arriva dalla cache già con `hasPendingWrites` e va applicato, altrimenti la schermata resterebbe vuota.
-  Il ramo di migrazione (`!snap.exists()`) scatta solo se `!fromCache`, per non sovrascrivere dati veri con quelli locali. Ogni scrittura è un `setDoc` dell'intero
-  documento: modifiche concorrenti offline da due dispositivi → vince l'ultima a sincronizzarsi.
+  offline dalla cache (se IndexedDB non è disponibile ripiega sulla cache in memoria); le modifiche aspettano nella coda `sk-pending` e partono al ritorno della rete.
+  Le **scritture** dei documenti dati non passano dalla coda offline di Firestore: vedi «Hook con sync Firestore».
 - Non funzionano offline: primo accesso/login (un utente già entrato resta dentro grazie alla persistenza di Auth), AI, notifiche, prima apertura dell'app.
 
 ## Hook con sync Firestore — pattern condiviso
 
-`useInventory`, `useMealTracker`, `useSavedRecipes`, `useSavedShopping` seguono tutti
-lo stesso pattern (`useInventory.js` è il riferimento canonico):
-- Accettano `uid` come parametro.
-- Con uid: `onSnapshot` per real-time sync; ogni mutazione chiama `setDoc(ref, next)`.
-- Senza uid: solo localStorage (fallback / non loggati).
-- `!snap.metadata.hasPendingWrites` per evitare doppi render sui propri write (tranne il primo snapshot: vedi «Uso offline»).
-- Migrazione `localStorage → Firestore` al primo login: se `!snap.exists()` fa
-  `setDoc(ref, local)`.
-- `clearInventory()` svuota sia Firestore che localStorage.
+`useInventory`, `useMealTracker`, `useSavedRecipes`, `useSavedShopping` e `usePreferences` usano `useSyncedDoc(uid, { path, normalize, keep, loadLocal, saveLocal })`,
+che restituisce `[dati, update]`; le mutazioni sono funzioni pure `update(prev => next)`.
+- **Mai riscrivere il documento intero con la copia locale.** Quella copia può essere vecchia (prima apertura dalla cache, Mac senza
+  rete, scheda aperta da giorni) e cancellerebbe le modifiche fatte altrove: è successo. `update` trasforma il cambiamento in operazioni
+  per entità e campo (`sync/docPatch.js`: `put`/`patch`/`del` per le liste di oggetti con `id`, `add`/`remove` per le liste di stringhe,
+  `set`/`unset` per il resto), le mette nella coda `sk-pending:<uid>:<path>` (localStorage, sopravvive a ricarichi e chiusure, condivisa
+  tra le schede) e le applica con `runTransaction` sulla versione **attuale** del server. Le operazioni sono idempotenti: riapplicarle
+  (due schede, timeout di 20 s, snapshot arrivato prima della conferma) non cambia nulla. Una `patch` su un'entità cancellata altrove
+  viene ignorata (vince la cancellazione); due modifiche allo stesso campo: vince l'ultima a sincronizzarsi.
+- Offline (o se la transazione fallisce) la coda resta e si riprova al ritorno della rete, quando la scheda torna visibile e con
+  backoff fino a 60 s; un errore `invalid-argument` scarta il lotto. Ciò che si vede è l'ultimo snapshot (anche dalla cache) con le
+  operazioni in coda applicate sopra.
+- `keep`: chiavi-lista sempre presenti (sezioni della dispensa, `items`, `dismissed`); le altre liste vuote spariscono (giorni senza pasti).
+- Senza uid: solo localStorage (`loadLocal`/`saveLocal`). Al primo login, se il server conferma che il doc non esiste, i dati locali
+  entrano in coda come operazioni (migrazione).
+- Per un nuovo documento dati usare `useSyncedDoc`, non `setDoc`. Restano a `setDoc` diretto solo documenti di impostazioni a valore
+  singolo (`settings/gemini`, `notificationPrefs`) e le chat (`chats/{id}`, un documento per conversazione).
 
 ## Modello dati — Item (dispensa)
 

@@ -1,6 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { doc, onSnapshot, setDoc } from 'firebase/firestore'
-import { db } from '../firebase.js'
+import { useCallback } from 'react'
+import { useSyncedDoc } from './useSyncedDoc.js'
 
 const STORAGE_KEY = 'cucina-spesa-salvata-v1'
 
@@ -25,48 +24,21 @@ function loadFromLocalStorage() {
   } catch { return [] }
 }
 
-function firestoreRef(uid) {
-  return doc(db, 'users', uid, 'savedShopping', 'data')
-}
-
 export function useSavedShopping(uid) {
-  const [items, setItems] = useState([])
-  const uidRef = useRef(uid)
-  useEffect(() => { uidRef.current = uid }, [uid])
-
-  useEffect(() => {
-    if (uid === undefined) return // auth still resolving: don't touch state yet
-    if (!uid) {
-      setItems(loadFromLocalStorage())
-      return
-    }
-    const ref = firestoreRef(uid)
-    // Pending-write snapshots are skipped once the state is loaded (see below)
-    let loaded = false
-    const unsub = onSnapshot(ref, (snap) => {
-      if (snap.exists()) {
-        if (!snap.metadata.hasPendingWrites || !loaded) {
-          loaded = true
-          setItems((snap.data().items ?? []).map(normalizeItem))
-        }
-      } else if (!snap.metadata.fromCache) {
-        loaded = true
-        const local = loadFromLocalStorage()
-        setDoc(ref, { items: local }).catch(console.error)
-        setItems(local)
-      }
-    })
-    return unsub
-  }, [uid])
-
-  useEffect(() => {
-    if (uid || uid === undefined) return
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)) } catch {}
-  }, [items, uid])
-
-  const persist = (next) => {
-    if (uidRef.current) setDoc(firestoreRef(uidRef.current), { items: next }).catch(console.error)
-  }
+  // Synced without overwriting newer data from other devices: see useSyncedDoc.
+  const [stored, updateDoc] = useSyncedDoc(uid, {
+    path: ['savedShopping', 'data'],
+    normalize: raw => ({ items: (Array.isArray(raw?.items) ? raw.items : []).map(normalizeItem) }),
+    keep: ['items'],
+    loadLocal: () => ({ items: loadFromLocalStorage() }),
+    saveLocal: (next) => localStorage.setItem(STORAGE_KEY, JSON.stringify(next.items)),
+  })
+  const items = stored.items
+  // Same contract as a state setter over the list: fn(prev) => next.
+  const setItems = useCallback(fn => updateDoc(d => {
+    const next = fn(d.items)
+    return next === d.items ? d : { ...d, items: next }
+  }), [updateDoc])
 
   const addItems = useCallback((newItems) => {
     const ts = Date.now()
@@ -84,7 +56,6 @@ export function useSavedShopping(uid) {
           source: item.source ?? 'ai',
         })),
       ]
-      persist(next)
       return next
     })
   }, [])
@@ -107,7 +78,6 @@ export function useSavedShopping(uid) {
           source,
         },
       ]
-      persist(next)
       return next
     })
   }, [])
@@ -120,7 +90,6 @@ export function useSavedShopping(uid) {
     if (Object.keys(allowed).length === 0) return
     setItems(prev => {
       const next = prev.map(i => i.id === id ? { ...i, ...allowed, updatedAt: Date.now() } : i)
-      persist(next)
       return next
     })
   }, [])
@@ -128,7 +97,6 @@ export function useSavedShopping(uid) {
   const removeItem = useCallback((id) => {
     setItems(prev => {
       const next = prev.filter(i => i.id !== id)
-      persist(next)
       return next
     })
   }, [])
@@ -136,7 +104,6 @@ export function useSavedShopping(uid) {
   const toggleChecked = useCallback((id) => {
     setItems(prev => {
       const next = prev.map(i => i.id === id ? { ...i, checked: !i.checked } : i)
-      persist(next)
       return next
     })
   }, [])
@@ -144,7 +111,6 @@ export function useSavedShopping(uid) {
   const clearChecked = useCallback(() => {
     setItems(prev => {
       const next = prev.filter(i => !i.checked)
-      persist(next)
       return next
     })
   }, [])
